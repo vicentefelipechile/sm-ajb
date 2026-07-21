@@ -61,6 +61,12 @@
 		"es"		"Alternar freeday"
 	}
 
+	"Admin Menu Guard Ban"
+	{
+		"en"		"Ban from guards (BLU)"
+		"es"		"Banear del equipo azul (guardias)"
+	}
+
 	"Admin Menu Give Boost"
 	{
 		"en"		"Give boost points"
