@@ -19,6 +19,9 @@ void AJB_Prep_Start()
 
 	g_bPrepActive = true;
 
+	// Freeze cvar must be 0 before BLU clients try to walk (replicated + detour stack).
+	AJB_ApplyEngineMovementPolicy();
+
 	AJB_SetPhaseTimer(prep);
 
 	AJB_Prep_ApplyAll();
@@ -145,9 +148,27 @@ void AJB_Prep_SetMovable(int client, bool movable)
 		return;
 	}
 
+	// Never fight admin/debug movement (sm_noclip → MOVETYPE_NOCLIP every prep tick was stripping it).
+	MoveType mt = GetEntityMoveType(client);
+	if (mt == MOVETYPE_NOCLIP || mt == MOVETYPE_OBSERVER)
+	{
+		return;
+	}
+
 	if (movable)
 	{
-		SetEntityMoveType(client, MOVETYPE_WALK);
+		// Guards: walk + real maxspeed (engine may have left flMaxspeed at 1.0 from freeze).
+		if (mt != MOVETYPE_WALK)
+		{
+			SetEntityMoveType(client, MOVETYPE_WALK);
+		}
+
+		// Push a sane class speed so prediction is not stuck at 1.0 hu/s.
+		float speed = GetEntPropFloat(client, Prop_Send, "m_flMaxspeed");
+		if (speed < 10.0)
+		{
+			SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 300.0);
+		}
 
 		if (TF2_IsPlayerInCondition(client, TFCond_Dazed))
 		{
@@ -160,6 +181,11 @@ void AJB_Prep_SetMovable(int client, bool movable)
 	}
 	else
 	{
-		SetEntityMoveType(client, MOVETYPE_NONE);
+		// Prisoners: networked hard lock (client sees MOVETYPE_NONE even if freeze cvar is 0).
+		if (mt != MOVETYPE_NONE)
+		{
+			SetEntityMoveType(client, MOVETYPE_NONE);
+		}
+		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 1.0);
 	}
 }

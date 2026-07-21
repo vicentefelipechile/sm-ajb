@@ -18,6 +18,55 @@ void AJB_SetRoundState(AJBRoundState newState)
 	Call_Finish();
 }
 
+// Stop every AJB runtime clock/state that must not leak into the next round.
+// Map entity regeneration is handled by game_round_win force_map_reset — not door spam.
+void AJB_CleanupRoundRuntime()
+{
+	AJB_Prep_Stop();
+	AJB_KillCellsAutoTimer();
+	AJB_KillRoundExpireTimer();
+	AJB_KillApplyTimer();
+	AJB_KillWinCheckTimer();
+	AJB_DestroyPluginRoundTimer();
+	AJB_ClearWarden(false);
+	g_bLastPrisonerAnnounced = false;
+}
+
+void AJB_StartWinCheckTimer()
+{
+	AJB_KillWinCheckTimer();
+	// Periodic wipe detect — death hooks alone can miss multi-frame edge cases.
+	g_hWinCheckTimer = CreateTimer(1.0, Timer_WinCheck, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+}
+
+void AJB_KillWinCheckTimer()
+{
+	if (g_hWinCheckTimer != null)
+	{
+		delete g_hWinCheckTimer;
+		g_hWinCheckTimer = null;
+	}
+}
+
+Action Timer_WinCheck(Handle timer)
+{
+	if (!g_bModeActive)
+	{
+		g_hWinCheckTimer = null;
+		return Plugin_Stop;
+	}
+
+	if (g_RoundState == AJBState_RoundEnd || g_RoundState == AJBState_Waiting
+		|| g_RoundState == AJBState_Disabled)
+	{
+		return Plugin_Continue;
+	}
+
+	AJB_CheckLastPrisoner();
+	AJB_CheckWinConditions();
+	return Plugin_Continue;
+}
+
 void AJB_ResetPlayerFlags()
 {
 	for (int i = 1; i <= MaxClients; i++)
@@ -76,14 +125,29 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
+	LogMessage("[AJB] teamplay_round_start — full round bootstrap (owned_win=%d eng_state=%d).",
+		g_bOwnedRoundWin, GameRules_GetProp("m_iRoundState"));
+
+	// Every round: re-assert freeze cvar=0 so clients can predict movement in PREROUND.
+	// (Plugin reload / soft win / other plugins can flip it back to 1.)
+	AJB_ApplyEngineMovementPolicy();
+
+	// Engine advanced — cancel the "stuck after win" watchdog.
+	g_bWaitingForNewRound = false;
+	AJB_Watchdog_MarkRoundStart();
+
+	// Fresh round boundary: clear AJB runtime, re-discover doors after map reset.
+	AJB_CleanupRoundRuntime();
 	AJB_ResetPlayerFlags();
 	AJB_ApplyPendingFreedays();
-	AJB_ClearWarden(false);
-	AJB_KillCellsAutoTimer();
 	AJB_LoadMapDoors();
-	g_bLastPrisonerAnnounced = false;
+
+	// force_map_reset (our wins) regenerates the map. Engine soft-wins do not —
+	// always snap cells closed so a dirty world cannot carry open cages forward.
+	AJB_ResetCellsForRound();
 
 	AJB_SetRoundState(AJBState_CellsLocked);
+	g_bOwnedRoundWin = false;
 
 	float prep = g_cvPrepTime.FloatValue;
 	float autoOpen = g_cvCellsAutoOpen.FloatValue;
@@ -109,6 +173,9 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 		}
 	}
 
+	// Natural end of round: detect wipes every second (not only on death events).
+	AJB_StartWinCheckTimer();
+
 	if (g_cvWardenAuto.BoolValue)
 	{
 		CreateTimer(1.0, Timer_AutoWarden, _, TIMER_FLAG_NO_MAPCHANGE);
@@ -125,10 +192,14 @@ void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
-	AJB_Prep_Stop();
-	AJB_KillCellsAutoTimer();
-	AJB_ClearPhaseTimer();
-	AJB_ClearWarden(false);
+	// Engine may fire this without force_map_reset (soft win). Our ForceRoundWin
+	// already cleaned up and set RoundEnd; still safe to re-run cleanup.
+	if (!g_bOwnedRoundWin)
+	{
+		LogMessage("[AJB] teamplay_round_win without AJB ForceRoundWin — map may not regenerate; snap cells next start.");
+	}
+
+	AJB_CleanupRoundRuntime();
 	AJB_SetRoundState(AJBState_RoundEnd);
 }
 
@@ -156,6 +227,13 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!g_bModeActive)
+	{
+		return;
+	}
+
+	// Dead Ringer / feign death fires player_death but the spy is not really dead.
+	// Must not strip warden, clear rebel, or trigger last-prisoner / round-end from it.
+	if (event.GetInt("deathflags") & TF_DEATHFLAG_DEADRINGER)
 	{
 		return;
 	}

@@ -7,11 +7,13 @@
 
 static int g_iRoundTimerRef = INVALID_ENT_REFERENCE;
 static Handle g_hTimerApply;
+static Handle g_hRoundExpireTimer; // Authoritative end — team_round_timer is HUD-only in TF2.
 
 void AJB_Timer_OnMapStart()
 {
 	g_iRoundTimerRef = INVALID_ENT_REFERENCE;
 	AJB_KillApplyTimer();
+	AJB_KillRoundExpireTimer();
 }
 
 void AJB_KillApplyTimer()
@@ -21,6 +23,81 @@ void AJB_KillApplyTimer()
 		delete g_hTimerApply;
 		g_hTimerApply = null;
 	}
+}
+
+void AJB_KillRoundExpireTimer()
+{
+	if (g_hRoundExpireTimer != null)
+	{
+		delete g_hRoundExpireTimer;
+		g_hRoundExpireTimer = null;
+	}
+}
+
+// Remove the plugin-created HUD timer so a leftover entity cannot keep ticking into the next round.
+void AJB_DestroyPluginRoundTimer()
+{
+	AJB_KillApplyTimer();
+
+	if (g_iRoundTimerRef != INVALID_ENT_REFERENCE)
+	{
+		int ent = EntRefToEntIndex(g_iRoundTimerRef);
+		if (ent != -1 && IsValidEntity(ent))
+		{
+			char name[64];
+			name[0] = '\0';
+			if (HasEntProp(ent, Prop_Data, "m_iName"))
+			{
+				GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
+			}
+
+			// Only kill our own entity — never delete a map-owned timer mid-reset.
+			if (StrEqual(name, AJB_TIMER_NAME, false))
+			{
+				AcceptEntityInput(ent, "Kill");
+			}
+		}
+		g_iRoundTimerRef = INVALID_ENT_REFERENCE;
+	}
+}
+
+// When the main jail clock hits zero: guards (BLU) win. The entity HUD does not end rounds alone.
+void AJB_StartRoundExpireTimer(float seconds)
+{
+	AJB_KillRoundExpireTimer();
+
+	if (seconds <= 0.0 || !g_bModeActive)
+	{
+		return;
+	}
+
+	g_hRoundExpireTimer = CreateTimer(seconds, Timer_RoundTimeExpired, _, TIMER_FLAG_NO_MAPCHANGE);
+	AJB_Watchdog_MarkMainClockStart();
+}
+
+bool AJB_IsRoundExpireTimerActive()
+{
+	return g_hRoundExpireTimer != null;
+}
+
+Action Timer_RoundTimeExpired(Handle timer)
+{
+	g_hRoundExpireTimer = null;
+
+	if (!g_bModeActive)
+	{
+		return Plugin_Stop;
+	}
+
+	if (g_RoundState == AJBState_RoundEnd || g_RoundState == AJBState_Disabled || g_RoundState == AJBState_Waiting)
+	{
+		return Plugin_Stop;
+	}
+
+	AJB_ChatAll("Round Time Expired");
+	// Classic jailbreak: time runs out → guards win.
+	AJB_ForceRoundWin(AJB_GetGuardsTeam());
+	return Plugin_Stop;
 }
 
 // Queue a HUD clock update. Delay is required: TF2 removes team_round_timer entities
@@ -36,24 +113,28 @@ void AJB_SetPhaseTimer(float seconds)
 	g_hTimerApply = CreateTimer(0.15, Timer_ApplyPhaseTimer, seconds, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-// After prep (or immediately if prep is off): show the main jail round clock.
+// After prep (or immediately if prep is off): show the main jail round clock + start expire.
 void AJB_StartRoundClock()
 {
 	float seconds = g_cvRoundTime.FloatValue;
 	if (seconds <= 0.0)
 	{
 		AJB_KillApplyTimer();
+		AJB_KillRoundExpireTimer();
 		g_hTimerApply = CreateTimer(0.15, Timer_UnhideOnly, _, TIMER_FLAG_NO_MAPCHANGE);
 		return;
 	}
 
 	AJB_SetPhaseTimer(seconds);
+	// SM timer is the real round limit; team_round_timer only paints the stock HUD.
+	AJB_StartRoundExpireTimer(seconds);
 }
 
 void AJB_ClearPhaseTimer()
 {
 	// Do not hide/disable the HUD clock — cells/prep end must leave the round timer visible.
 	AJB_KillApplyTimer();
+	AJB_KillRoundExpireTimer();
 }
 
 Action Timer_ApplyPhaseTimer(Handle timer, float seconds)

@@ -12,6 +12,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <dhooks>
 #include <tf2>
 #include <tf2_stocks>
 
@@ -82,6 +83,9 @@ Handle g_hFwdLastPrisoner;
 Handle g_hFwdWardenGiveLR;
 
 Handle g_hCellsAutoTimer;
+Handle g_hWinCheckTimer;
+bool g_bWaitingForNewRound;
+bool g_bOwnedRoundWin; // true only when AJB_ForceRoundWin ran (force_map_reset path)
 
 // =========================================================================================================
 // Core fragments
@@ -97,6 +101,8 @@ Handle g_hCellsAutoTimer;
 #include "ajb/core_doors.sp"
 #include "ajb/core_timer.sp"
 #include "ajb/core_prep.sp"
+#include "ajb/core_movement.sp"
+#include "ajb/core_watchdog.sp"
 #include "ajb/core_api.sp"
 
 // =========================================================================================================
@@ -138,9 +144,12 @@ public void OnPluginStart()
 	g_cvBlockBuildings = CreateConVar("sm_ajb_block_buildings", "1", "1 = block Engineer building placement while AJB is active.", _, true, 0.0, true, 1.0);
 	g_cvBlockPrisonerDamage = CreateConVar("sm_ajb_block_prisoner_damage", "1", "1 = block non-rebel prisoner damage to guards (freeday does not bypass this).", _, true, 0.0, true, 1.0);
 	g_cvPrepTime = CreateConVar("sm_ajb_prep_time", "10", "Preparation seconds at round start: BLU can move, RED stay frozen in cells (0 = off).", _, true, 0.0, true, 60.0);
-	g_cvRoundTime = CreateConVar("sm_ajb_round_time", "600", "Main round clock seconds on team_round_timer HUD (0 = do not force duration, only unhide map timer).", _, true, 0.0);
+	g_cvRoundTime = CreateConVar("sm_ajb_round_time", "600", "Main round duration in seconds (HUD + forces guards win at 0). 0 = no timed end.", _, true, 0.0);
 
 	AJB_WardenHealth_OnPluginStart();
+	// CanPlayerMove detour before mode policy (so policy sees detour active).
+	AJB_Movement_OnPluginStart();
+	AJB_Watchdog_OnPluginStart();
 
 	AutoExecConfig(true, "ajb");
 
@@ -223,9 +232,20 @@ public void OnLibraryRemoved(const char[] name)
 
 Action Timer_LateStartRoundClock(Handle timer)
 {
-	if (g_bModeActive)
+	// Mid-map plugin reload only: restore the main clock if a round is already live
+	// and prep is not owning the HUD. Never steal the prep countdown on map load.
+	if (!g_bModeActive || AJB_IsPrepActive())
 	{
-		AJB_StartRoundClock();
+		return Plugin_Stop;
+	}
+
+	if (g_RoundState == AJBState_CellsLocked || g_RoundState == AJBState_CellsOpen
+		|| g_RoundState == AJBState_LastRequest || g_RoundState == AJBState_SpecialDay)
+	{
+		if (!AJB_IsRoundExpireTimerActive() && g_cvRoundTime.FloatValue > 0.0)
+		{
+			AJB_StartRoundClock();
+		}
 	}
 	return Plugin_Stop;
 }
@@ -234,8 +254,13 @@ public void OnPluginEnd()
 {
 	AJB_Prep_Stop();
 	AJB_ClearPhaseTimer();
+	AJB_KillRoundExpireTimer();
 	AJB_KillCellsAutoTimer();
 	AJB_ClearWarden(false);
+	AJB_Movement_OnPluginEnd();
+	// Restore stock engine freeze if fallback changed it.
+	g_bModeActive = false;
+	AJB_ApplyEngineMovementPolicy();
 }
 
 public void OnMapStart()
@@ -247,6 +272,7 @@ public void OnMapStart()
 	AJB_KillCellsAutoTimer();
 	AJB_ClearPhaseTimer();
 	AJB_Timer_OnMapStart();
+	AJB_Watchdog_OnMapStart();
 	g_iDoorNameCount = 0;
 
 	if (g_bModeActive)
@@ -264,6 +290,7 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
+	AJB_Watchdog_OnMapEnd();
 	AJB_Prep_Stop();
 	AJB_KillCellsAutoTimer();
 	AJB_ClearPhaseTimer();
@@ -357,3 +384,5 @@ Action Command_DoorsList(int client, int args)
 	}
 	return Plugin_Handled;
 }
+
+

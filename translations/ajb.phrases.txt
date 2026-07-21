@@ -283,6 +283,18 @@
 		"ru"		"{1} Только Warden (или админ) управляет камерами."
 	}
 
+	"Round Time Expired"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Time is up — guards win!"
+		"es"		"{1} ¡Se acabó el tiempo — ganan los guardias!"
+		"las"		"{1} ¡Se acabó el tiempo — ganan los guardias!"
+		"de"		"{1} Zeit abgelaufen — Wachen gewinnen!"
+		"fr"		"{1} Temps écoulé — les gardes gagnent !"
+		"pt"		"{1} Tempo esgotado — guardas vencem!"
+		"ru"		"{1} Время вышло — победа охраны!"
+	}
+
 	"Cells Opened"
 	{
 		"#format"	"{1:s}"

@@ -1,0 +1,35 @@
+// =========================================================================================================
+// Another Jailbreak — engine signatures
+// CTFPlayer::CanPlayerMove — per-player movement gate during GR_STATE_PREROUND freeze
+// =========================================================================================================
+"Games"
+{
+	"tf"
+	{
+		"Signatures"
+		{
+			// bool CTFPlayer::CanPlayerMove() const
+			// Windows x86 (server.dll): push esi; mov esi,ecx; mov al,[esi+0x176]; cmp al,0xA (OBSERVER);
+			// cmp al,0x8 (NOCLIP); then TFGameRules / freeze cvar checks.
+			// Anchored via VScript registration table entry "CanPlayerMove" → method ptr 0x1051B3D0
+			// (current live binary). Re-find with find-signature / inspect_bin if a game update moves it.
+			"CTFPlayer::CanPlayerMove"
+			{
+				"library"	"server"
+				"windows"	"\x56\x8B\xF1\x8A\x86\x76\x01\x00\x00\x3C\x0A\x0F\x84\x2A\x2A\x2A\x2A\x3C\x08\x0F\x84\x2A\x2A\x2A\x2A\x8B\x0D\x2A\x2A\x2A\x2A"
+				"linux"		"@_ZNK9CTFPlayer13CanPlayerMoveEv"
+			}
+		}
+
+		"Functions"
+		{
+			"CTFPlayer::CanPlayerMove"
+			{
+				"signature"	"CTFPlayer::CanPlayerMove"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"entity"
+			}
+		}
+	}
+}

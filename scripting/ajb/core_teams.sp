@@ -1,5 +1,5 @@
 // =========================================================================================================
-// Team helpers (RED prisoners / BLU guards by default)
+// Team helpers + last-prisoner check + forced round wins
 // =========================================================================================================
 
 bool AJB_IsValidClient(int client, bool aliveOnly = false)
@@ -17,16 +17,6 @@ bool AJB_IsValidClient(int client, bool aliveOnly = false)
 	return true;
 }
 
-bool AJB_ClientIsPrisoner(int client)
-{
-	if (!AJB_IsValidClient(client))
-	{
-		return false;
-	}
-
-	return GetClientTeam(client) == AJB_GetPrisonersTeam();
-}
-
 bool AJB_ClientIsGuard(int client)
 {
 	if (!AJB_IsValidClient(client))
@@ -37,17 +27,22 @@ bool AJB_ClientIsGuard(int client)
 	return GetClientTeam(client) == AJB_GetGuardsTeam();
 }
 
+bool AJB_ClientIsPrisoner(int client)
+{
+	if (!AJB_IsValidClient(client))
+	{
+		return false;
+	}
+
+	return GetClientTeam(client) == AJB_GetPrisonersTeam();
+}
+
 int AJB_CountAliveOnTeam(int team)
 {
 	int count = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || !IsPlayerAlive(i))
-		{
-			continue;
-		}
-
-		if (GetClientTeam(i) == team)
+		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == team)
 		{
 			count++;
 		}
@@ -140,15 +135,17 @@ void AJB_CheckWinConditions()
 		return;
 	}
 
-	int totalHumans = 0;
+	// Count anyone on a playable team (humans OR bots). The old "2 humans" gate
+	// silently disabled all wins during solo + bot testing.
+	int onTeams = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) >= AJB_TEAM_RED)
+		if (IsClientInGame(i) && GetClientTeam(i) >= AJB_TEAM_RED)
 		{
-			totalHumans++;
+			onTeams++;
 		}
 	}
-	if (totalHumans < 2)
+	if (onTeams < 1)
 	{
 		return;
 	}
@@ -165,6 +162,8 @@ void AJB_CheckWinConditions()
 	}
 }
 
+// Proper TF2 round end: game_round_win with force_map_reset so the map regenerates.
+// Valve wiki: force_map_reset should be true when TeamNum is set (avoids broken/crashy wins).
 void AJB_ForceRoundWin(int team)
 {
 	if (g_RoundState == AJBState_RoundEnd)
@@ -172,19 +171,87 @@ void AJB_ForceRoundWin(int team)
 		return;
 	}
 
-	AJB_SetRoundState(AJBState_RoundEnd);
-
-	int ent = CreateEntityByName("game_round_win");
-	if (ent == -1)
+	if (team != AJB_TEAM_RED && team != AJB_TEAM_BLU)
 	{
 		return;
 	}
 
-	DispatchSpawn(ent);
-	SetEntProp(ent, Prop_Data, "m_iTeamNum", team);
+	// Stop AJB-side clocks/state immediately so nothing "continues" across the boundary.
+	AJB_CleanupRoundRuntime();
+	g_bOwnedRoundWin = true;
+	AJB_SetRoundState(AJBState_RoundEnd);
+
+	char teamStr[8];
+	IntToString(team, teamStr, sizeof(teamStr));
+
+	int ent = CreateEntityByName("game_round_win");
+	if (ent == -1 || !IsValidEntity(ent))
+	{
+		LogMessage("[AJB] game_round_win create failed — mp_restartgame 1.");
+		g_bWaitingForNewRound = true;
+		ServerCommand("mp_restartgame 1");
+		return;
+	}
+
+	// Keyvalues BEFORE spawn (engine reads them at spawn time).
+	// force_map_reset=1 is what regenerates map entities (doors/logic) for the next round.
+	DispatchKeyValue(ent, "targetname", "ajb_round_win");
+	DispatchKeyValue(ent, "force_map_reset", "1");
+	DispatchKeyValue(ent, "switch_teams", "0");
+	DispatchKeyValue(ent, "TeamNum", teamStr);
+
+	if (!DispatchSpawn(ent))
+	{
+		LogMessage("[AJB] game_round_win spawn failed — mp_restartgame 1.");
+		AcceptEntityInput(ent, "Kill");
+		g_bWaitingForNewRound = true;
+		ServerCommand("mp_restartgame 1");
+		return;
+	}
+
+	if (HasEntProp(ent, Prop_Data, "m_bForceMapReset"))
+	{
+		SetEntProp(ent, Prop_Data, "m_bForceMapReset", 1);
+	}
+	if (HasEntProp(ent, Prop_Data, "m_bSwitchTeamsOnMapWin"))
+	{
+		SetEntProp(ent, Prop_Data, "m_bSwitchTeamsOnMapWin", 0);
+	}
+	if (HasEntProp(ent, Prop_Data, "m_iTeamNum"))
+	{
+		SetEntProp(ent, Prop_Data, "m_iTeamNum", team);
+	}
+	if (HasEntProp(ent, Prop_Send, "m_iTeamNum"))
+	{
+		SetEntProp(ent, Prop_Send, "m_iTeamNum", team);
+	}
+
+	SetVariantInt(team);
+	AcceptEntityInput(ent, "SetTeam");
 	AcceptEntityInput(ent, "RoundWin");
 
-	CreateTimer(0.1, Timer_RemoveEntity, EntIndexToEntRef(ent), TIMER_FLAG_NO_MAPCHANGE);
+	LogMessage("[AJB] Natural round end via ForceRoundWin team=%d force_map_reset=1.", team);
+
+	// If teamplay_round_start never arrives (jb maps that ignore game_round_win), hard restart.
+	g_bWaitingForNewRound = true;
+	CreateTimer(18.0, Timer_EnsureNewRoundStarted, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	// Clean the entity after intermission (do not kill at 0.1s — that aborted wins).
+	CreateTimer(20.0, Timer_RemoveEntity, EntIndexToEntRef(ent), TIMER_FLAG_NO_MAPCHANGE);
+}
+
+// If Event_RoundStart never cleared g_bWaitingForNewRound, the engine ignored RoundWin.
+Action Timer_EnsureNewRoundStarted(Handle timer)
+{
+	if (!g_bModeActive || !g_bWaitingForNewRound)
+	{
+		return Plugin_Stop;
+	}
+
+	LogMessage("[AJB] No teamplay_round_start after win — mp_restartgame 1 (map ignored game_round_win).");
+	g_bWaitingForNewRound = false;
+	ServerCommand("mp_restartgame 1");
+	return Plugin_Stop;
 }
 
 Action Timer_RemoveEntity(Handle timer, int ref)

@@ -176,6 +176,81 @@ void AJB_AddDoorName(const char[] name)
 	g_iDoorNameCount++;
 }
 
+// Bring cell targets back to closed/locked. After force_map_reset this is mostly a no-op;
+// after a soft engine win (no map regen) this is what stops open cages from carrying over.
+void AJB_ResetCellsForRound()
+{
+	// Named cell targets from config / scan.
+	AJB_FireDoorInput("Unlock");
+	AJB_FireDoorInput("Close");
+	AJB_FireDoorInput("Lock");
+
+	// Also every door-like entity whose targetname looks like a cell (covers soft resets
+	// where the config list is incomplete after entity index reshuffle).
+	AJB_FireAllCellLikeDoors("Unlock");
+	AJB_FireAllCellLikeDoors("Close");
+	AJB_FireAllCellLikeDoors("Lock");
+
+	CreateTimer(0.15, Timer_CellsResetRetry, _, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(0.50, Timer_CellsResetRetry, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+Action Timer_CellsResetRetry(Handle timer)
+{
+	if (!g_bModeActive)
+	{
+		return Plugin_Stop;
+	}
+
+	AJB_FireDoorInput("Close");
+	AJB_FireDoorInput("Lock");
+	AJB_FireAllCellLikeDoors("Close");
+	AJB_FireAllCellLikeDoors("Lock");
+	return Plugin_Stop;
+}
+
+void AJB_FireAllCellLikeDoors(const char[] input)
+{
+	int maxEdicts = GetMaxEntities();
+	char classname[64];
+	char name[128];
+
+	for (int ent = MaxClients + 1; ent < maxEdicts; ent++)
+	{
+		if (!IsValidEntity(ent))
+		{
+			continue;
+		}
+
+		GetEntityClassname(ent, classname, sizeof(classname));
+		if (!AJB_IsDoorLikeClass(classname))
+		{
+			continue;
+		}
+
+		if (!HasEntProp(ent, Prop_Data, "m_iName"))
+		{
+			continue;
+		}
+
+		GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
+		if (name[0] == '\0')
+		{
+			continue;
+		}
+
+		if (StrContains(name, "cell", false) == -1
+			&& StrContains(name, "jail", false) == -1
+			&& StrContains(name, "prison", false) == -1
+			&& StrContains(name, "cage", false) == -1)
+		{
+			continue;
+		}
+
+		AcceptEntityInput(ent, input);
+	}
+}
+
 bool AJB_OpenCellsInternal(bool announce)
 {
 	// Locked doors ignore Open — Unlock first. A delayed Open covers engines that

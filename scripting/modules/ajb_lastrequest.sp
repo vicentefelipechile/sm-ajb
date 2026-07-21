@@ -238,6 +238,12 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
+	// Feign death is not a real kill — do not end the LR fight.
+	if (event.GetInt("deathflags") & TF_DEATHFLAG_DEADRINGER)
+	{
+		return;
+	}
+
 	int victim = GetClientOfUserId(event.GetInt("userid"));
 	if (victim != g_iPrisoner && victim != g_iOpponent)
 	{
