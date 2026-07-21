@@ -45,12 +45,21 @@ ConVar g_cvEnabled;
 ConVar g_cvMutePrisoners;
 ConVar g_cvUnmuteOnFreeday;
 ConVar g_cvUnmuteOnLR;
+// Dead/alive voice separation (independent of BaseComm global mute).
+ConVar g_cvDeadTalk;
+ConVar g_cvDeadTalkCrossTeam;
+// Admin flag(s) that let a player talk directly to everyone (bypass dead/alive routing).
+ConVar g_cvBypassFlags;
 
 bool g_bHasCore;
 bool g_bHasBaseComm;
 
 // True if AJB applied the mute (so we only undo our own).
 bool g_bAjbMuted[MAXPLAYERS + 1];
+
+// Last-known alive state, so a revive (which may not fire player_spawn) still
+// re-runs the voice matrix. Updated by the watchdog timer.
+bool g_bWasAlive[MAXPLAYERS + 1];
 
 // =========================================================================================================
 // Lifecycle
@@ -70,19 +79,29 @@ public void OnPluginStart()
 	g_cvMutePrisoners = CreateConVar("sm_ajb_mute_prisoners", "1", "1 = mute prisoners while jail round is active.", _, true, 0.0, true, 1.0);
 	g_cvUnmuteOnFreeday = CreateConVar("sm_ajb_mute_unmute_freeday", "1", "1 = do not mute freeday prisoners.", _, true, 0.0, true, 1.0);
 	g_cvUnmuteOnLR = CreateConVar("sm_ajb_mute_unmute_lr", "1", "1 = unmute when round enters Last Request.", _, true, 0.0, true, 1.0);
+	g_cvDeadTalk = CreateConVar("sm_ajb_mute_deadtalk", "1", "1 = dead players cannot be heard by the living, but hear/talk to each other by voice.", _, true, 0.0, true, 1.0);
+	g_cvDeadTalkCrossTeam = CreateConVar("sm_ajb_mute_deadtalk_crossteam", "1", "1 = all dead players hear each other; 0 = only dead teammates (requires sm_ajb_mute_deadtalk 1).", _, true, 0.0, true, 1.0);
+	g_cvBypassFlags = CreateConVar("sm_ajb_mute_bypass_flags", "b", "Admin flag(s) that can always talk to/hear everyone regardless of dead/alive (empty = nobody). Default 'b' = generic admin.", _);
 
 	AutoExecConfig(true, "ajb_mutes");
 
 	g_cvEnabled.AddChangeHook(OnMuteCvarChanged);
 	g_cvMutePrisoners.AddChangeHook(OnMuteCvarChanged);
+	g_cvDeadTalk.AddChangeHook(OnMuteCvarChanged);
+	g_cvDeadTalkCrossTeam.AddChangeHook(OnMuteCvarChanged);
+	g_cvBypassFlags.AddChangeHook(OnMuteCvarChanged);
 
 	g_bHasCore = LibraryExists(AJB_LIBRARY);
 	g_bHasBaseComm = LibraryExists("basecomm");
 
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
+	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 	HookEvent("player_team", Event_PlayerTeam, EventHookMode_Post);
 
-	if (g_bHasCore && g_bHasBaseComm)
+	// Catch revives (medic resurrect, admin/warden revive) that never fire player_spawn.
+	CreateTimer(1.0, Timer_LifeStateWatch, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
+	if (g_bHasCore)
 	{
 		AJB_Mutes_RefreshAll();
 	}
@@ -95,16 +114,21 @@ public void OnPluginStart()
 public void OnPluginEnd()
 {
 	AJB_Mutes_ClearAll(true);
+	AJB_Voice_ClearAll();
 }
 
 public void OnMapEnd()
 {
 	AJB_Mutes_ClearAll(true);
+	AJB_Voice_ClearAll();
 }
 
 public void OnClientDisconnect(int client)
 {
 	g_bAjbMuted[client] = false;
+	g_bWasAlive[client] = false;
+	// A leaver changes the dead/alive matrix for everyone else.
+	AJB_Voice_RefreshAll();
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -168,6 +192,19 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 	{
 		AJB_Mutes_ApplyClient(client);
 	}
+	// Alive-state changed: recompute who can hear whom.
+	AJB_Voice_RefreshAll();
+}
+
+void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (client > 0)
+	{
+		// A dead prisoner must lose its BaseComm mute so it can talk to other dead.
+		AJB_Mutes_ApplyClient(client);
+	}
+	AJB_Voice_RefreshAll();
 }
 
 void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
@@ -186,11 +223,37 @@ void Frame_ApplyClient(int userid)
 	{
 		AJB_Mutes_ApplyClient(client);
 	}
+	AJB_Voice_RefreshAll();
 }
 
 void OnMuteCvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	AJB_Mutes_RefreshAll();
+}
+
+// Some revive paths (medic resurrect, admin/warden "revive") flip a player back to
+// alive without a player_spawn event. Poll life state and refresh when it changes.
+Action Timer_LifeStateWatch(Handle timer)
+{
+	bool changed = false;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		bool alive = IsClientInGame(i) && !IsFakeClient(i) && IsPlayerAlive(i);
+		if (alive != g_bWasAlive[i])
+		{
+			g_bWasAlive[i] = alive;
+			changed = true;
+		}
+	}
+
+	if (changed)
+	{
+		// A prisoner that got revived must also lose its BaseComm mute.
+		AJB_Mutes_RefreshAll();
+	}
+
+	return Plugin_Continue;
 }
 
 // =========================================================================================================
@@ -236,12 +299,25 @@ bool AJB_Mutes_ShouldMuteClient(int client)
 		return false;
 	}
 
+	// Bypass-flag admins are never globally muted (they may always talk).
+	if (AJB_Voice_HasBypass(client))
+	{
+		return false;
+	}
+
 	if (!AJB_Mutes_ShouldMutePrisoners())
 	{
 		return false;
 	}
 
 	if (!AJB_IsPrisoner(client))
+	{
+		return false;
+	}
+
+	// Dead players are never globally muted: the dead-voice layer routes them
+	// (living can't hear them, other dead can). BaseComm mute would kill both.
+	if (!IsPlayerAlive(client))
 	{
 		return false;
 	}
@@ -262,18 +338,18 @@ bool AJB_Mutes_ShouldMuteClient(int client)
 
 void AJB_Mutes_RefreshAll()
 {
-	if (!g_bHasBaseComm)
+	if (g_bHasBaseComm)
 	{
-		return;
-	}
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i))
+		for (int i = 1; i <= MaxClients; i++)
 		{
-			AJB_Mutes_ApplyClient(i);
+			if (IsClientInGame(i))
+			{
+				AJB_Mutes_ApplyClient(i);
+			}
 		}
 	}
+
+	AJB_Voice_RefreshAll();
 }
 
 void AJB_Mutes_ApplyClient(int client)
@@ -342,5 +418,137 @@ void AJB_Mutes_ClearAll(bool unmute)
 		}
 
 		g_bAjbMuted[i] = false;
+	}
+}
+
+// =========================================================================================================
+// Dead / alive voice routing (SetListenOverride)
+// Living never hear the dead; the dead hear/talk to each other. Independent of BaseComm mute.
+// =========================================================================================================
+
+bool AJB_Voice_Enabled()
+{
+	if (!g_cvEnabled.BoolValue || !g_cvDeadTalk.BoolValue)
+	{
+		return false;
+	}
+
+	if (!g_bHasCore || !AJB_IsEnabled())
+	{
+		return false;
+	}
+
+	AJBRoundState state = AJB_GetRoundState();
+	if (state == AJBState_Disabled || state == AJBState_Waiting)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void AJB_Voice_RefreshAll()
+{
+	if (!AJB_Voice_Enabled())
+	{
+		AJB_Voice_ClearAll();
+		return;
+	}
+
+	bool crossTeam = g_cvDeadTalkCrossTeam.BoolValue;
+
+	// Precompute bypass so we don't re-parse flags in the inner loop.
+	bool bypass[MAXPLAYERS + 1];
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		bypass[i] = AJB_Voice_HasBypass(i);
+	}
+
+	for (int recv = 1; recv <= MaxClients; recv++)
+	{
+		if (!IsClientInGame(recv) || IsFakeClient(recv))
+		{
+			continue;
+		}
+
+		bool recvDead = !IsPlayerAlive(recv);
+		int recvTeam = GetClientTeam(recv);
+
+		for (int send = 1; send <= MaxClients; send++)
+		{
+			if (send == recv || !IsClientInGame(send) || IsFakeClient(send))
+			{
+				continue;
+			}
+
+			ListenOverride override = Listen_Default;
+
+			if (bypass[send] || bypass[recv])
+			{
+				// A bypass-flag admin always talks to / hears everyone.
+				override = Listen_Yes;
+			}
+			else if (!IsPlayerAlive(send))
+			{
+				if (!recvDead)
+				{
+					// Living never hear the dead.
+					override = Listen_No;
+				}
+				else if (crossTeam || GetClientTeam(send) == recvTeam)
+				{
+					// Dead hear each other (all dead, or same-team only).
+					override = Listen_Yes;
+				}
+			}
+
+			SetListenOverride(recv, send, override);
+		}
+	}
+}
+
+// True if the client holds any of the configured bypass flags (root always qualifies).
+bool AJB_Voice_HasBypass(int client)
+{
+	if (client < 1 || client > MaxClients || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return false;
+	}
+
+	char flags[32];
+	g_cvBypassFlags.GetString(flags, sizeof(flags));
+	if (flags[0] == '\0')
+	{
+		return false;
+	}
+
+	int need = ReadFlagString(flags);
+	if (need == 0)
+	{
+		return false;
+	}
+
+	int have = GetUserFlagBits(client);
+	return (have & ADMFLAG_ROOT) != 0 || (have & need) != 0;
+}
+
+void AJB_Voice_ClearAll()
+{
+	for (int recv = 1; recv <= MaxClients; recv++)
+	{
+		if (!IsClientInGame(recv) || IsFakeClient(recv))
+		{
+			continue;
+		}
+
+		for (int send = 1; send <= MaxClients; send++)
+		{
+			if (send == recv || !IsClientInGame(send) || IsFakeClient(send))
+			{
+				continue;
+			}
+
+			SetListenOverride(recv, send, Listen_Default);
+		}
 	}
 }
