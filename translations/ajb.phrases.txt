@@ -1,0 +1,294 @@
+"Phrases"
+{
+	// =====================================================================================
+	// Prefix — passed as {1} into chat/reply phrases (do not hardcode in every line)
+	// =====================================================================================
+
+	"Prefix"
+	{
+		"en"		"[AJB]"
+		"es"		"[AJB]"
+		"las"		"[AJB]"
+		"de"		"[AJB]"
+		"fr"		"[AJB]"
+		"pt"		"[AJB]"
+		"ru"		"[AJB]"
+	}
+
+	// =====================================================================================
+	// Chat / command replies  ({1} = Prefix)
+	// =====================================================================================
+
+	"Mode Inactive"
+	{
+		"en"		"{1} Another Jailbreak is not active on this map."
+		"es"		"{1} Another Jailbreak no está activo en este mapa."
+		"las"		"{1} Another Jailbreak no está activo en este mapa."
+		"de"		"{1} Another Jailbreak ist auf dieser Map nicht aktiv."
+		"fr"		"{1} Another Jailbreak n'est pas actif sur cette carte."
+		"pt"		"{1} Another Jailbreak não está ativo neste mapa."
+		"ru"		"{1} Another Jailbreak не активен на этой карте."
+	}
+
+	"Ingame Only"
+	{
+		"en"		"{1} This command must be used in-game."
+		"es"		"{1} Este comando debe usarse dentro del juego."
+		"las"		"{1} Este comando debe usarse dentro del juego."
+		"de"		"{1} Dieser Befehl muss im Spiel verwendet werden."
+		"fr"		"{1} Cette commande doit être utilisée en jeu."
+		"pt"		"{1} Este comando deve ser usado dentro do jogo."
+		"ru"		"{1} Эту команду нужно использовать в игре."
+	}
+
+	"Round Cells Locked"
+	{
+		"en"		"{1} Round start — cells locked. Guards: claim warden with !w"
+		"es"		"{1} Inicio de ronda — celdas cerradas. Guardias: reclamen warden con !w"
+		"las"		"{1} Inicio de ronda — celdas cerradas. Guardias: reclamen warden con !w"
+		"de"		"{1} Rundenstart — Zellen zu. Guards: Warden mit !w beanspruchen"
+		"fr"		"{1} Début de manche — cellules fermées. Gardes : !w pour Warden"
+		"pt"		"{1} Início da rodada — celas trancadas. Guardas: !w para Warden"
+		"ru"		"{1} Раунд начался — камеры закрыты. Охрана: !w чтобы стать Warden"
+	}
+
+	"Prep Started"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Preparation: {2}s — guards can move, prisoners stay locked."
+		"es"		"{1} Preparación: {2}s — los guardias se mueven, los prisioneros quedan fijos."
+		"las"		"{1} Preparación: {2}s — los guardias se mueven, los prisioneros quedan fijos."
+		"de"		"{1} Vorbereitung: {2}s — Guards können laufen, Prisoners bleiben."
+		"fr"		"{1} Préparation : {2}s — les gardes bougent, les prisonniers restent."
+		"pt"		"{1} Preparação: {2}s — guardas podem se mover, prisioneiros ficam."
+		"ru"		"{1} Подготовка: {2}с — охрана может ходить, заключённые на месте."
+	}
+
+	"Prep Ended"
+	{
+		"en"		"{1} Preparation over — round rules apply."
+		"es"		"{1} Fin de preparación — aplican las reglas de ronda."
+		"las"		"{1} Fin de preparación — aplican las reglas de ronda."
+		"de"		"{1} Vorbereitung vorbei — Rundenregeln gelten."
+		"fr"		"{1} Préparation terminée — règles de manche actives."
+		"pt"		"{1} Preparação acabou — regras da rodada valem."
+		"ru"		"{1} Подготовка окончена — действуют правила раунда."
+	}
+
+	"Warden Claimed"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} is now the Warden."
+		"es"		"{1} {2} es ahora el Warden."
+		"las"		"{1} {2} es ahora el Warden."
+		"de"		"{1} {2} ist jetzt der Warden."
+		"fr"		"{1} {2} est maintenant le Warden."
+		"pt"		"{1} {2} é agora o Warden."
+		"ru"		"{1} {2} теперь Warden."
+	}
+
+	"Warden Cleared"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} is no longer the Warden."
+		"es"		"{1} {2} ya no es el Warden."
+		"las"		"{1} {2} ya no es el Warden."
+		"de"		"{1} {2} ist nicht mehr der Warden."
+		"fr"		"{1} {2} n'est plus le Warden."
+		"pt"		"{1} {2} não é mais o Warden."
+		"ru"		"{1} {2} больше не Warden."
+	}
+
+	"Warden Cleared Unknown"
+	{
+		"en"		"{1} The Warden slot is now open."
+		"es"		"{1} El puesto de Warden está libre."
+		"las"		"{1} El puesto de Warden está libre."
+		"de"		"{1} Der Warden-Platz ist frei."
+		"fr"		"{1} Le poste de Warden est libre."
+		"pt"		"{1} O posto de Warden está livre."
+		"ru"		"{1} Слот Warden свободен."
+	}
+
+	"Warden Guards Only"
+	{
+		"en"		"{1} Only living guards can become Warden."
+		"es"		"{1} Solo guardias vivos pueden ser Warden."
+		"las"		"{1} Solo guardias vivos pueden ser Warden."
+		"de"		"{1} Nur lebende Guards können Warden werden."
+		"fr"		"{1} Seuls les gardes vivants peuvent être Warden."
+		"pt"		"{1} Apenas guardas vivos podem ser Warden."
+		"ru"		"{1} Только живая охрана может стать Warden."
+	}
+
+	"Warden Already Taken"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} is already the Warden. Use !uw if it is you."
+		"es"		"{1} {2} ya es el Warden. Usa !uw si eres tú."
+		"las"		"{1} {2} ya es el Warden. Usa !uw si eres tú."
+		"de"		"{1} {2} ist bereits Warden. !uw wenn du es bist."
+		"fr"		"{1} {2} est déjà Warden. !uw si c'est vous."
+		"pt"		"{1} {2} já é o Warden. Use !uw se for você."
+		"ru"		"{1} {2} уже Warden. !uw если это вы."
+	}
+
+	"Warden Already You"
+	{
+		"en"		"{1} You are already the Warden."
+		"es"		"{1} Ya eres el Warden."
+		"las"		"{1} Ya eres el Warden."
+		"de"		"{1} Du bist bereits der Warden."
+		"fr"		"{1} Vous êtes déjà le Warden."
+		"pt"		"{1} Você já é o Warden."
+		"ru"		"{1} Вы уже Warden."
+	}
+
+	"Warden Not You"
+	{
+		"en"		"{1} You are not the Warden."
+		"es"		"{1} No eres el Warden."
+		"las"		"{1} No eres el Warden."
+		"de"		"{1} Du bist nicht der Warden."
+		"fr"		"{1} Vous n'êtes pas le Warden."
+		"pt"		"{1} Você não é o Warden."
+		"ru"		"{1} Вы не Warden."
+	}
+
+	"No Cell Access"
+	{
+		"en"		"{1} Only the Warden (or an admin) can control cells."
+		"es"		"{1} Solo el Warden (o un admin) puede controlar las celdas."
+		"las"		"{1} Solo el Warden (o un admin) puede controlar las celdas."
+		"de"		"{1} Nur Warden (oder Admin) steuert Zellen."
+		"fr"		"{1} Seul le Warden (ou un admin) contrôle les cellules."
+		"pt"		"{1} Só o Warden (ou admin) controla as celas."
+		"ru"		"{1} Только Warden (или админ) управляет камерами."
+	}
+
+	"Cells Opened"
+	{
+		"en"		"{1} Cells are open."
+		"es"		"{1} Las celdas están abiertas."
+		"las"		"{1} Las celdas están abiertas."
+		"de"		"{1} Zellen sind offen."
+		"fr"		"{1} Les cellules sont ouvertes."
+		"pt"		"{1} As celas estão abertas."
+		"ru"		"{1} Камеры открыты."
+	}
+
+	"Cells Closed"
+	{
+		"en"		"{1} Cells are closed."
+		"es"		"{1} Las celdas están cerradas."
+		"las"		"{1} Las celdas están cerradas."
+		"de"		"{1} Zellen sind zu."
+		"fr"		"{1} Les cellules sont fermées."
+		"pt"		"{1} As celas estão fechadas."
+		"ru"		"{1} Камеры закрыты."
+	}
+
+	"Cells Open Failed"
+	{
+		"en"		"{1} Could not open cells (check map door config)."
+		"es"		"{1} No se pudieron abrir las celdas (revisa la config de puertas)."
+		"las"		"{1} No se pudieron abrir las celdas (revisa la config de puertas)."
+		"de"		"{1} Zellen konnten nicht geöffnet werden (Tür-Config prüfen)."
+		"fr"		"{1} Impossible d'ouvrir les cellules (vérifier la config)."
+		"pt"		"{1} Não foi possível abrir as celas (confira a config)."
+		"ru"		"{1} Не удалось открыть камеры (проверьте конфиг дверей)."
+	}
+
+	"Cells Close Failed"
+	{
+		"en"		"{1} Could not close cells (check map door config)."
+		"es"		"{1} No se pudieron cerrar las celdas (revisa la config de puertas)."
+		"las"		"{1} No se pudieron cerrar las celdas (revisa la config de puertas)."
+		"de"		"{1} Zellen konnten nicht geschlossen werden (Tür-Config prüfen)."
+		"fr"		"{1} Impossible de fermer les cellules (vérifier la config)."
+		"pt"		"{1} Não foi possível fechar as celas (confira a config)."
+		"ru"		"{1} Не удалось закрыть камеры (проверьте конфиг дверей)."
+	}
+
+	"Player Rebel"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} is rebelling!"
+		"es"		"{1} ¡{2} se rebeló!"
+		"las"		"{1} ¡{2} se rebeló!"
+		"de"		"{1} {2} rebelliert!"
+		"fr"		"{1} {2} se rebelle !"
+		"pt"		"{1} {2} está se rebelando!"
+		"ru"		"{1} {2} бунтует!"
+	}
+
+	"Player Unrebel"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} is no longer a rebel."
+		"es"		"{1} {2} ya no es rebelde."
+		"las"		"{1} {2} ya no es rebelde."
+		"de"		"{1} {2} ist kein Rebell mehr."
+		"fr"		"{1} {2} n'est plus rebelle."
+		"pt"		"{1} {2} não é mais rebelde."
+		"ru"		"{1} {2} больше не бунтовщик."
+	}
+
+	"Buildings Blocked"
+	{
+		"en"		"{1} Buildings are disabled during Another Jailbreak."
+		"es"		"{1} Las construcciones están desactivadas en Another Jailbreak."
+		"las"		"{1} Las construcciones están desactivadas en Another Jailbreak."
+		"de"		"{1} Gebäude sind in Another Jailbreak deaktiviert."
+		"fr"		"{1} Les bâtiments sont désactivés dans Another Jailbreak."
+		"pt"		"{1} Construções desativadas no Another Jailbreak."
+		"ru"		"{1} Постройки отключены в Another Jailbreak."
+	}
+
+	"Doors Reloaded"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Reloaded door targets ({2})."
+		"es"		"{1} Targets de puertas recargados ({2})."
+		"las"		"{1} Targets de puertas recargados ({2})."
+		"de"		"{1} Tür-Targets neu geladen ({2})."
+		"fr"		"{1} Cibles de portes rechargées ({2})."
+		"pt"		"{1} Targets de portas recarregados ({2})."
+		"ru"		"{1} Цели дверей перезагружены ({2})."
+	}
+
+	"Doors List Header"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Door targets ({2}):"
+		"es"		"{1} Targets de puertas ({2}):"
+		"las"		"{1} Targets de puertas ({2}):"
+		"de"		"{1} Tür-Targets ({2}):"
+		"fr"		"{1} Cibles de portes ({2}) :"
+		"pt"		"{1} Targets de portas ({2}):"
+		"ru"		"{1} Цели дверей ({2}):"
+	}
+
+	"Freeday Queued"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Freeday for {2} is queued for next round."
+		"es"		"{1} Freeday de {2} en cola para la próxima ronda."
+		"las"		"{1} Freeday de {2} en cola para la próxima ronda."
+	}
+
+	"Freeday Queue Cleared"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Cleared next-round freeday for {2}."
+		"es"		"{1} Se canceló el freeday de la próxima ronda de {2}."
+		"las"		"{1} Se canceló el freeday de la próxima ronda de {2}."
+	}
+
+	"Freeday Active Now"
+	{
+		"en"		"{1} Your freeday is active this round."
+		"es"		"{1} Tu freeday está activo esta ronda."
+		"las"		"{1} Tu freeday está activo esta ronda."
+	}
+}

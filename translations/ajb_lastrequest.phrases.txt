@@ -1,0 +1,129 @@
+"Phrases"
+{
+	"Prefix"
+	{
+		"en"		"[AJB]"
+		"es"		"[AJB]"
+	}
+
+	"LR Mode Inactive"
+	{
+		"en"		"{1} Another Jailbreak is not active."
+		"es"		"{1} Another Jailbreak no está activo."
+	}
+
+	"LR Ingame Only"
+	{
+		"en"		"{1} This command must be used in-game."
+		"es"		"{1} Este comando debe usarse dentro del juego."
+	}
+
+	"LR Already Active"
+	{
+		"en"		"{1} A Last Request is already in progress."
+		"es"		"{1} Ya hay un Last Request en curso."
+	}
+
+	"LR Not Last"
+	{
+		"en"		"{1} Only the last living prisoner can use Last Request."
+		"es"		"{1} Solo el último prisionero vivo puede usar Last Request."
+	}
+
+	"LR No Prisoner"
+	{
+		"en"		"{1} No living prisoner found."
+		"es"		"{1} No hay prisionero vivo."
+	}
+
+	"LR Offered"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} is the last prisoner — choose a Last Request!"
+		"es"		"{1} ¡{2} es el último prisionero — elige un Last Request!"
+	}
+
+	"LR Menu Title"
+	{
+		"en"		"Last Request — pick a game"
+		"es"		"Last Request — elige un juego"
+	}
+
+	"LR Pick Guard"
+	{
+		"en"		"Last Request — pick a guard"
+		"es"		"Last Request — elige un guardia"
+	}
+
+	"LR Timeout"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} did not pick a Last Request in time."
+		"es"		"{1} {2} no eligió Last Request a tiempo."
+	}
+
+	"LR Skipped"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} skipped Last Request."
+		"es"		"{1} {2} omitió el Last Request."
+	}
+
+	"LR No Guards"
+	{
+		"en"		"{1} No living guards available for Last Request."
+		"es"		"{1} No hay guardias vivos para el Last Request."
+	}
+
+	"LR Guard Invalid"
+	{
+		"en"		"{1} That guard is no longer valid. Pick again."
+		"es"		"{1} Ese guardia ya no es válido. Elige de nuevo."
+	}
+
+	"LR Started"
+	{
+		"#format"	"{1:s},{2:N},{3:N},{4:s}"
+		"en"		"{1} {2} vs {3} — {4}"
+		"es"		"{1} {2} vs {3} — {4}"
+	}
+
+	"LR Countdown"
+	{
+		"#format"	"{1:d}"
+		"en"		"LR starts in {1}..."
+		"es"		"LR en {1}..."
+	}
+
+	"LR Fight"
+	{
+		"en"		"FIGHT!"
+		"es"		"¡A LUCHAR!"
+	}
+
+	"LR Fight Chat"
+	{
+		"en"		"{1} Fight!"
+		"es"		"{1} ¡A luchar!"
+	}
+
+	"LR Prisoner Wins"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Prisoner {2} won the Last Request — RED wins."
+		"es"		"{1} El prisionero {2} ganó el Last Request — gana RED."
+	}
+
+	"LR Guard Wins"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Guard {2} won the Last Request — BLU wins."
+		"es"		"{1} El guardia {2} ganó el Last Request — gana BLU."
+	}
+
+	"LR Aborted"
+	{
+		"en"		"{1} Last Request aborted."
+		"es"		"{1} Last Request cancelado."
+	}
+}

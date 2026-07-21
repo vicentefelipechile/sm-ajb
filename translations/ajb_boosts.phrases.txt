@@ -1,0 +1,169 @@
+"Phrases"
+{
+	"Prefix"
+	{
+		"en"		"[AJB]"
+		"es"		"[AJB]"
+	}
+
+	"Boosts Menu Title"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"Boosts | Points: {1} | Spent this round: {2}"
+		"es"		"Boosts | Puntos: {1} | Gastados esta ronda: {2}"
+	}
+
+	"Boosts Disabled"
+	{
+		"en"		"{1} Boosts are disabled."
+		"es"		"{1} Los boosts están desactivados."
+	}
+
+	"Boosts Mode Inactive"
+	{
+		"en"		"{1} Another Jailbreak is not active."
+		"es"		"{1} Another Jailbreak no está activo."
+	}
+
+	"Boosts Ingame Only"
+	{
+		"en"		"{1} Use this in-game."
+		"es"		"{1} Úsalo dentro del juego."
+	}
+
+	"Boosts Points"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} You have {2} point(s)."
+		"es"		"{1} Tienes {2} punto(s)."
+	}
+
+	"Boosts Points Gained"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"en"		"{1} +{2} point(s) (total {3})."
+		"es"		"{1} +{2} punto(s) (total {3})."
+	}
+
+	"Boosts Points Left"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Points left: {2}."
+		"es"		"{1} Puntos restantes: {2}."
+	}
+
+	"Boosts Spend Cap"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Spend cap this round is {2} point(s)."
+		"es"		"{1} El tope de gasto esta ronda es {2} punto(s)."
+	}
+
+	"Boosts Not Enough"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"en"		"{1} Need {2} point(s) (you have {3})."
+		"es"		"{1} Necesitas {2} punto(s) (tienes {3})."
+	}
+
+	"Boost Iron Neck"
+	{
+		"en"		"[1] Iron neck — survive 1 backstab"
+		"es"		"[1] Iron neck — sobrevive 1 backstab"
+	}
+
+	"Boost Iron Neck II"
+	{
+		"en"		"[3] Iron neck II — survive 2 backstabs"
+		"es"		"[3] Iron neck II — sobrevive 2 backstabs"
+	}
+
+	"Boost Revive"
+	{
+		"en"		"[3] Revive — bring back one RED or BLU"
+		"es"		"[3] Revive — revive a un RED o BLU"
+	}
+
+	"Boosts None For Role"
+	{
+		"en"		"(No boosts for prisoners yet)"
+		"es"		"(Aún no hay boosts para prisioneros)"
+	}
+
+	"Boosts Join Team"
+	{
+		"en"		"(Join RED or BLU to use boosts)"
+		"es"		"(Entra a RED o BLU para usar boosts)"
+	}
+
+	"Boosts Guards Alive Only"
+	{
+		"en"		"{1} Only living guards can buy this boost."
+		"es"		"{1} Solo guardias vivos pueden comprar este boost."
+	}
+
+	"Boosts Warden Only"
+	{
+		"en"		"{1} Only the Warden can buy Revive."
+		"es"		"{1} Solo el Warden puede comprar Revive."
+	}
+
+	"Boosts No LR"
+	{
+		"en"		"{1} Not available during Last Request."
+		"es"		"{1} No disponible durante Last Request."
+	}
+
+	"Boosts Purchased Iron Neck"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"en"		"{1} Iron neck ready ({2} backstab save(s)). Points: {3}."
+		"es"		"{1} Iron neck listo ({2} save(s) de backstab). Puntos: {3}."
+	}
+
+	"Boosts Revive Pick"
+	{
+		"en"		"Revive — pick a dead player"
+		"es"		"Revive — elige un jugador muerto"
+	}
+
+	"Boosts Revive None"
+	{
+		"en"		"{1} No dead RED/BLU players to revive."
+		"es"		"{1} No hay RED/BLU muertos para revivir."
+	}
+
+	"Boosts Revive Invalid"
+	{
+		"en"		"{1} That player cannot be revived."
+		"es"		"{1} Ese jugador no se puede revivir."
+	}
+
+	"Boosts Revived"
+	{
+		"#format"	"{1:s},{2:N},{3:N}"
+		"en"		"{1} Warden {2} revived {3}."
+		"es"		"{1} El Warden {2} revivió a {3}."
+	}
+
+	"Boosts Backstab Saved"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Backstab survived! Charges left: {2}."
+		"es"		"{1} ¡Backstab sobrevivido! Cargas: {2}."
+	}
+
+	"Boosts Backstab Blocked"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} survived your backstab (Iron neck)."
+		"es"		"{1} {2} sobrevivió tu backstab (Iron neck)."
+	}
+
+	"Boosts Admin Gave"
+	{
+		"#format"	"{1:s},{2:d},{3:s}"
+		"en"		"{1} Gave {2} point(s) to {3}."
+		"es"		"{1} Diste {2} punto(s) a {3}."
+	}
+}

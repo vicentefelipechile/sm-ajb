@@ -1,0 +1,110 @@
+"Phrases"
+{
+	"Prefix"
+	{
+		"en"		"[AJB]"
+		"es"		"[AJB]"
+	}
+
+	"Admin Menu Title"
+	{
+		"en"		"Another Jailbreak — Admin"
+		"es"		"Another Jailbreak — Admin"
+	}
+
+	"Admin Pick Player"
+	{
+		"en"		"Pick a player"
+		"es"		"Elige un jugador"
+	}
+
+	"Admin Disabled"
+	{
+		"en"		"{1} Admin menu is disabled."
+		"es"		"{1} El menú admin está desactivado."
+	}
+
+	"Admin Mode Inactive"
+	{
+		"en"		"{1} Another Jailbreak is not active."
+		"es"		"{1} Another Jailbreak no está activo."
+	}
+
+	"Admin Ingame Only"
+	{
+		"en"		"{1} Use this command in-game."
+		"es"		"{1} Usa este comando dentro del juego."
+	}
+
+	"Admin Cells Opened"
+	{
+		"en"		"{1} Cells opened."
+		"es"		"{1} Celdas abiertas."
+	}
+
+	"Admin Cells Closed"
+	{
+		"en"		"{1} Cells closed."
+		"es"		"{1} Celdas cerradas."
+	}
+
+	"Admin Warden Cleared"
+	{
+		"en"		"{1} Warden cleared."
+		"es"		"{1} Warden liberado."
+	}
+
+	"Admin Warden Guards Only"
+	{
+		"en"		"{1} Target must be a living guard."
+		"es"		"{1} El objetivo debe ser un guardia vivo."
+	}
+
+	"Admin Player Invalid"
+	{
+		"en"		"{1} That player is no longer valid."
+		"es"		"{1} Ese jugador ya no es válido."
+	}
+
+	"Admin Rebel On"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Marked {2} as rebel."
+		"es"		"{1} {2} marcado como rebelde."
+	}
+
+	"Admin Rebel Off"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Cleared rebel on {2}."
+		"es"		"{1} Rebelde quitado a {2}."
+	}
+
+	"Admin Freeday On"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Next-round freeday queued: {2}"
+		"es"		"{1} Freeday en cola (próxima ronda): {2}"
+	}
+
+	"Admin Freeday Off"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Next-round freeday cleared: {2}"
+		"es"		"{1} Freeday de próxima ronda cancelado: {2}"
+	}
+
+	"Admin Freeday OnPlayer"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Queued next-round freeday for {2}."
+		"es"		"{1} Freeday en cola (próxima ronda) para {2}."
+	}
+
+	"Admin Freeday OffPlayer"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Cleared next-round freeday for {2}."
+		"es"		"{1} Cancelado freeday de próxima ronda de {2}."
+	}
+}
