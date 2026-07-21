@@ -49,6 +49,7 @@ ConVar g_cvPrisonersTeam;
 ConVar g_cvGuardRatio;
 ConVar g_cvCellsAutoOpen;
 ConVar g_cvWardenAuto;
+ConVar g_cvWardenAutoDelay;
 ConVar g_cvRebelOnDamage;
 ConVar g_cvWardenRebelControl;
 // When false, prisoner→guard hits never auto-rebel (used by LR “Hot Reds”).
@@ -95,6 +96,7 @@ Handle g_hCellsAutoTimer;
 
 #include "ajb/core_mode.sp"
 #include "ajb/core_teams.sp"
+#include "ajb/core_balance.sp"
 #include "ajb/core_settings.sp"
 #include "ajb/core_rounds.sp"
 #include "ajb/core_warden.sp"
@@ -138,10 +140,11 @@ public void OnPluginStart()
 	g_cvForce = CreateConVar("sm_ajb_force", "0", "1 = force AJB on even if the map prefix does not match.", _, true, 0.0, true, 1.0);
 	g_cvGuardsTeam = CreateConVar("sm_ajb_guards_team", "3", "Team index for guards (TF2 BLU = 3).", _, true, 2.0, true, 3.0);
 	g_cvPrisonersTeam = CreateConVar("sm_ajb_prisoners_team", "2", "Team index for prisoners (TF2 RED = 2).", _, true, 2.0, true, 3.0);
-	// Exposed for cfg stability; autobalance not enforced yet.
-	g_cvGuardRatio = CreateConVar("sm_ajb_guard_ratio", "3", "Target prisoners per guard for soft balance hints (0 = disable). Not enforced yet.", _, true, 0.0);
+	// Enforced by core_balance: guards are capped to ~1 per this many prisoners (0 = no cap).
+	g_cvGuardRatio = CreateConVar("sm_ajb_guard_ratio", "2", "Prisoners per guard for team balance: guards are capped to ~1 per this many prisoners (0 = disable cap).", _, true, 0.0);
 	g_cvCellsAutoOpen = CreateConVar("sm_ajb_cells_auto_open", "0", "Seconds after round start before cells auto-open (0 = manual only). Uses team_round_timer when possible.", _, true, 0.0);
-	g_cvWardenAuto = CreateConVar("sm_ajb_warden_auto", "0", "1 = auto-assign a random living guard as warden when none is set.", _, true, 0.0, true, 1.0);
+	g_cvWardenAuto = CreateConVar("sm_ajb_warden_auto", "0", "1 = auto-assign a random living guard as warden when the preround ends and none is set.", _, true, 0.0, true, 1.0);
+	g_cvWardenAutoDelay = CreateConVar("sm_ajb_warden_auto_delay", "0", "Seconds to wait after the preround ends before auto-assigning warden (0 = immediately, 1..10 = delay). Requires sm_ajb_warden_auto 1.", _, true, 0.0, true, 10.0);
 	g_cvRebelOnDamage = CreateConVar("sm_ajb_rebel_on_damage", "1", "1 = mark prisoner as rebel when they damage a guard.", _, true, 0.0, true, 1.0);
 	g_cvWardenRebelControl = CreateConVar("sm_ajb_warden_rebel_control", "1", "1 = warden can mark/pardon RED rebels from the warden menu.", _, true, 0.0, true, 1.0);
 	g_cvStripPrisoners = CreateConVar("sm_ajb_strip_prisoners", "1", "1 = strip prisoners to melee on spawn.", _, true, 0.0, true, 1.0);
@@ -158,6 +161,7 @@ public void OnPluginStart()
 	// Ammo-pack arming for stripped prisoners.
 	AJB_Weapons_OnPluginStart();
 	AJB_Settings_OnPluginStart();
+	AJB_Balance_OnPluginStart();
 
 	AutoExecConfig(true, "ajb");
 	// Mid-map reload: hook packs already in the world (OnMapStart will not re-run).
@@ -178,6 +182,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ajb_open", Command_OpenCells, "Open cell doors (warden or admin).");
 	RegConsoleCmd("sm_ajb_close", Command_CloseCells, "Close cell doors (warden or admin).");
 
+	RegAdminCmd("sm_ajb_balance", Command_AjbBalance, ADMFLAG_GENERIC, "Force the JB team balance now (move excess guards to prisoners).");
 	RegAdminCmd("sm_ajb_setwarden", Command_AdminSetWarden, ADMFLAG_GENERIC, "Usage: sm_ajb_setwarden <#userid|name>");
 	RegAdminCmd("sm_ajb_rebel", Command_AdminRebel, ADMFLAG_GENERIC, "Usage: sm_ajb_rebel <#userid|name> [0|1]");
 

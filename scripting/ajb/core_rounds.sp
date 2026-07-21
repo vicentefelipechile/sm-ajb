@@ -145,6 +145,12 @@ void AJB_NotifyLiveRoundBegin()
 
 	AJB_ApplyPendingFreedays();
 
+	// Pre-round is a free-for-all; the JB team ratio locks in now that the round is live.
+	AJB_Balance_OnLiveRoundBegin();
+
+	// Auto-warden: the preround just ended, so pick a random living guard as warden.
+	AJB_ScheduleAutoWarden();
+
 	if (g_hFwdLiveRoundBegin != null)
 	{
 		Call_StartForward(g_hFwdLiveRoundBegin);
@@ -206,13 +212,6 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 		// No prep → round is live immediately.
 		AJB_NotifyLiveRoundBegin();
-	}
-
-	// Auto-warden only after prep (same gate as !w claim).
-	if (g_cvWardenAuto.BoolValue)
-	{
-		float delay = (prep > 0.0) ? (prep + 0.25) : 1.0;
-		CreateTimer(delay, Timer_AutoWarden, _, TIMER_FLAG_NO_MAPCHANGE);
 	}
 
 	AJB_ChatAll("Prepare");
@@ -309,6 +308,9 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 	{
 		g_bRebel[client] = false;
 	}
+
+	// Enforce the JB guard ratio: bounce excess guards back to the prisoners.
+	AJB_Balance_OnPlayerTeam(client, team);
 }
 
 void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
@@ -337,6 +339,25 @@ Action Timer_PostDeathChecks(Handle timer)
 
 	AJB_CheckLastPrisoner();
 	return Plugin_Stop;
+}
+
+// Called once the preround ends (AJB_NotifyLiveRoundBegin). If sm_ajb_warden_auto is on and no
+// warden is set, schedule the pick after sm_ajb_warden_auto_delay seconds (0 = immediately, a tiny
+// deferral so it runs after the live-round state settles).
+void AJB_ScheduleAutoWarden()
+{
+	if (!g_bModeActive || !g_cvWardenAuto.BoolValue || g_iWarden != 0)
+	{
+		return;
+	}
+
+	float delay = g_cvWardenAutoDelay.FloatValue;
+	if (delay < 0.1)
+	{
+		delay = 0.1;
+	}
+
+	CreateTimer(delay, Timer_AutoWarden, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 Action Timer_AutoWarden(Handle timer)

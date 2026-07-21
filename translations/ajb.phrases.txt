@@ -461,4 +461,30 @@
 		"es"		"{1} Tu freeday está activo."
 		"las"		"{1} Tu freeday está activo."
 	}
+
+	// Team balance admin reply: {1}=prefix, {2}=guards moved, {3}=current max guards
+	"Balance Forced"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"en"		"{1} Balance applied: moved {2} guard(s) (guard cap {3})."
+		"es"		"{1} Balance aplicado: se movieron {2} guardia(s) (máx guardias {3})."
+		"las"		"{1} Balance aplicado: se movieron {2} guardia(s) (máx guardias {3})."
+		"de"		"{1} Balance angewandt: {2} Wache(n) verschoben (Wachen-Limit {3})."
+		"fr"		"{1} Équilibre appliqué : {2} garde(s) déplacé(s) (max gardes {3})."
+		"pt"		"{1} Balanceamento aplicado: {2} guarda(s) movido(s) (máx guardas {3})."
+		"ru"		"{1} Баланс применён: перемещено охраны — {2} (лимит охраны {3})."
+	}
+
+	// Team balance: {1}=prefix, {2}=current max guards
+	"Balance Guards Full"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} The guard team is full ({2} max) — you were moved to the prisoners."
+		"es"		"{1} El equipo de guardias está lleno (máx {2}) — se te movió a los prisioneros."
+		"las"		"{1} El equipo de guardias está lleno (máx {2}) — se te movió a los prisioneros."
+		"de"		"{1} Das Wachen-Team ist voll (max {2}) — du wurdest zu den Gefangenen verschoben."
+		"fr"		"{1} L'équipe des gardes est pleine (max {2}) — vous avez été déplacé chez les prisonniers."
+		"pt"		"{1} A equipe de guardas está cheia (máx {2}) — você foi movido para os prisioneiros."
+		"ru"		"{1} Команда охраны заполнена (макс {2}) — вас перевели к заключённым."
+	}
 }
