@@ -16,22 +16,15 @@
 	"LR Ingame Only"
 	{
 		"#format"	"{1:s}"
-		"en"		"{1} This command must be used in-game."
-		"es"		"{1} Este comando debe usarse dentro del juego."
+		"en"		"{1} Use this in-game."
+		"es"		"{1} Úsalo dentro del juego."
 	}
 
 	"LR Already Active"
 	{
 		"#format"	"{1:s}"
 		"en"		"{1} A Last Request is already in progress."
-		"es"		"{1} Ya hay un Last Request en curso."
-	}
-
-	"LR Not Last"
-	{
-		"#format"	"{1:s}"
-		"en"		"{1} Only the last living prisoner can use Last Request."
-		"es"		"{1} Solo el último prisionero vivo puede usar Last Request."
+		"es"		"{1} Ya hay un último deseo en curso."
 	}
 
 	"LR Warden Only"
@@ -51,8 +44,8 @@
 	"LR Prisoner Invalid"
 	{
 		"#format"	"{1:s}"
-		"en"		"{1} That prisoner is no longer valid. Pick again."
-		"es"		"{1} Ese prisionero ya no es válido. Elige de nuevo."
+		"en"		"{1} That prisoner is no longer valid."
+		"es"		"{1} Ese prisionero ya no es válido."
 	}
 
 	"LR Force Need Target"
@@ -77,126 +70,321 @@
 
 	"LR Grant Nearby Header"
 	{
-		"en"		"-- Nearby players --"
-		"es"		"-- Jugadores cercanos --"
+		"en"		"-- Nearby --"
+		"es"		"-- Cercanos --"
 	}
 
 	"LR Grant Others Header"
 	{
-		"en"		"-- Other players --"
-		"es"		"-- Otros jugadores --"
+		"en"		"-- Others --"
+		"es"		"-- Otros --"
 	}
 
 	"LR Offered"
 	{
 		"#format"	"{1:s},{2:N}"
-		"en"		"{1} {2} was granted a Last Request — choose!"
-		"es"		"{1} ¡{2} recibió el último deseo — elige!"
-	}
-
-	"LR Menu Title"
-	{
-		"en"		"Last Request — pick a game"
-		"es"		"Último deseo — elige un juego"
-	}
-
-	"LR Type Melee"
-	{
-		"en"		"Melee Duel"
-		"es"		"Duelo melee"
-	}
-
-	"LR Type Fair"
-	{
-		"en"		"Fair Fight (full loadout)"
-		"es"		"Pelea justa (loadout completo)"
-	}
-
-	"LR Type Skip"
-	{
-		"en"		"Skip LR"
-		"es"		"Omitir deseo"
-	}
-
-	"LR Pick Guard"
-	{
-		"en"		"Last Request — pick a guard"
-		"es"		"Last Request — elige un guardia"
+		"en"		"{1} {2} was offered a Last Request."
+		"es"		"{1} Se ofreció el último deseo a {2}."
 	}
 
 	"LR Timeout"
 	{
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} did not pick a Last Request in time."
-		"es"		"{1} {2} no eligió Last Request a tiempo."
+		"es"		"{1} {2} no eligió un deseo a tiempo."
 	}
 
-	"LR Skipped"
+	"LR Menu Hurry"
 	{
-		"#format"	"{1:s},{2:N}"
-		"en"		"{1} {2} skipped Last Request."
-		"es"		"{1} {2} omitió el Last Request."
-	}
-
-	"LR No Guards"
-	{
-		"#format"	"{1:s}"
-		"en"		"{1} No living guards available for Last Request."
-		"es"		"{1} No hay guardias vivos para el Last Request."
-	}
-
-	"LR Guard Invalid"
-	{
-		"#format"	"{1:s}"
-		"en"		"{1} That guard is no longer valid. Pick again."
-		"es"		"{1} Ese guardia ya no es válido. Elige de nuevo."
-	}
-
-	"LR Started"
-	{
-		"#format"	"{1:s},{2:N},{3:N},{4:s}"
-		"en"		"{1} {2} vs {3} — {4}"
-		"es"		"{1} {2} vs {3} — {4}"
-	}
-
-	"LR Countdown"
-	{
-		"#format"	"{1:d}"
-		"en"		"LR starts in {1}..."
-		"es"		"LR en {1}..."
-	}
-
-	"LR Fight"
-	{
-		"en"		"FIGHT!"
-		"es"		"¡A LUCHAR!"
-	}
-
-	"LR Fight Chat"
-	{
-		"#format"	"{1:s}"
-		"en"		"{1} Fight!"
-		"es"		"{1} ¡A luchar!"
-	}
-
-	"LR Prisoner Wins"
-	{
-		"#format"	"{1:s},{2:N}"
-		"en"		"{1} Prisoner {2} won the Last Request — RED wins."
-		"es"		"{1} El prisionero {2} ganó el Last Request — gana RED."
-	}
-
-	"LR Guard Wins"
-	{
-		"#format"	"{1:s},{2:N}"
-		"en"		"{1} Guard {2} won the Last Request — BLU wins."
-		"es"		"{1} El guardia {2} ganó el Last Request — gana BLU."
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} You're taking too long — only {2} seconds left."
+		"es"		"{1} Te estás tardando demasiado, tan solo te quedan {2} segundos."
 	}
 
 	"LR Aborted"
 	{
 		"#format"	"{1:s}"
-		"en"		"{1} Last Request aborted."
-		"es"		"{1} Last Request cancelado."
+		"en"		"{1} Last Request cancelled."
+		"es"		"{1} Último deseo cancelado."
+	}
+
+	"LR Menu Title"
+	{
+		"en"		"Last Request — pick a wish"
+		"es"		"Último deseo — elige"
+	}
+
+	"LR Wish Freeday Me"
+	{
+		"en"		"Freeday for me"
+		"es"		"Freeday para mí"
+	}
+
+	"LR Wish Freeday Others"
+	{
+		"en"		"Freeday for others (max 3)"
+		"es"		"Freeday para otros (máx 3)"
+	}
+
+	"LR Wish Freeday All"
+	{
+		"en"		"Freeday for everyone"
+		"es"		"Freeday para todos"
+	}
+
+	"LR Wish WarDay"
+	{
+		"en"		"War Day"
+		"es"		"War Day"
+	}
+
+	"LR Wish ClassWarfare"
+	{
+		"en"		"Class Warfare (one class per team)"
+		"es"		"Class Warfare (una clase por equipo)"
+	}
+
+	"LR Wish Custom"
+	{
+		"en"		"Custom wish (type in chat)"
+		"es"		"Deseo custom (escribe en el chat)"
+	}
+
+	"LR Wish HotReds"
+	{
+		"en"		"Hot Reds (touch damage, no rebel)"
+		"es"		"Reds ardientes (daño al tocar, sin rebelde)"
+	}
+
+	"LR Wish Suicide"
+	{
+		"en"		"Suicide"
+		"es"		"Suicidio"
+	}
+
+	"LR Wish LowGravity"
+	{
+		"en"		"Low gravity"
+		"es"		"Baja gravedad"
+	}
+
+	"LR Chose Freeday Me"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Freeday for themselves."
+		"es"		"{1} {2} eligió Freeday para sí."
+	}
+
+	"LR Chose Freeday Others"
+	{
+		"#format"	"{1:s},{2:N},{3:d}"
+		"en"		"{1} {2} gave Freeday to {3} other prisoner(s)."
+		"es"		"{1} {2} dio Freeday a {3} prisionero(s)."
+	}
+
+	"LR Chose Freeday All"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Freeday for everyone."
+		"es"		"{1} {2} eligió Freeday para todos."
+	}
+
+	"LR Chose WarDay"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose War Day."
+		"es"		"{1} {2} eligió War Day."
+	}
+
+	"LR Chose ClassWarfare"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Class Warfare."
+		"es"		"{1} {2} eligió Class Warfare."
+	}
+
+	"LR Chose Custom"
+	{
+		"#format"	"{1:s},{2:N},{3:s}"
+		"en"		"{1} {2}'s custom wish: {3}"
+		"es"		"{1} Deseo custom de {2}: {3}"
+	}
+
+	"LR Chose HotReds"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Hot Reds."
+		"es"		"{1} {2} eligió Reds ardientes."
+	}
+
+	"LR Chose Suicide"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Suicide."
+		"es"		"{1} {2} eligió Suicidio."
+	}
+
+	"LR Suicide Countdown"
+	{
+		"#format"	"{1:d}"
+		"en"		"Suicide in {1}..."
+		"es"		"Suicidio en {1}..."
+	}
+
+	"LR Chose LowGravity"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Low Gravity."
+		"es"		"{1} {2} eligió Baja gravedad."
+	}
+
+	"LR Applied Freeday"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Freeday: {2}."
+		"es"		"{1} Freeday: {2}."
+	}
+
+	"LR Applied Freeday All"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Freeday for all ({2})."
+		"es"		"{1} Freeday para todos ({2})."
+	}
+
+	"LR Applied WarDay"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} War Day ({2})."
+		"es"		"{1} War Day ({2})."
+	}
+
+	"LR Applied ClassWarfare"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s}"
+		"en"		"{1} Class Warfare ({2}): RED {3} vs BLU {4}."
+		"es"		"{1} Class Warfare ({2}): RED {3} vs BLU {4}."
+	}
+
+	"LR Applied Custom"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"{1} {2}: {3}"
+		"es"		"{1} {2}: {3}"
+	}
+
+	"LR Applied HotReds"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Hot Reds ({2})."
+		"es"		"{1} Reds ardientes ({2})."
+	}
+
+	"LR Applied LowGravity"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Low gravity ({2})."
+		"es"		"{1} Baja gravedad ({2})."
+	}
+
+	"LR Freeday Others Title"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"Pick freedays ({1}/{2}) — [*] selected"
+		"es"		"Elige freedays ({1}/{2}) — [*] elegido"
+	}
+
+	"LR Freeday Others Confirm"
+	{
+		"en"		"Confirm selection"
+		"es"		"Confirmar selección"
+	}
+
+	"LR Freeday Others None"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} No other living prisoners."
+		"es"		"{1} No hay otros prisioneros vivos."
+	}
+
+	"LR Freeday Others Cap"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Maximum 3 freedays."
+		"es"		"{1} Máximo 3 freedays."
+	}
+
+	"LR Class Title"
+	{
+		"en"		"Class Warfare — pick a class"
+		"es"		"Class Warfare — elige clase"
+	}
+
+	"LR Class Scout"
+	{
+		"en"		"Scout"
+		"es"		"Scout"
+	}
+
+	"LR Class Sniper"
+	{
+		"en"		"Sniper"
+		"es"		"Sniper"
+	}
+
+	"LR Class Soldier"
+	{
+		"en"		"Soldier"
+		"es"		"Soldier"
+	}
+
+	"LR Class Demo"
+	{
+		"en"		"Demoman"
+		"es"		"Demoman"
+	}
+
+	"LR Class Medic"
+	{
+		"en"		"Medic"
+		"es"		"Medic"
+	}
+
+	"LR Class Heavy"
+	{
+		"en"		"Heavy"
+		"es"		"Heavy"
+	}
+
+	"LR Class Pyro"
+	{
+		"en"		"Pyro"
+		"es"		"Pyro"
+	}
+
+	"LR Class Spy"
+	{
+		"en"		"Spy"
+		"es"		"Spy"
+	}
+
+	"LR Class Engineer"
+	{
+		"en"		"Engineer"
+		"es"		"Engineer"
+	}
+
+	"LR Custom Prompt"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Type your custom wish in chat."
+		"es"		"{1} Escribe tu deseo custom en el chat."
+	}
+
+	"LR Custom Waiting"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Waiting for {2}'s custom wish in chat..."
+		"es"		"{1} Esperando el deseo custom de {2} en el chat..."
 	}
 }

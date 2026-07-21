@@ -9,8 +9,8 @@
 	"Boosts Menu Title"
 	{
 		"#format"	"{1:d},{2:d}"
-		"en"		"Boosts | Points: {1} | Spent this round: {2}"
-		"es"		"Boosts | Puntos: {1} | Gastados esta ronda: {2}"
+		"en"		"Boosts\n------\nPoints: {1}\nSpent: {2}\n------"
+		"es"		"Boosts\n------\nPoints: {1}\nSpent: {2}\n------"
 	}
 
 	"Boosts Disabled"
@@ -71,26 +71,58 @@
 
 	"Boost Iron Neck"
 	{
-		"en"		"[1] Iron neck — survive 1 backstab"
-		"es"		"[1] Iron neck — sobrevive 1 backstab"
+		"#format"	"{1:d}"
+		"en"		"Iron neck ({1}) — survive 1 backstab"
+		"es"		"Iron neck ({1}) — sobrevive 1 backstab"
 	}
 
 	"Boost Iron Neck II"
 	{
-		"en"		"[3] Iron neck II — survive 2 backstabs"
-		"es"		"[3] Iron neck II — sobrevive 2 backstabs"
+		"#format"	"{1:d}"
+		"en"		"Iron neck II ({1}) — survive 2 backstabs"
+		"es"		"Iron neck II ({1}) — sobrevive 2 backstabs"
 	}
 
 	"Boost Revive"
 	{
-		"en"		"[3] Revive — bring back one RED or BLU"
-		"es"		"[3] Revive — revive a un RED o BLU"
+		"#format"	"{1:d}"
+		"en"		"Revive ({1}) — bring back one RED or BLU"
+		"es"		"Revive ({1}) — revive a un RED o BLU"
 	}
 
-	"Boosts None For Role"
+	"Boost Second Wind"
 	{
-		"en"		"(No boosts for prisoners yet)"
-		"es"		"(Aún no hay boosts para prisioneros)"
+		"#format"	"{1:d}"
+		"en"		"Second Wind ({1}) — +50 HP"
+		"es"		"Second Wind ({1}) — +50 HP"
+	}
+
+	"Boost Mad Milk"
+	{
+		"#format"	"{1:d}"
+		"en"		"Mad Milk ({1}) — throw milk where you look"
+		"es"		"Mad Milk ({1}) — lanza leche hacia donde miras"
+	}
+
+	"Boost Melee Crit"
+	{
+		"#format"	"{1:d}"
+		"en"		"Power Strike ({1}) — next melee hit is a crit"
+		"es"		"Golpe Crítico ({1}) — el próximo melee es crítico"
+	}
+
+	"Boost Jarate"
+	{
+		"#format"	"{1:d}"
+		"en"		"Jarate ({1}) — throw jarate where you look"
+		"es"		"Jarate ({1}) — lanza jarate hacia donde miras"
+	}
+
+	"Boost Regen"
+	{
+		"#format"	"{1:d}"
+		"en"		"Vitality ({1}) — +50 HP and regen for 20s"
+		"es"		"Vitalidad ({1}) — +50 HP y regen 20s"
 	}
 
 	"Boosts Join Team"
@@ -104,6 +136,69 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Only living guards can buy this boost."
 		"es"		"{1} Solo guardias vivos pueden comprar este boost."
+	}
+
+	"Boosts Prisoners Alive Only"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Only living prisoners can buy this boost."
+		"es"		"{1} Solo prisioneros vivos pueden comprar este boost."
+	}
+
+	"Boosts Throw Failed"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Could not throw that. Points refunded."
+		"es"		"{1} No se pudo lanzar. Puntos devueltos."
+	}
+
+	"Boosts Melee Crit Already"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} You already have a powered melee hit ready."
+		"es"		"{1} Ya tienes un golpe melee potenciado listo."
+	}
+
+	"Boosts Purchased Second Wind"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"en"		"{1} Second Wind: +{2} HP. Points: {3}."
+		"es"		"{1} Second Wind: +{2} HP. Puntos: {3}."
+	}
+
+	"Boosts Purchased Mad Milk"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Mad Milk thrown. Points: {2}."
+		"es"		"{1} Mad Milk lanzada. Puntos: {2}."
+	}
+
+	"Boosts Purchased Jarate"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Jarate thrown. Points: {2}."
+		"es"		"{1} Jarate lanzado. Puntos: {2}."
+	}
+
+	"Boosts Purchased Melee Crit"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Next melee hit is a crit. Points: {2}."
+		"es"		"{1} Tu próximo melee será crítico. Puntos: {2}."
+	}
+
+	"Boosts Purchased Regen"
+	{
+		"#format"	"{1:s},{2:d},{3:d},{4:d}"
+		"en"		"{1} +{2} HP and regen for {3}s. Points: {4}."
+		"es"		"{1} +{2} HP y regeneración {3}s. Puntos: {4}."
+	}
+
+	"Boosts Melee Crit Used"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Power Strike consumed."
+		"es"		"{1} Golpe Crítico consumido."
 	}
 
 	"Boosts Warden Only"

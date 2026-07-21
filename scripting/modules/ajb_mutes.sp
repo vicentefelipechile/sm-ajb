@@ -251,6 +251,12 @@ bool AJB_Mutes_ShouldMuteClient(int client)
 		return false;
 	}
 
+	// Rebels may speak (standard JB — status must be audible/usable).
+	if (AJB_IsRebel(client))
+	{
+		return false;
+	}
+
 	return true;
 }
 

@@ -50,6 +50,9 @@ ConVar g_cvGuardRatio;
 ConVar g_cvCellsAutoOpen;
 ConVar g_cvWardenAuto;
 ConVar g_cvRebelOnDamage;
+ConVar g_cvWardenRebelControl;
+// When false, prisoner→guard hits never auto-rebel (used by LR “Hot Reds”).
+bool g_bRebelOnHit = true;
 ConVar g_cvStripPrisoners;
 ConVar g_cvBlockBuildings;
 ConVar g_cvBlockPrisonerDamage;
@@ -81,11 +84,10 @@ Handle g_hFwdCellsOpened;
 Handle g_hFwdCellsClosed;
 Handle g_hFwdLastPrisoner;
 Handle g_hFwdWardenGiveLR;
+// Fired when the live round begins (after prep, or immediately if prep is 0).
+Handle g_hFwdLiveRoundBegin;
 
 Handle g_hCellsAutoTimer;
-Handle g_hWinCheckTimer;
-bool g_bWaitingForNewRound;
-bool g_bOwnedRoundWin; // true only when AJB_ForceRoundWin ran (force_map_reset path)
 
 // =========================================================================================================
 // Core fragments
@@ -93,6 +95,7 @@ bool g_bOwnedRoundWin; // true only when AJB_ForceRoundWin ran (force_map_reset 
 
 #include "ajb/core_mode.sp"
 #include "ajb/core_teams.sp"
+#include "ajb/core_settings.sp"
 #include "ajb/core_rounds.sp"
 #include "ajb/core_warden.sp"
 #include "ajb/core_warden_health.sp"
@@ -102,7 +105,7 @@ bool g_bOwnedRoundWin; // true only when AJB_ForceRoundWin ran (force_map_reset 
 #include "ajb/core_timer.sp"
 #include "ajb/core_prep.sp"
 #include "ajb/core_movement.sp"
-#include "ajb/core_watchdog.sp"
+#include "ajb/core_sentry.sp"
 #include "ajb/core_api.sp"
 
 // =========================================================================================================
@@ -140,18 +143,25 @@ public void OnPluginStart()
 	g_cvCellsAutoOpen = CreateConVar("sm_ajb_cells_auto_open", "0", "Seconds after round start before cells auto-open (0 = manual only). Uses team_round_timer when possible.", _, true, 0.0);
 	g_cvWardenAuto = CreateConVar("sm_ajb_warden_auto", "0", "1 = auto-assign a random living guard as warden when none is set.", _, true, 0.0, true, 1.0);
 	g_cvRebelOnDamage = CreateConVar("sm_ajb_rebel_on_damage", "1", "1 = mark prisoner as rebel when they damage a guard.", _, true, 0.0, true, 1.0);
+	g_cvWardenRebelControl = CreateConVar("sm_ajb_warden_rebel_control", "1", "1 = warden can mark/pardon RED rebels from the warden menu.", _, true, 0.0, true, 1.0);
 	g_cvStripPrisoners = CreateConVar("sm_ajb_strip_prisoners", "1", "1 = strip prisoners to melee on spawn.", _, true, 0.0, true, 1.0);
-	g_cvBlockBuildings = CreateConVar("sm_ajb_block_buildings", "1", "1 = block Engineer building placement while AJB is active.", _, true, 0.0, true, 1.0);
+	g_cvBlockBuildings = CreateConVar("sm_ajb_block_buildings", "0", "1 = block Engineer buildings while AJB is active (see sm_ajb_allow_sentry for sentry exception). Default 0 = allow builds.", _, true, 0.0, true, 1.0);
 	g_cvBlockPrisonerDamage = CreateConVar("sm_ajb_block_prisoner_damage", "1", "1 = block non-rebel prisoner damage to guards (freeday does not bypass this).", _, true, 0.0, true, 1.0);
 	g_cvPrepTime = CreateConVar("sm_ajb_prep_time", "10", "Preparation seconds at round start: BLU can move, RED stay frozen in cells (0 = off).", _, true, 0.0, true, 60.0);
-	g_cvRoundTime = CreateConVar("sm_ajb_round_time", "600", "Main round duration in seconds (HUD + forces guards win at 0). 0 = no timed end.", _, true, 0.0);
+	g_cvRoundTime = CreateConVar("sm_ajb_round_time", "600", "Main round HUD duration in seconds (0 = no main clock). Does not force engine wins.", _, true, 0.0);
 
 	AJB_WardenHealth_OnPluginStart();
 	// CanPlayerMove detour before mode policy (so policy sees detour active).
 	AJB_Movement_OnPluginStart();
-	AJB_Watchdog_OnPluginStart();
+	// Sentry FindTarget detour (rebels-only).
+	AJB_Sentry_OnPluginStart();
+	// Ammo-pack arming for stripped prisoners.
+	AJB_Weapons_OnPluginStart();
+	AJB_Settings_OnPluginStart();
 
 	AutoExecConfig(true, "ajb");
+	// Mid-map reload: hook packs already in the world (OnMapStart will not re-run).
+	AJB_Weapons_OnMapStart();
 
 	g_cvEnabled.AddChangeHook(OnAjbCvarChanged);
 	g_cvForce.AddChangeHook(OnAjbCvarChanged);
@@ -178,6 +188,8 @@ public void OnPluginStart()
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 	HookEvent("player_team", Event_PlayerTeam, EventHookMode_Post);
 	HookEvent("player_builtobject", Event_PlayerBuiltObject, EventHookMode_Pre);
+	// Backup rebel mark when damage actually lands (belt for OnTakeDamage order quirks).
+	HookEvent("player_hurt", Event_PlayerHurt, EventHookMode_Post);
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -257,6 +269,7 @@ public void OnPluginEnd()
 	AJB_KillRoundExpireTimer();
 	AJB_KillCellsAutoTimer();
 	AJB_ClearWarden(false);
+	AJB_Sentry_OnPluginEnd();
 	AJB_Movement_OnPluginEnd();
 	// Restore stock engine freeze if fallback changed it.
 	g_bModeActive = false;
@@ -272,7 +285,9 @@ public void OnMapStart()
 	AJB_KillCellsAutoTimer();
 	AJB_ClearPhaseTimer();
 	AJB_Timer_OnMapStart();
-	AJB_Watchdog_OnMapStart();
+	AJB_Weapons_OnMapStart();
+	AJB_Weapons_OnMapStartLoadout();
+	AJB_Settings_OnMapStart();
 	g_iDoorNameCount = 0;
 
 	if (g_bModeActive)
@@ -290,7 +305,6 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-	AJB_Watchdog_OnMapEnd();
 	AJB_Prep_Stop();
 	AJB_KillCellsAutoTimer();
 	AJB_ClearPhaseTimer();

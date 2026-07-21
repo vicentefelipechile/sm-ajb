@@ -11,6 +11,7 @@ void AJB_CreateForwards()
 	g_hFwdCellsClosed = CreateGlobalForward("AJB_OnCellsClosed", ET_Ignore);
 	g_hFwdLastPrisoner = CreateGlobalForward("AJB_OnLastPrisoner", ET_Ignore, Param_Cell);
 	g_hFwdWardenGiveLR = CreateGlobalForward("AJB_OnWardenGiveLR", ET_Ignore, Param_Cell);
+	g_hFwdLiveRoundBegin = CreateGlobalForward("AJB_OnLiveRoundBegin", ET_Ignore);
 }
 
 void AJB_RegisterNatives()
@@ -33,6 +34,12 @@ void AJB_RegisterNatives()
 	CreateNative("AJB_SetRoundState", Native_SetRoundState);
 	CreateNative("AJB_ForceTeamWin", Native_ForceTeamWin);
 	CreateNative("AJB_ShowWardenMenu", Native_ShowWardenMenu);
+	CreateNative("AJB_SetRebelOnHit", Native_SetRebelOnHit);
+	CreateNative("AJB_GetRebelOnHit", Native_GetRebelOnHit);
+	CreateNative("AJB_BeginCombatDay", Native_BeginCombatDay);
+	CreateNative("AJB_BeginFreedayAllCosmetic", Native_BeginFreedayAllCosmetic);
+	CreateNative("AJB_IsCombatDay", Native_IsCombatDay);
+	CreateNative("AJB_IsFreedayAllCosmetic", Native_IsFreedayAllCosmetic);
 }
 
 public int Native_IsEnabled(Handle plugin, int numParams)
@@ -153,18 +160,7 @@ public int Native_SetRoundState(Handle plugin, int numParams)
 
 public int Native_ForceTeamWin(Handle plugin, int numParams)
 {
-	if (!g_bModeActive)
-	{
-		return 0;
-	}
-
-	int team = GetNativeCell(1);
-	if (team != AJB_TEAM_RED && team != AJB_TEAM_BLU)
-	{
-		return 0;
-	}
-
-	AJB_ForceRoundWin(team);
+	// Intentionally a no-op: AJB no longer forces engine round wins / map resets.
 	return 0;
 }
 
@@ -176,4 +172,37 @@ public int Native_ShowWardenMenu(Handle plugin, int numParams)
 		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 	}
 	return 0;
+}
+
+public int Native_SetRebelOnHit(Handle plugin, int numParams)
+{
+	g_bRebelOnHit = GetNativeCell(1) != 0;
+	return 0;
+}
+
+public int Native_GetRebelOnHit(Handle plugin, int numParams)
+{
+	return g_bRebelOnHit ? 1 : 0;
+}
+
+public int Native_BeginCombatDay(Handle plugin, int numParams)
+{
+	AJB_BeginCombatDay();
+	return 0;
+}
+
+public int Native_BeginFreedayAllCosmetic(Handle plugin, int numParams)
+{
+	AJB_BeginFreedayAllCosmetic();
+	return 0;
+}
+
+public int Native_IsCombatDay(Handle plugin, int numParams)
+{
+	return AJB_IsCombatDay() ? 1 : 0;
+}
+
+public int Native_IsFreedayAllCosmetic(Handle plugin, int numParams)
+{
+	return AJB_IsFreedayAllCosmetic() ? 1 : 0;
 }

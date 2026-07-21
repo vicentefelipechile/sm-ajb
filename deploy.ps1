@@ -37,8 +37,9 @@ $ProjPlugins = Join-Path $AjbRoot "plugins"
 $LivePlugins = Join-Path $SmRoot "plugins"
 $TransDir = Join-Path $SmRoot "translations"
 $CfgMaps = Join-Path $SmRoot "configs\ajb\maps"
+$CfgAjb = Join-Path $SmRoot "configs\ajb"
 
-New-Item -ItemType Directory -Force -Path $ProjPlugins, $LivePlugins, $CfgMaps | Out-Null
+New-Item -ItemType Directory -Force -Path $ProjPlugins, $LivePlugins, $CfgMaps, $CfgAjb | Out-Null
 
 function Invoke-Compile {
     param(
@@ -69,6 +70,12 @@ function Sync-Assets {
 
     Write-Host "Syncing map configs..."
     Copy-Item -Force (Join-Path $AjbRoot "configs\maps\*") $CfgMaps
+
+    Write-Host "Syncing AJB configs (prisoner_loadout, …)..."
+    $projCfg = Join-Path $AjbRoot "configs"
+    Get-ChildItem -Path $projCfg -File -ErrorAction SilentlyContinue | ForEach-Object {
+        Copy-Item -Force $_.FullName (Join-Path $CfgAjb $_.Name)
+    }
 }
 
 function Deploy-To-Live {

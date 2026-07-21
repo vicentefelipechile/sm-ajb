@@ -16,6 +16,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <ajb/ajb>
+#include <ajb/boosts>
 #define REQUIRE_PLUGIN
 
 #include <ajb/phrases>
@@ -45,6 +46,7 @@ public Plugin myinfo =
 
 ConVar g_cvEnabled;
 bool g_bHasCore;
+bool g_bHasBoosts;
 
 TopMenu g_hAdminMenu;
 
@@ -69,8 +71,11 @@ public void OnPluginStart()
 	RegAdminCmd("sm_ajb_clearwarden", Command_ClearWarden, ADMFLAG_GENERIC, "Clear the current warden.");
 
 	g_bHasCore = LibraryExists(AJB_LIBRARY);
+	g_bHasBoosts = LibraryExists(AJB_BOOSTS_LIBRARY);
 
-	LogMessage("[AJB-Admin] loaded (core %s).", g_bHasCore ? "present" : "missing");
+	LogMessage("[AJB-Admin] loaded (core %s, boosts %s).",
+		g_bHasCore ? "present" : "missing",
+		g_bHasBoosts ? "present" : "missing");
 }
 
 public void OnAllPluginsLoaded()
@@ -87,6 +92,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		g_bHasCore = true;
 	}
+	else if (StrEqual(name, AJB_BOOSTS_LIBRARY))
+	{
+		g_bHasBoosts = true;
+	}
 	else if (StrEqual(name, "adminmenu"))
 	{
 		RegisterAdminMenuItem(GetAdminTopMenu());
@@ -98,6 +107,10 @@ public void OnLibraryRemoved(const char[] name)
 	if (StrEqual(name, AJB_LIBRARY))
 	{
 		g_bHasCore = false;
+	}
+	else if (StrEqual(name, AJB_BOOSTS_LIBRARY))
+	{
+		g_bHasBoosts = false;
 	}
 	else if (StrEqual(name, "adminmenu"))
 	{
@@ -290,18 +303,37 @@ void AJB_Admin_ShowMain(int client, bool fromAdminTopMenu)
 	Menu menu = new Menu(MenuHandler_AdminMain);
 	menu.SetTitle("%T", "Admin Menu Title", client);
 
-	menu.AddItem("status", "Status");
-	menu.AddItem("open", "Open cells");
-	menu.AddItem("close", "Close cells");
-	menu.AddItem("clearw", "Clear warden");
-	menu.AddItem("setw", "Set warden (pick player)");
-	menu.AddItem("rebel", "Toggle rebel (pick player)");
-	menu.AddItem("freeday", "Toggle freeday (pick player)");
-	menu.AddItem("doorsr", "Reload door config");
-	menu.AddItem("doorsl", "List door targets");
+	char line[64];
+	Format(line, sizeof(line), "%T", "Admin Menu Status", client);
+	menu.AddItem("status", line);
+	Format(line, sizeof(line), "%T", "Admin Menu Open Cells", client);
+	menu.AddItem("open", line);
+	Format(line, sizeof(line), "%T", "Admin Menu Close Cells", client);
+	menu.AddItem("close", line);
+	Format(line, sizeof(line), "%T", "Admin Menu Clear Warden", client);
+	menu.AddItem("clearw", line);
+	Format(line, sizeof(line), "%T", "Admin Menu Set Warden", client);
+	menu.AddItem("setw", line);
+	Format(line, sizeof(line), "%T", "Admin Menu Toggle Rebel", client);
+	menu.AddItem("rebel", line);
+	Format(line, sizeof(line), "%T", "Admin Menu Toggle Freeday", client);
+	menu.AddItem("freeday", line);
+
+	if (g_bHasBoosts)
+	{
+		Format(line, sizeof(line), "%T", "Admin Menu Give Boost", client);
+		menu.AddItem("giveboost", line);
+		Format(line, sizeof(line), "%T", "Admin Menu Take Boost", client);
+		menu.AddItem("takeboost", line);
+	}
+
+	Format(line, sizeof(line), "%T", "Admin Menu Reload Doors", client);
+	menu.AddItem("doorsr", line);
+	Format(line, sizeof(line), "%T", "Admin Menu List Doors", client);
+	menu.AddItem("doorsl", line);
 
 	menu.ExitBackButton = fromAdminTopMenu && g_hAdminMenu != null;
-	menu.Display(client, 30);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int param2)
@@ -372,6 +404,26 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 	{
 		AJB_Admin_ShowPlayerPick(client, "freeday", fromTop);
 	}
+	else if (StrEqual(info, "giveboost"))
+	{
+		if (!g_bHasBoosts)
+		{
+			AJB_Chat(client, "Admin Boosts Missing");
+			AJB_Admin_ShowMain(client, fromTop);
+			return 0;
+		}
+		AJB_Admin_ShowPlayerPick(client, "giveboost", fromTop);
+	}
+	else if (StrEqual(info, "takeboost"))
+	{
+		if (!g_bHasBoosts)
+		{
+			AJB_Chat(client, "Admin Boosts Missing");
+			AJB_Admin_ShowMain(client, fromTop);
+			return 0;
+		}
+		AJB_Admin_ShowPlayerPick(client, "takeboost", fromTop);
+	}
 	else if (StrEqual(info, "doorsr"))
 	{
 		FakeClientCommand(client, "sm_ajb_doors_reload");
@@ -398,15 +450,22 @@ void AJB_Admin_ShowPlayerPick(int client, const char[] mode, bool fromAdminTopMe
 			continue;
 		}
 
-		char info[40];
-		char name[64];
+		char info[48];
+		char name[72];
 		Format(info, sizeof(info), "%s:%d:%d", mode, GetClientUserId(i), fromAdminTopMenu ? 1 : 0);
 		GetClientName(i, name, sizeof(name));
+
+		// Show current boost total when adjusting points.
+		if (g_bHasBoosts && (StrEqual(mode, "giveboost") || StrEqual(mode, "takeboost")))
+		{
+			Format(name, sizeof(name), "%s [%d]", name, AJB_Boosts_GetPoints(i));
+		}
+
 		menu.AddItem(info, name);
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 30);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int param2)
@@ -477,6 +536,118 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 		bool next = !AJB_IsFreedayPending(target);
 		AJB_SetPlayerFreeday(target, next);
 		CPrintToChat(client, "%T", next ? "Admin Freeday OnPlayer" : "Admin Freeday OffPlayer", client, prefix, target);
+	}
+	else if (StrEqual(parts[0], "giveboost") || StrEqual(parts[0], "takeboost"))
+	{
+		if (!g_bHasBoosts)
+		{
+			AJB_Chat(client, "Admin Boosts Missing");
+			AJB_Admin_ShowMain(client, fromTop);
+			return 0;
+		}
+
+		bool give = StrEqual(parts[0], "giveboost");
+		AJB_Admin_ShowBoostAmount(client, target, give, fromTop);
+		return 0;
+	}
+
+	AJB_Admin_ShowMain(client, fromTop);
+	return 0;
+}
+
+// Pick how many points to give (+) or take (−).
+void AJB_Admin_ShowBoostAmount(int client, int target, bool give, bool fromAdminTopMenu)
+{
+	if (!IsClientInGame(target))
+	{
+		AJB_Chat(client, "Admin Player Invalid");
+		AJB_Admin_ShowMain(client, fromAdminTopMenu);
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_BoostAmount);
+	char title[96];
+	int pts = g_bHasBoosts ? AJB_Boosts_GetPoints(target) : 0;
+	Format(title, sizeof(title), "%T", give ? "Admin Boost Give Title" : "Admin Boost Take Title", client, target, pts);
+	menu.SetTitle(title);
+
+	char info[32];
+	char line[32];
+	for (int n = 1; n <= 3; n++)
+	{
+		Format(info, sizeof(info), "%s:%d:%d:%d", give ? "g" : "t", GetClientUserId(target), n, fromAdminTopMenu ? 1 : 0);
+		Format(line, sizeof(line), "%T", give ? "Admin Boost Give N" : "Admin Boost Take N", client, n);
+		menu.AddItem(info, line);
+	}
+
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_BoostAmount(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action == MenuAction_Cancel)
+	{
+		if (param2 == MenuCancel_ExitBack)
+		{
+			AJB_Admin_ShowMain(param1, g_hAdminMenu != null);
+		}
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	char info[32];
+	menu.GetItem(param2, info, sizeof(info));
+
+	char parts[4][12];
+	if (ExplodeString(info, ":", parts, 4, 12) < 4)
+	{
+		return 0;
+	}
+
+	bool give = (parts[0][0] == 'g');
+	bool fromTop = (parts[3][0] == '1');
+	int target = GetClientOfUserId(StringToInt(parts[1]));
+	int amount = StringToInt(parts[2]);
+
+	if (target <= 0 || !IsClientInGame(target) || amount < 1 || amount > 3)
+	{
+		AJB_Chat(client, "Admin Player Invalid");
+		AJB_Admin_ShowMain(client, fromTop);
+		return 0;
+	}
+
+	if (!g_bHasBoosts)
+	{
+		AJB_Chat(client, "Admin Boosts Missing");
+		AJB_Admin_ShowMain(client, fromTop);
+		return 0;
+	}
+
+	int delta = give ? amount : -amount;
+	int total = AJB_Boosts_AddPointsEx(target, delta);
+
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+	CPrintToChat(client, "%T", give ? "Admin Boost Gave" : "Admin Boost Took", client, prefix, amount, target, total);
+
+	// Notify the target when they are a different human player.
+	if (target != client && !IsFakeClient(target))
+	{
+		char tprefix[32];
+		AJB_GetPrefix(target, tprefix, sizeof(tprefix));
+		CPrintToChat(target, "%T", give ? "Admin Boost Received" : "Admin Boost Removed", target, tprefix, amount, total);
 	}
 
 	AJB_Admin_ShowMain(client, fromTop);

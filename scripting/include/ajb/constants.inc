@@ -20,6 +20,12 @@
 #define AJB_TEAM_RED            2
 #define AJB_TEAM_BLU            3
 
+// m_iObjectType / player_builtobject "object"
+#define AJB_OBJ_DISPENSER       0
+#define AJB_OBJ_TELEPORTER      1
+#define AJB_OBJ_SENTRYGUN       2
+
+
 #define AJB_MAX_DOOR_NAMES      64
 #define AJB_MAX_DOOR_NAME_LEN   64
 #define AJB_MAX_MAP_PREFIX_LEN  32

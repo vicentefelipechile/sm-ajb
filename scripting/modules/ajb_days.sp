@@ -339,38 +339,9 @@ void AJB_Days_StartFreeday(int starter)
 		return;
 	}
 
+	// Cosmetic global freeday (same as LR “Freeday for all”).
 	g_ActiveDay = Day_Freeday;
-	AJB_OpenCells();
-	AJB_SetRoundState(AJBState_CellsOpen);
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || !AJB_IsPrisoner(i))
-		{
-			continue;
-		}
-
-		AJB_GiveFreedayNow(i, true);
-
-		if (IsPlayerAlive(i))
-		{
-			TF2_RegeneratePlayer(i);
-			TF2_RemoveWeaponSlot(i, TFWeaponSlot_Primary);
-			if (TF2_GetPlayerClass(i) != TFClass_Spy)
-			{
-				TF2_RemoveWeaponSlot(i, TFWeaponSlot_Secondary);
-				TF2_RemoveWeaponSlot(i, TFWeaponSlot_Grenade);
-				TF2_RemoveWeaponSlot(i, TFWeaponSlot_Building);
-				TF2_RemoveWeaponSlot(i, TFWeaponSlot_PDA);
-			}
-
-			int melee = GetPlayerWeaponSlot(i, TFWeaponSlot_Melee);
-			if (melee != -1)
-			{
-				SetEntPropEnt(i, Prop_Send, "m_hActiveWeapon", melee);
-			}
-		}
-	}
+	AJB_BeginFreedayAllCosmetic();
 
 	if (starter > 0 && IsClientInGame(starter))
 	{
@@ -400,27 +371,7 @@ void AJB_Days_StartWarDay(int starter)
 	}
 
 	g_ActiveDay = Day_WarDay;
-	AJB_OpenCells();
-	AJB_SetRoundState(AJBState_SpecialDay);
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || !IsPlayerAlive(i))
-		{
-			continue;
-		}
-
-		if (AJB_IsPrisoner(i) || AJB_IsGuard(i))
-		{
-			TF2_RegeneratePlayer(i);
-		}
-
-		if (AJB_IsPrisoner(i))
-		{
-			AJB_GiveFreedayNow(i, false);
-			AJB_SetRebel(i, false);
-		}
-	}
+	AJB_BeginCombatDay();
 
 	if (starter > 0 && IsClientInGame(starter))
 	{

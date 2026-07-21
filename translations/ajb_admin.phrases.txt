@@ -19,10 +19,139 @@
 		"es"		"Another Jailbreak — Admin"
 	}
 
+	"Admin Menu Status"
+	{
+		"en"		"Status"
+		"es"		"Estado"
+	}
+
+	"Admin Menu Open Cells"
+	{
+		"en"		"Open cells"
+		"es"		"Abrir celdas"
+	}
+
+	"Admin Menu Close Cells"
+	{
+		"en"		"Close cells"
+		"es"		"Cerrar celdas"
+	}
+
+	"Admin Menu Clear Warden"
+	{
+		"en"		"Clear warden"
+		"es"		"Quitar warden"
+	}
+
+	"Admin Menu Set Warden"
+	{
+		"en"		"Set warden"
+		"es"		"Asignar warden"
+	}
+
+	"Admin Menu Toggle Rebel"
+	{
+		"en"		"Toggle rebel"
+		"es"		"Alternar rebelde"
+	}
+
+	"Admin Menu Toggle Freeday"
+	{
+		"en"		"Toggle freeday"
+		"es"		"Alternar freeday"
+	}
+
+	"Admin Menu Give Boost"
+	{
+		"en"		"Give boost points"
+		"es"		"Dar puntos de boost"
+	}
+
+	"Admin Menu Take Boost"
+	{
+		"en"		"Take boost points"
+		"es"		"Quitar puntos de boost"
+	}
+
+	"Admin Menu Reload Doors"
+	{
+		"en"		"Reload door config"
+		"es"		"Recargar config de puertas"
+	}
+
+	"Admin Menu List Doors"
+	{
+		"en"		"List door targets"
+		"es"		"Listar puertas"
+	}
+
 	"Admin Pick Player"
 	{
 		"en"		"Pick a player"
 		"es"		"Elige un jugador"
+	}
+
+	"Admin Boost Give Title"
+	{
+		"#format"	"{1:N},{2:d}"
+		"en"		"Give points to {1} (has {2})"
+		"es"		"Dar puntos a {1} (tiene {2})"
+	}
+
+	"Admin Boost Take Title"
+	{
+		"#format"	"{1:N},{2:d}"
+		"en"		"Take points from {1} (has {2})"
+		"es"		"Quitar puntos a {1} (tiene {2})"
+	}
+
+	"Admin Boost Give N"
+	{
+		"#format"	"{1:d}"
+		"en"		"+{1} point(s)"
+		"es"		"+{1} punto(s)"
+	}
+
+	"Admin Boost Take N"
+	{
+		"#format"	"{1:d}"
+		"en"		"-{1} point(s)"
+		"es"		"-{1} punto(s)"
+	}
+
+	"Admin Boost Gave"
+	{
+		"#format"	"{1:s},{2:d},{3:N},{4:d}"
+		"en"		"{1} Gave {2} point(s) to {3} (now {4})."
+		"es"		"{1} Diste {2} punto(s) a {3} (ahora {4})."
+	}
+
+	"Admin Boost Took"
+	{
+		"#format"	"{1:s},{2:d},{3:N},{4:d}"
+		"en"		"{1} Took {2} point(s) from {3} (now {4})."
+		"es"		"{1} Quitaste {2} punto(s) a {3} (ahora {4})."
+	}
+
+	"Admin Boost Received"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"en"		"{1} An admin gave you {2} boost point(s) (total {3})."
+		"es"		"{1} Un admin te dio {2} punto(s) de boost (total {3})."
+	}
+
+	"Admin Boost Removed"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"en"		"{1} An admin removed {2} boost point(s) (total {3})."
+		"es"		"{1} Un admin te quitó {2} punto(s) de boost (total {3})."
+	}
+
+	"Admin Boosts Missing"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Boosts module is not loaded."
+		"es"		"{1} El módulo de boosts no está cargado."
 	}
 
 	"Admin Disabled"
@@ -98,28 +227,28 @@
 	"Admin Freeday On"
 	{
 		"#format"	"{1:s},{2:s}"
-		"en"		"{1} Next-round freeday queued: {2}"
-		"es"		"{1} Freeday en cola (próxima ronda): {2}"
+		"en"		"{1} Freeday queued: {2}"
+		"es"		"{1} Freeday en cola: {2}"
 	}
 
 	"Admin Freeday Off"
 	{
 		"#format"	"{1:s},{2:s}"
-		"en"		"{1} Next-round freeday cleared: {2}"
-		"es"		"{1} Freeday de próxima ronda cancelado: {2}"
+		"en"		"{1} Freeday cleared: {2}"
+		"es"		"{1} Freeday cancelado: {2}"
 	}
 
 	"Admin Freeday OnPlayer"
 	{
 		"#format"	"{1:s},{2:N}"
-		"en"		"{1} Queued next-round freeday for {2}."
-		"es"		"{1} Freeday en cola (próxima ronda) para {2}."
+		"en"		"{1} Freeday queued for {2}."
+		"es"		"{1} Freeday en cola para {2}."
 	}
 
 	"Admin Freeday OffPlayer"
 	{
 		"#format"	"{1:s},{2:N}"
-		"en"		"{1} Cleared next-round freeday for {2}."
-		"es"		"{1} Cancelado freeday de próxima ronda de {2}."
+		"en"		"{1} Freeday cleared for {2}."
+		"es"		"{1} Freeday cancelado para {2}."
 	}
 }

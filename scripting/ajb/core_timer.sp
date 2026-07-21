@@ -72,7 +72,6 @@ void AJB_StartRoundExpireTimer(float seconds)
 	}
 
 	g_hRoundExpireTimer = CreateTimer(seconds, Timer_RoundTimeExpired, _, TIMER_FLAG_NO_MAPCHANGE);
-	AJB_Watchdog_MarkMainClockStart();
 }
 
 bool AJB_IsRoundExpireTimerActive()
@@ -95,8 +94,7 @@ Action Timer_RoundTimeExpired(Handle timer)
 	}
 
 	AJB_ChatAll("Round Time Expired");
-	// Classic jailbreak: time runs out → guards win.
-	AJB_ForceRoundWin(AJB_GetGuardsTeam());
+	// No forced win / map reset — that subsystem was removed.
 	return Plugin_Stop;
 }
 

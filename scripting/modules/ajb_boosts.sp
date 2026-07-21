@@ -20,6 +20,9 @@
 #include <ajb/ajb>
 #define REQUIRE_PLUGIN
 
+// Own library name for natives (see include/ajb/boosts.inc).
+#define AJB_BOOSTS_LIBRARY "ajb_boosts"
+
 #include <ajb/phrases>
 
 // =========================================================================================================
@@ -31,6 +34,33 @@
 #define BOOST_ID_IRON_NECK     "iron_neck"
 #define BOOST_ID_IRON_NECK_II  "iron_neck_2"
 #define BOOST_ID_REVIVE        "revive"
+
+// RED (prisoner) boosts
+#define BOOST_ID_SECOND_WIND   "second_wind"
+#define BOOST_ID_MAD_MILK      "mad_milk"
+#define BOOST_ID_MELEE_CRIT    "melee_crit"
+#define BOOST_ID_JARATE        "jarate"
+#define BOOST_ID_REGEN         "regen"
+
+#define BOOST_COST_IRON_NECK     1
+#define BOOST_COST_IRON_NECK_II  3
+#define BOOST_COST_REVIVE        3
+
+#define BOOST_COST_SECOND_WIND   1
+#define BOOST_COST_MAD_MILK      1
+#define BOOST_COST_MELEE_CRIT    2
+#define BOOST_COST_JARATE        3
+#define BOOST_COST_REGEN         3
+
+#define BOOST_CHARGES_IRON_NECK     1
+#define BOOST_CHARGES_IRON_NECK_II  2
+
+#define BOOST_SECOND_WIND_HP     50
+#define BOOST_REGEN_INSTANT_HP   50
+#define BOOST_REGEN_DURATION     20.0
+#define BOOST_REGEN_PER_TICK     5
+#define BOOST_REGEN_TICK         1.0
+#define BOOST_JAR_THROW_SPEED    1200.0
 
 // =========================================================================================================
 // Plugin info
@@ -60,6 +90,13 @@ int g_iPoints[MAXPLAYERS + 1];
 int g_iSpentThisRound[MAXPLAYERS + 1];
 int g_iBackstabCharges[MAXPLAYERS + 1];
 
+// RED: next melee hit from this player is a full crit (consumes on use).
+bool g_bMeleeCritReady[MAXPLAYERS + 1];
+
+// RED: passive regen timer (Vitality).
+Handle g_hRegenTimer[MAXPLAYERS + 1];
+float g_flRegenEnd[MAXPLAYERS + 1];
+
 // Counts finished jail rounds for BLU passive points (every N rounds).
 int g_iFinishedRoundCount;
 
@@ -69,11 +106,41 @@ bool g_bDamageHooked[MAXPLAYERS + 1];
 // Lifecycle
 // =========================================================================================================
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	CreateNative("AJB_Boosts_GetPoints", Native_Boosts_GetPoints);
+	CreateNative("AJB_Boosts_AddPointsEx", Native_Boosts_AddPointsEx);
+	RegPluginLibrary(AJB_BOOSTS_LIBRARY);
+	return APLRes_Success;
+}
+
+public int Native_Boosts_GetPoints(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	if (client < 1 || client > MaxClients)
+	{
+		return 0;
+	}
+	return g_iPoints[client];
+}
+
+public int Native_Boosts_AddPointsEx(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int amount = GetNativeCell(2);
+	AJB_Boosts_AddPoints(client, amount, "admin");
+	if (client < 1 || client > MaxClients)
+	{
+		return 0;
+	}
+	return g_iPoints[client];
+}
+
 public void OnPluginStart()
 {
 	CreateConVar("sm_ajb_boosts_version", PLUGIN_VERSION, "AJB Boosts module version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	g_cvEnabled = CreateConVar("sm_ajb_boosts_enabled", "1", "Enable the boosts system.", _, true, 0.0, true, 1.0);
-	g_cvMaxPoints = CreateConVar("sm_ajb_boosts_max_points", "9", "Max points a player can hold (0 = unlimited).", _, true, 0.0);
+	g_cvMaxPoints = CreateConVar("sm_ajb_boosts_max_points", "3", "Max points a player can hold (0 = unlimited).", _, true, 0.0);
 	g_cvSpendCap = CreateConVar("sm_ajb_boosts_spend_cap", "3", "Max points spendable per round (0 = unlimited).", _, true, 0.0);
 	g_cvBluEvery = CreateConVar("sm_ajb_boosts_blu_every", "2", "BLU surviving players get +1 extra every N finished rounds.", _, true, 1.0);
 
@@ -82,8 +149,9 @@ public void OnPluginStart()
 	LoadTranslations("ajb_boosts.phrases");
 	LoadTranslations("common.phrases");
 
-	// Short alias (only exceptions to sm_ajb_*): /boost and !boost
+	// Short aliases (exceptions to sm_ajb_*): /boost, /boosts
 	RegConsoleCmd("sm_boost", Command_Boosts, "Open the boosts menu.");
+	RegConsoleCmd("sm_boosts", Command_Boosts, "Open the boosts menu.");
 	RegConsoleCmd("sm_ajb_boosts", Command_Boosts, "Open the boosts menu.");
 	RegConsoleCmd("sm_ajb_points", Command_Points, "Show your boost points.");
 	RegAdminCmd("sm_ajb_boosts_give", Command_GivePoints, ADMFLAG_GENERIC, "Usage: sm_ajb_boosts_give <#userid|name> <amount>");
@@ -118,6 +186,8 @@ public void OnClientPutInServer(int client)
 	g_iPoints[client] = 0;
 	g_iSpentThisRound[client] = 0;
 	g_iBackstabCharges[client] = 0;
+	g_bMeleeCritReady[client] = false;
+	AJB_Boosts_StopRegen(client);
 	AJB_Boosts_HookClient(client);
 }
 
@@ -126,6 +196,8 @@ public void OnClientDisconnect(int client)
 	g_iPoints[client] = 0;
 	g_iSpentThisRound[client] = 0;
 	g_iBackstabCharges[client] = 0;
+	g_bMeleeCritReady[client] = false;
+	AJB_Boosts_StopRegen(client);
 	g_bDamageHooked[client] = false;
 }
 
@@ -151,10 +223,20 @@ public void OnLibraryRemoved(const char[] name)
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
+	int maxPts = g_cvMaxPoints.IntValue;
+
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_iSpentThisRound[i] = 0;
 		g_iBackstabCharges[i] = 0;
+		g_bMeleeCritReady[i] = false;
+		AJB_Boosts_StopRegen(i);
+
+		// Cap holdings to max (e.g. after cvar change or leftover from older builds).
+		if (maxPts > 0 && g_iPoints[i] > maxPts)
+		{
+			g_iPoints[i] = maxPts;
+		}
 	}
 }
 
@@ -187,6 +269,8 @@ void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_iBackstabCharges[i] = 0;
+		g_bMeleeCritReady[i] = false;
+		AJB_Boosts_StopRegen(i);
 	}
 }
 
@@ -336,37 +420,62 @@ bool AJB_Boosts_TrySpend(int client, int cost)
 void AJB_Boosts_ShowMenu(int client)
 {
 	Menu menu = new Menu(MenuHandler_Boosts);
-	menu.SetTitle("%T", "Boosts Menu Title", client, g_iPoints[client], g_iSpentThisRound[client]);
 
+	// Title layout:
+	//   Boosts
+	//   ------
+	//   Points: N
+	//   Spent: N
+	//   ------
+	char title[192];
+	Format(title, sizeof(title), "%T", "Boosts Menu Title", client, g_iPoints[client], g_iSpentThisRound[client]);
+	menu.SetTitle(title);
+
+	// Dead players may open the panel to plan, but purchases stay locked.
+	int draw = IsPlayerAlive(client) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED;
+
+	char line[128];
 	if (AJB_IsGuard(client))
 	{
-		char line[128];
-		Format(line, sizeof(line), "%T", "Boost Iron Neck", client);
-		menu.AddItem(BOOST_ID_IRON_NECK, line);
+		// Cost is code-owned; translations only hold the description.
+		Format(line, sizeof(line), "%T", "Boost Iron Neck", client, BOOST_COST_IRON_NECK);
+		menu.AddItem(BOOST_ID_IRON_NECK, line, draw);
 
-		Format(line, sizeof(line), "%T", "Boost Iron Neck II", client);
-		menu.AddItem(BOOST_ID_IRON_NECK_II, line);
+		Format(line, sizeof(line), "%T", "Boost Iron Neck II", client, BOOST_COST_IRON_NECK_II);
+		menu.AddItem(BOOST_ID_IRON_NECK_II, line, draw);
 
 		if (AJB_GetWarden() == client)
 		{
-			Format(line, sizeof(line), "%T", "Boost Revive", client);
-			menu.AddItem(BOOST_ID_REVIVE, line);
+			Format(line, sizeof(line), "%T", "Boost Revive", client, BOOST_COST_REVIVE);
+			menu.AddItem(BOOST_ID_REVIVE, line, draw);
 		}
 	}
 	else if (AJB_IsPrisoner(client))
 	{
-		char line[128];
-		Format(line, sizeof(line), "%T", "Boosts None For Role", client);
-		menu.AddItem("none", line, ITEMDRAW_DISABLED);
+		Format(line, sizeof(line), "%T", "Boost Second Wind", client, BOOST_COST_SECOND_WIND);
+		menu.AddItem(BOOST_ID_SECOND_WIND, line, draw);
+
+		Format(line, sizeof(line), "%T", "Boost Mad Milk", client, BOOST_COST_MAD_MILK);
+		menu.AddItem(BOOST_ID_MAD_MILK, line, draw);
+
+		Format(line, sizeof(line), "%T", "Boost Melee Crit", client, BOOST_COST_MELEE_CRIT);
+		menu.AddItem(BOOST_ID_MELEE_CRIT, line, draw);
+
+		Format(line, sizeof(line), "%T", "Boost Jarate", client, BOOST_COST_JARATE);
+		menu.AddItem(BOOST_ID_JARATE, line, draw);
+
+		Format(line, sizeof(line), "%T", "Boost Regen", client, BOOST_COST_REGEN);
+		menu.AddItem(BOOST_ID_REGEN, line, draw);
 	}
 	else
 	{
-		char line[128];
 		Format(line, sizeof(line), "%T", "Boosts Join Team", client);
 		menu.AddItem("none", line, ITEMDRAW_DISABLED);
 	}
 
-	menu.Display(client, 30);
+	// 0. Exit / Salir (SourceMod core phrase by client language)
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_Boosts(Menu menu, MenuAction action, int param1, int param2)
@@ -388,20 +497,47 @@ public int MenuHandler_Boosts(Menu menu, MenuAction action, int param1, int para
 		return 0;
 	}
 
+	// Items are disabled while dead; still guard purchases server-side.
+	if (!IsPlayerAlive(client))
+	{
+		AJB_Boosts_ShowMenu(client);
+		return 0;
+	}
+
 	char id[32];
 	menu.GetItem(param2, id, sizeof(id));
 
 	if (StrEqual(id, BOOST_ID_IRON_NECK))
 	{
-		AJB_Boosts_BuyIronNeck(client, 1, 1);
+		AJB_Boosts_BuyIronNeck(client, BOOST_CHARGES_IRON_NECK, BOOST_COST_IRON_NECK);
 	}
 	else if (StrEqual(id, BOOST_ID_IRON_NECK_II))
 	{
-		AJB_Boosts_BuyIronNeck(client, 2, 3);
+		AJB_Boosts_BuyIronNeck(client, BOOST_CHARGES_IRON_NECK_II, BOOST_COST_IRON_NECK_II);
 	}
 	else if (StrEqual(id, BOOST_ID_REVIVE))
 	{
 		AJB_Boosts_BuyRevive(client);
+	}
+	else if (StrEqual(id, BOOST_ID_SECOND_WIND))
+	{
+		AJB_Boosts_BuySecondWind(client);
+	}
+	else if (StrEqual(id, BOOST_ID_MAD_MILK))
+	{
+		AJB_Boosts_BuyJarThrow(client, true);
+	}
+	else if (StrEqual(id, BOOST_ID_MELEE_CRIT))
+	{
+		AJB_Boosts_BuyMeleeCrit(client);
+	}
+	else if (StrEqual(id, BOOST_ID_JARATE))
+	{
+		AJB_Boosts_BuyJarThrow(client, false);
+	}
+	else if (StrEqual(id, BOOST_ID_REGEN))
+	{
+		AJB_Boosts_BuyRegen(client);
 	}
 
 	return 0;
@@ -561,7 +697,7 @@ public int MenuHandler_Revive(Menu menu, MenuAction action, int param1, int para
 		return 0;
 	}
 
-	if (!AJB_Boosts_TrySpend(client, 3))
+	if (!AJB_Boosts_TrySpend(client, BOOST_COST_REVIVE))
 	{
 		return 0;
 	}
@@ -587,7 +723,221 @@ public int MenuHandler_Revive(Menu menu, MenuAction action, int param1, int para
 }
 
 // =========================================================================================================
-// Backstab save (Iron neck)
+// RED purchases
+// =========================================================================================================
+
+bool AJB_Boosts_RequireLivingPrisoner(int client)
+{
+	if (!g_bHasCore || !AJB_IsPrisoner(client) || !IsPlayerAlive(client))
+	{
+		AJB_Chat(client, "Boosts Prisoners Alive Only");
+		return false;
+	}
+	return true;
+}
+
+void AJB_Boosts_BuySecondWind(int client)
+{
+	if (!AJB_Boosts_RequireLivingPrisoner(client))
+	{
+		return;
+	}
+
+	if (!AJB_Boosts_TrySpend(client, BOOST_COST_SECOND_WIND))
+	{
+		AJB_Boosts_ShowMenu(client);
+		return;
+	}
+
+	AJB_Boosts_AddHealth(client, BOOST_SECOND_WIND_HP, true);
+
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+	CPrintToChat(client, "%T", "Boosts Purchased Second Wind", client, prefix, BOOST_SECOND_WIND_HP, g_iPoints[client]);
+	AJB_Boosts_ShowMenu(client);
+}
+
+// milk = true → Mad Milk; false → Jarate. Throws along eye forward.
+void AJB_Boosts_BuyJarThrow(int client, bool milk)
+{
+	if (!AJB_Boosts_RequireLivingPrisoner(client))
+	{
+		return;
+	}
+
+	int cost = milk ? BOOST_COST_MAD_MILK : BOOST_COST_JARATE;
+	if (!AJB_Boosts_TrySpend(client, cost))
+	{
+		AJB_Boosts_ShowMenu(client);
+		return;
+	}
+
+	if (!AJB_Boosts_ThrowJar(client, milk))
+	{
+		// Refund if the projectile failed to spawn.
+		g_iPoints[client] += cost;
+		g_iSpentThisRound[client] -= cost;
+		if (g_iSpentThisRound[client] < 0)
+		{
+			g_iSpentThisRound[client] = 0;
+		}
+		AJB_Chat(client, "Boosts Throw Failed");
+		AJB_Boosts_ShowMenu(client);
+		return;
+	}
+
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+	CPrintToChat(client, "%T", milk ? "Boosts Purchased Mad Milk" : "Boosts Purchased Jarate", client, prefix, g_iPoints[client]);
+	AJB_Boosts_ShowMenu(client);
+}
+
+void AJB_Boosts_BuyMeleeCrit(int client)
+{
+	if (!AJB_Boosts_RequireLivingPrisoner(client))
+	{
+		return;
+	}
+
+	if (g_bMeleeCritReady[client])
+	{
+		AJB_Chat(client, "Boosts Melee Crit Already");
+		AJB_Boosts_ShowMenu(client);
+		return;
+	}
+
+	if (!AJB_Boosts_TrySpend(client, BOOST_COST_MELEE_CRIT))
+	{
+		AJB_Boosts_ShowMenu(client);
+		return;
+	}
+
+	g_bMeleeCritReady[client] = true;
+
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+	CPrintToChat(client, "%T", "Boosts Purchased Melee Crit", client, prefix, g_iPoints[client]);
+	AJB_Boosts_ShowMenu(client);
+}
+
+void AJB_Boosts_BuyRegen(int client)
+{
+	if (!AJB_Boosts_RequireLivingPrisoner(client))
+	{
+		return;
+	}
+
+	if (!AJB_Boosts_TrySpend(client, BOOST_COST_REGEN))
+	{
+		AJB_Boosts_ShowMenu(client);
+		return;
+	}
+
+	AJB_Boosts_AddHealth(client, BOOST_REGEN_INSTANT_HP, true);
+	AJB_Boosts_StartRegen(client, BOOST_REGEN_DURATION);
+
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+	CPrintToChat(client, "%T", "Boosts Purchased Regen", client, prefix, BOOST_REGEN_INSTANT_HP, RoundToNearest(BOOST_REGEN_DURATION), g_iPoints[client]);
+	AJB_Boosts_ShowMenu(client);
+}
+
+void AJB_Boosts_AddHealth(int client, int amount, bool allowOverheal = false)
+{
+	if (amount <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	int health = GetClientHealth(client) + amount;
+	int maxHealth = GetEntProp(client, Prop_Data, "m_iMaxHealth");
+	int cap = allowOverheal ? (maxHealth + amount) : maxHealth;
+	if (health > cap)
+	{
+		health = cap;
+	}
+	SetEntityHealth(client, health);
+}
+
+void AJB_Boosts_StopRegen(int client)
+{
+	if (client < 1 || client > MaxClients)
+	{
+		return;
+	}
+
+	if (g_hRegenTimer[client] != null)
+	{
+		delete g_hRegenTimer[client];
+		g_hRegenTimer[client] = null;
+	}
+	g_flRegenEnd[client] = 0.0;
+}
+
+void AJB_Boosts_StartRegen(int client, float duration)
+{
+	AJB_Boosts_StopRegen(client);
+	g_flRegenEnd[client] = GetGameTime() + duration;
+	g_hRegenTimer[client] = CreateTimer(BOOST_REGEN_TICK, Timer_BoostRegen, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+}
+
+Action Timer_BoostRegen(Handle timer, int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client) || GetGameTime() >= g_flRegenEnd[client])
+	{
+		if (client >= 1 && client <= MaxClients && g_hRegenTimer[client] == timer)
+		{
+			g_hRegenTimer[client] = null;
+			g_flRegenEnd[client] = 0.0;
+		}
+		return Plugin_Stop;
+	}
+
+	// Passiveive heal toward max HP (no stacking overheal from ticks).
+	AJB_Boosts_AddHealth(client, BOOST_REGEN_PER_TICK, false);
+	return Plugin_Continue;
+}
+
+bool AJB_Boosts_ThrowJar(int client, bool milk)
+{
+	float eye[3];
+	float ang[3];
+	float fwd[3];
+	float vel[3];
+	float pos[3];
+
+	GetClientEyePosition(client, eye);
+	GetClientEyeAngles(client, ang);
+	GetAngleVectors(ang, fwd, NULL_VECTOR, NULL_VECTOR);
+
+	pos[0] = eye[0] + fwd[0] * 16.0;
+	pos[1] = eye[1] + fwd[1] * 16.0;
+	pos[2] = eye[2] + fwd[2] * 16.0;
+
+	vel[0] = fwd[0] * BOOST_JAR_THROW_SPEED;
+	vel[1] = fwd[1] * BOOST_JAR_THROW_SPEED;
+	vel[2] = fwd[2] * BOOST_JAR_THROW_SPEED;
+
+	int ent = CreateEntityByName(milk ? "tf_projectile_jar_milk" : "tf_projectile_jar");
+	if (ent == -1 || !IsValidEntity(ent))
+	{
+		return false;
+	}
+
+	int team = GetClientTeam(client);
+	SetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity", client);
+	SetEntPropEnt(ent, Prop_Send, "m_hThrower", client);
+	SetEntProp(ent, Prop_Send, "m_iTeamNum", team);
+	SetEntProp(ent, Prop_Data, "m_iTeamNum", team);
+
+	DispatchSpawn(ent);
+	TeleportEntity(ent, pos, ang, vel);
+	return true;
+}
+
+// =========================================================================================================
+// Damage hooks (Iron neck + melee crit)
 // =========================================================================================================
 
 void AJB_Boosts_HookClient(int client)
@@ -603,43 +953,72 @@ void AJB_Boosts_HookClient(int client)
 
 Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
 {
-	if (!g_cvEnabled.BoolValue || g_iBackstabCharges[victim] <= 0)
+	if (!g_cvEnabled.BoolValue)
 	{
 		return Plugin_Continue;
 	}
 
-	if (!IsClientInGame(victim) || !IsPlayerAlive(victim))
-	{
-		return Plugin_Continue;
-	}
+	bool changed = false;
 
-	if (damagecustom != TF_CUSTOM_BACKSTAB)
+	// RED boost: first melee hit is a full crit.
+	if (attacker >= 1 && attacker <= MaxClients
+		&& g_bMeleeCritReady[attacker]
+		&& attacker != victim
+		&& IsClientInGame(attacker)
+		&& IsPlayerAlive(attacker))
 	{
-		return Plugin_Continue;
-	}
-
-	g_iBackstabCharges[victim]--;
-
-	int health = GetClientHealth(victim);
-	if (damage >= float(health))
-	{
-		damage = float(health - 1);
-		if (damage < 0.0)
+		bool isMelee = false;
+		if (weapon > MaxClients && IsValidEntity(weapon))
 		{
-			damage = 0.0;
+			int melee = GetPlayerWeaponSlot(attacker, TFWeaponSlot_Melee);
+			isMelee = (melee == weapon);
+		}
+		if (!isMelee && (damagetype & DMG_CLUB) == DMG_CLUB)
+		{
+			isMelee = true;
 		}
 
-		char prefix[32];
-		AJB_GetPrefix(victim, prefix, sizeof(prefix));
-		CPrintToChat(victim, "%T", "Boosts Backstab Saved", victim, prefix, g_iBackstabCharges[victim]);
-		if (attacker > 0 && attacker <= MaxClients && IsClientInGame(attacker))
+		if (isMelee)
 		{
+			damagetype |= DMG_CRIT;
+			g_bMeleeCritReady[attacker] = false;
+			changed = true;
+
+			char prefix[32];
 			AJB_GetPrefix(attacker, prefix, sizeof(prefix));
-			CPrintToChat(attacker, "%T", "Boosts Backstab Blocked", attacker, prefix, victim);
+			CPrintToChat(attacker, "%T", "Boosts Melee Crit Used", attacker, prefix);
 		}
-
-		return Plugin_Changed;
 	}
 
-	return Plugin_Continue;
+	// BLU boost: iron neck survives one backstab.
+	if (g_iBackstabCharges[victim] > 0
+		&& IsClientInGame(victim)
+		&& IsPlayerAlive(victim)
+		&& damagecustom == TF_CUSTOM_BACKSTAB)
+	{
+		g_iBackstabCharges[victim]--;
+
+		int health = GetClientHealth(victim);
+		if (damage >= float(health))
+		{
+			damage = float(health - 1);
+			if (damage < 0.0)
+			{
+				damage = 0.0;
+			}
+
+			char prefix[32];
+			AJB_GetPrefix(victim, prefix, sizeof(prefix));
+			CPrintToChat(victim, "%T", "Boosts Backstab Saved", victim, prefix, g_iBackstabCharges[victim]);
+			if (attacker > 0 && attacker <= MaxClients && IsClientInGame(attacker))
+			{
+				AJB_GetPrefix(attacker, prefix, sizeof(prefix));
+				CPrintToChat(attacker, "%T", "Boosts Backstab Blocked", attacker, prefix, victim);
+			}
+
+			return Plugin_Changed;
+		}
+	}
+
+	return changed ? Plugin_Changed : Plugin_Continue;
 }

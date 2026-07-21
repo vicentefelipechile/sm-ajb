@@ -88,6 +88,8 @@ Action Timer_PrepEnd(Handle timer)
 	AJB_Prep_Stop();
 	// Prep used the HUD clock for countdown — hand it back to the main round timer.
 	AJB_StartRoundClock();
+	// Live round: apply queued LR wishes, personal freedays, etc. (not during preround).
+	AJB_NotifyLiveRoundBegin();
 	return Plugin_Stop;
 }
 

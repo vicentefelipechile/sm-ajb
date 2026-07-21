@@ -22,6 +22,9 @@ forward void AJB_OnCellsClosed();
 forward void AJB_OnLastPrisoner(int client);
 // Warden picked "Give Last Request" in their menu — modules handle the picker/offer.
 forward void AJB_OnWardenGiveLR(int warden);
+// Live round begins: after prep ends, or right after round start if prep time is 0.
+// LR wishes and similar must apply here — never during preround/prep.
+forward void AJB_OnLiveRoundBegin();
 
 native bool AJB_IsEnabled();
 native AJBRoundState AJB_GetRoundState();
@@ -42,6 +45,15 @@ native bool AJB_SetRoundState(AJBRoundState state);
 native void AJB_ForceTeamWin(int team);
 // Reopen the stock warden menu (for submenu "Back" / post-action return).
 native void AJB_ShowWardenMenu(int client);
+// When false, damaging a guard never auto-marks rebel (LR Hot Reds, etc.).
+native void AJB_SetRebelOnHit(bool enabled);
+native bool AJB_GetRebelOnHit();
+
+// Round modes (War Day / Class Warfare / Freeday-all cosmetic).
+native void AJB_BeginCombatDay();
+native void AJB_BeginFreedayAllCosmetic();
+native bool AJB_IsCombatDay();
+native bool AJB_IsFreedayAllCosmetic();
 
 public SharedPlugin __pl_ajb =
 {
@@ -75,5 +87,11 @@ public void __pl_ajb_SetNTVOptional()
 	MarkNativeAsOptional("AJB_SetRoundState");
 	MarkNativeAsOptional("AJB_ForceTeamWin");
 	MarkNativeAsOptional("AJB_ShowWardenMenu");
+	MarkNativeAsOptional("AJB_SetRebelOnHit");
+	MarkNativeAsOptional("AJB_GetRebelOnHit");
+	MarkNativeAsOptional("AJB_BeginCombatDay");
+	MarkNativeAsOptional("AJB_BeginFreedayAllCosmetic");
+	MarkNativeAsOptional("AJB_IsCombatDay");
+	MarkNativeAsOptional("AJB_IsFreedayAllCosmetic");
 }
 #endif

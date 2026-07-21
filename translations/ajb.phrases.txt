@@ -103,6 +103,18 @@
 		"ru"		"{1} Только живая охрана может стать Warden."
 	}
 
+	"Warden Claim Not Now"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} You cannot claim Warden during preparation or after the round ends."
+		"es"		"{1} No puedes reclamar Warden durante la preparación ni al final de la ronda."
+		"las"		"{1} No puedes reclamar Warden durante la preparación ni al final de la ronda."
+		"de"		"{1} Warden kann nicht während der Vorbereitung oder nach Rundenende beansprucht werden."
+		"fr"		"{1} Impossible de prendre Warden pendant la préparation ou après la fin de manche."
+		"pt"		"{1} Não é possível reclamar Warden na preparação ou após o fim da rodada."
+		"ru"		"{1} Нельзя стать Warden во время подготовки или после конца раунда."
+	}
+
 	"Warden Already Taken"
 	{
 		"#format"	"{1:s},{2:N}"
@@ -174,13 +186,13 @@
 
 	"Warden Menu Days"
 	{
-		"en"		"Special days..."
-		"es"		"Días especiales..."
-		"las"		"Días especiales..."
-		"de"		"Special Days..."
-		"fr"		"Jours spéciaux..."
-		"pt"		"Dias especiais..."
-		"ru"		"Особые дни..."
+		"en"		"Special days"
+		"es"		"Días especiales"
+		"las"		"Días especiales"
+		"de"		"Special Days"
+		"fr"		"Jours spéciaux"
+		"pt"		"Dias especiais"
+		"ru"		"Особые дни"
 	}
 
 	"Warden Menu Freeday"
@@ -207,13 +219,81 @@
 
 	"Warden Menu Give LR"
 	{
-		"en"		"Give Last Request..."
-		"es"		"Dar último deseo..."
-		"las"		"Dar último deseo..."
-		"de"		"Last Request geben..."
-		"fr"		"Donner un Last Request..."
-		"pt"		"Dar Last Request..."
-		"ru"		"Выдать Last Request..."
+		"en"		"Give Last Request"
+		"es"		"Dar último deseo"
+		"las"		"Dar último deseo"
+		"de"		"Last Request geben"
+		"fr"		"Donner un Last Request"
+		"pt"		"Dar Last Request"
+		"ru"		"Выдать Last Request"
+	}
+
+	"Warden Menu Mark Rebel"
+	{
+		"en"		"Mark rebel"
+		"es"		"Marcar rebelde"
+		"las"		"Marcar rebelde"
+		"de"		"Rebell markieren"
+		"fr"		"Marquer rebelle"
+		"pt"		"Marcar rebelde"
+		"ru"		"Пометить бунтовщика"
+	}
+
+	"Warden Menu Pardon Rebel"
+	{
+		"en"		"Pardon rebel"
+		"es"		"Perdonar rebelde"
+		"las"		"Perdonar rebelde"
+		"de"		"Rebell begnadigen"
+		"fr"		"Pardonner rebelle"
+		"pt"		"Perdoar rebelde"
+		"ru"		"Помиловать бунтовщика"
+	}
+
+	"Warden Mark Rebel Title"
+	{
+		"en"		"Mark as rebel"
+		"es"		"Marcar como rebelde"
+		"las"		"Marcar como rebelde"
+		"de"		"Als Rebell markieren"
+		"fr"		"Marquer comme rebelle"
+		"pt"		"Marcar como rebelde"
+		"ru"		"Пометить как бунтовщика"
+	}
+
+	"Warden Pardon Rebel Title"
+	{
+		"en"		"Pardon rebel"
+		"es"		"Perdonar rebelde"
+		"las"		"Perdonar rebelde"
+		"de"		"Rebell begnadigen"
+		"fr"		"Pardonner le rebelle"
+		"pt"		"Perdoar rebelde"
+		"ru"		"Помиловать бунтовщика"
+	}
+
+	"Warden Rebel None"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} No living non-rebel prisoners to mark."
+		"es"		"{1} No hay prisioneros vivos no rebeldes para marcar."
+		"las"		"{1} No hay prisioneros vivos no rebeldes para marcar."
+		"de"		"{1} Keine lebenden Nicht-Rebellen zum Markieren."
+		"fr"		"{1} Aucun prisonnier non-rebelle vivant à marquer."
+		"pt"		"{1} Nenhum prisioneiro vivo não-rebelde para marcar."
+		"ru"		"{1} Нет живых не-бунтовщиков для пометки."
+	}
+
+	"Warden Pardon None"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} No living rebels to pardon."
+		"es"		"{1} No hay rebeldes vivos para perdonar."
+		"las"		"{1} No hay rebeldes vivos para perdonar."
+		"de"		"{1} Keine lebenden Rebellen zum Begnadigen."
+		"fr"		"{1} Aucun rebelle vivant à pardonner."
+		"pt"		"{1} Nenhum rebelde vivo para perdoar."
+		"ru"		"{1} Нет живых бунтовщиков для помилования."
 	}
 
 	"Warden Menu Resign"
@@ -343,7 +423,33 @@
 		"ru"		"{1} Не удалось закрыть камеры (проверьте конфиг дверей)."
 	}
 
+	// Manual mark/pardon: {1}=prefix, {2}=warden/admin, {3}=prisoner
 	"Player Rebel"
+	{
+		"#format"	"{1:s},{2:N},{3:N}"
+		"en"		"{1} {2} has marked {3} as a rebel!"
+		"es"		"{1} {2} ha marcado a {3} como rebelde!"
+		"las"		"{1} {2} ha marcado a {3} como rebelde!"
+		"de"		"{1} {2} hat {3} als Rebell markiert!"
+		"fr"		"{1} {2} a marqué {3} comme rebelle !"
+		"pt"		"{1} {2} marcou {3} como rebelde!"
+		"ru"		"{1} {2} пометил {3} как бунтовщика!"
+	}
+
+	"Player Unrebel"
+	{
+		"#format"	"{1:s},{2:N},{3:N}"
+		"en"		"{1} {2} has pardoned {3}."
+		"es"		"{1} {2} ha perdonado a {3}."
+		"las"		"{1} {2} ha perdonado a {3}."
+		"de"		"{1} {2} hat {3} begnadigt."
+		"fr"		"{1} {2} a pardonné {3}."
+		"pt"		"{1} {2} perdoou {3}."
+		"ru"		"{1} {2} помиловал {3}."
+	}
+
+	// Auto (damage / no actor): {1}=prefix, {2}=prisoner
+	"Player Rebel Auto"
 	{
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} is rebelling!"
@@ -355,7 +461,7 @@
 		"ru"		"{1} {2} бунтует!"
 	}
 
-	"Player Unrebel"
+	"Player Unrebel Auto"
 	{
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} is no longer a rebel."
@@ -377,6 +483,18 @@
 		"fr"		"{1} Les bâtiments sont désactivés dans Another Jailbreak."
 		"pt"		"{1} Construções desativadas no Another Jailbreak."
 		"ru"		"{1} Постройки отключены в Another Jailbreak."
+	}
+
+	"Sentry Wait Round"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Wait until the round starts."
+		"es"		"{1} Espera hasta que inicie la ronda."
+		"las"		"{1} Espera hasta que inicie la ronda."
+		"de"		"{1} Warte, bis die Runde beginnt."
+		"fr"		"{1} Attendez le début de la manche."
+		"pt"		"{1} Espere até a rodada começar."
+		"ru"		"{1} Дождитесь начала раунда."
 	}
 
 	"Doors Reloaded"
@@ -406,24 +524,24 @@
 	"Freeday Queued"
 	{
 		"#format"	"{1:s},{2:N}"
-		"en"		"{1} Freeday for {2} is queued for next round."
-		"es"		"{1} Freeday de {2} en cola para la próxima ronda."
-		"las"		"{1} Freeday de {2} en cola para la próxima ronda."
+		"en"		"{1} Freeday queued for {2}."
+		"es"		"{1} Freeday en cola para {2}."
+		"las"		"{1} Freeday en cola para {2}."
 	}
 
 	"Freeday Queue Cleared"
 	{
 		"#format"	"{1:s},{2:N}"
-		"en"		"{1} Cleared next-round freeday for {2}."
-		"es"		"{1} Se canceló el freeday de la próxima ronda de {2}."
-		"las"		"{1} Se canceló el freeday de la próxima ronda de {2}."
+		"en"		"{1} Freeday cleared for {2}."
+		"es"		"{1} Freeday cancelado para {2}."
+		"las"		"{1} Freeday cancelado para {2}."
 	}
 
 	"Freeday Active Now"
 	{
 		"#format"	"{1:s}"
-		"en"		"{1} Your freeday is active this round."
-		"es"		"{1} Tu freeday está activo esta ronda."
-		"las"		"{1} Tu freeday está activo esta ronda."
+		"en"		"{1} Your freeday is active."
+		"es"		"{1} Tu freeday está activo."
+		"las"		"{1} Tu freeday está activo."
 	}
 }

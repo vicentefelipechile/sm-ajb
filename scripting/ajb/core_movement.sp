@@ -16,7 +16,10 @@
 //   3) core_prep MOVETYPE_NONE on RED        → networked hard lock prisoners see
 // =========================================================================================================
 
+// Shared with core_sentry.sp (same gamedata file).
+#if !defined AJB_GAMEDATA_FILE
 #define AJB_GAMEDATA_FILE "ajb.games"
+#endif
 
 DynamicDetour g_hDetourCanPlayerMove;
 bool g_bCanPlayerMoveHooked;

@@ -107,6 +107,39 @@ bool AJB_IsWarden(int client)
 	return client > 0 && client == g_iWarden;
 }
 
+// Claim / auto-warden only during a live round — never prep (preround) or postround.
+bool AJB_CanClaimWarden()
+{
+	if (!g_bModeActive)
+	{
+		return false;
+	}
+
+	// Prep window = first N seconds after teamplay_round_start (preround for JB).
+	if (AJB_IsPrepActive())
+	{
+		return false;
+	}
+
+	// War Day / Class Warfare / Freeday-all: no warden claim.
+	if (AJB_NoWardenClaim())
+	{
+		return false;
+	}
+
+	if (g_RoundState == AJBState_Disabled
+		|| g_RoundState == AJBState_Waiting
+		|| g_RoundState == AJBState_RoundEnd
+		|| g_RoundState == AJBState_SpecialDay)
+	{
+		return false;
+	}
+
+	return g_RoundState == AJBState_CellsLocked
+		|| g_RoundState == AJBState_CellsOpen
+		|| g_RoundState == AJBState_LastRequest;
+}
+
 bool AJB_CanControlCells(int client)
 {
 	if (!AJB_IsValidClient(client))
@@ -142,17 +175,31 @@ Action Command_Warden(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if (g_iWarden != 0 && g_iWarden != client)
+	// Already warden: open menu only while the round is still live.
+	if (g_iWarden == client)
 	{
-		char prefix[32];
-		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		ReplyToCommand(client, "%T", "Warden Already Taken", client, prefix, g_iWarden);
+		if (!AJB_CanClaimWarden())
+		{
+			AJB_Reply(client, "Warden Claim Not Now");
+			return Plugin_Handled;
+		}
+
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 		return Plugin_Handled;
 	}
 
-	if (g_iWarden == client)
+	// Fresh claim blocked in prep / waiting / round end.
+	if (!AJB_CanClaimWarden())
 	{
-		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		AJB_Reply(client, "Warden Claim Not Now");
+		return Plugin_Handled;
+	}
+
+	if (g_iWarden != 0)
+	{
+		char prefix[32];
+		AJB_GetPrefix(client, prefix, sizeof(prefix));
+		CReplyToCommand(client, "%T", "Warden Already Taken", client, prefix, g_iWarden);
 		return Plugin_Handled;
 	}
 
@@ -222,6 +269,16 @@ void AJB_Warden_ShowMenu(int client)
 	Format(line, sizeof(line), "%T", "Warden Menu Give LR", client);
 	menu.AddItem("give_lr", line);
 
+	// Mark / pardon RED rebels (gated by sm_ajb_warden_rebel_control).
+	if (g_cvWardenRebelControl != null && g_cvWardenRebelControl.BoolValue)
+	{
+		Format(line, sizeof(line), "%T", "Warden Menu Mark Rebel", client);
+		menu.AddItem("mark_rebel", line);
+
+		Format(line, sizeof(line), "%T", "Warden Menu Pardon Rebel", client);
+		menu.AddItem("pardon_rebel", line);
+	}
+
 	Format(line, sizeof(line), "%T", "Warden Menu Resign", client);
 	menu.AddItem("resign", line);
 
@@ -281,7 +338,151 @@ public int MenuHandler_Warden(Menu menu, MenuAction action, int param1, int para
 		Call_PushCell(client);
 		Call_Finish();
 	}
+	else if (StrEqual(info, "mark_rebel"))
+	{
+		if (g_cvWardenRebelControl == null || !g_cvWardenRebelControl.BoolValue)
+		{
+			RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+			return 0;
+		}
+		AJB_Warden_ShowRebelPick(client, true);
+	}
+	else if (StrEqual(info, "pardon_rebel"))
+	{
+		if (g_cvWardenRebelControl == null || !g_cvWardenRebelControl.BoolValue)
+		{
+			RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+			return 0;
+		}
+		AJB_Warden_ShowRebelPick(client, false);
+	}
 
+	return 0;
+}
+
+// markMode = true  → list non-rebel living prisoners (set rebel)
+// markMode = false → list rebel living prisoners (pardon)
+void AJB_Warden_ShowRebelPick(int client, bool markMode)
+{
+	if (!AJB_IsValidClient(client) || !AJB_IsWarden(client))
+	{
+		return;
+	}
+
+	if (g_cvWardenRebelControl == null || !g_cvWardenRebelControl.BoolValue)
+	{
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_WardenRebel);
+	char title[96];
+	char line[64];
+	Format(title, sizeof(title), "%T", markMode ? "Warden Mark Rebel Title" : "Warden Pardon Rebel Title", client);
+	menu.SetTitle(title);
+
+	int count = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || !AJB_ClientIsPrisoner(i))
+		{
+			continue;
+		}
+
+		// Mark: only non-rebels. Pardon: only rebels.
+		if (markMode == g_bRebel[i])
+		{
+			continue;
+		}
+
+		char id[12];
+		// Encode action + userid so the handler knows mark vs pardon without extra state.
+		Format(id, sizeof(id), "%c%d", markMode ? 'M' : 'P', GetClientUserId(i));
+		GetClientName(i, line, sizeof(line));
+		menu.AddItem(id, line);
+		count++;
+	}
+
+	if (count < 1)
+	{
+		delete menu;
+		AJB_Chat(client, markMode ? "Warden Rebel None" : "Warden Pardon None");
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return;
+	}
+
+	// Only ExitBackButton — do not also AddItem("back") or the list shows two "Volver".
+	menu.ExitButton = false;
+	menu.ExitBackButton = true;
+	menu.Display(client, 0);
+}
+
+public int MenuHandler_WardenRebel(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	int client = param1;
+
+	if (action == MenuAction_Cancel)
+	{
+		if (g_bModeActive && AJB_IsWarden(client))
+		{
+			RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		}
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	if (!g_bModeActive || !AJB_IsWarden(client))
+	{
+		return 0;
+	}
+
+	if (g_cvWardenRebelControl == null || !g_cvWardenRebelControl.BoolValue)
+	{
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
+
+	if (!IsPlayerAlive(client))
+	{
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+
+	bool markMode = (info[0] == 'M');
+	if (info[0] != 'M' && info[0] != 'P')
+	{
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
+
+	int target = GetClientOfUserId(StringToInt(info[1]));
+	if (target < 1
+		|| !IsClientInGame(target)
+		|| !IsPlayerAlive(target)
+		|| !AJB_ClientIsPrisoner(target)
+		|| (markMode == g_bRebel[target]))
+	{
+		// Invalid / already in desired state — refresh the same pick list.
+		AJB_Warden_ShowRebelPick(client, markMode);
+		return 0;
+	}
+
+	AJB_SetRebelInternal(target, markMode, true, client);
+	// Stay on the same submenu so the warden can process several players.
+	AJB_Warden_ShowRebelPick(client, markMode);
 	return 0;
 }
 
@@ -295,14 +496,11 @@ void AJB_Warden_ShowResignConfirm(int client)
 	Menu menu = new Menu(MenuHandler_WardenResign);
 	char title[96];
 	char yes[64];
-	char back[64];
 	Format(title, sizeof(title), "%T", "Warden Resign Confirm Title", client);
 	Format(yes, sizeof(yes), "%T", "Warden Resign Confirm Yes", client);
-	Format(back, sizeof(back), "%T", "Warden Menu Back", client);
 	menu.SetTitle(title);
 	menu.AddItem("yes", yes);
-	menu.AddItem("back", back);
-	// Submenus always return to the main warden panel — no bare exit.
+	// ExitBackButton alone returns to main warden menu (no second "Volver" item).
 	menu.ExitButton = false;
 	menu.ExitBackButton = true;
 	menu.Display(client, 0);
@@ -347,7 +545,6 @@ public int MenuHandler_WardenResign(Menu menu, MenuAction action, int param1, in
 		return 0;
 	}
 
-	// "back" or any non-yes → main menu
 	RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 	return 0;
 }
@@ -498,7 +695,8 @@ Action Command_AdminRebel(int client, int args)
 
 	for (int i = 0; i < count; i++)
 	{
-		AJB_SetRebelInternal(targetList[i], setRebel, true);
+		// client may be 0 (console) → auto phrase without actor name.
+		AJB_SetRebelInternal(targetList[i], setRebel, true, client);
 	}
 
 	return Plugin_Handled;

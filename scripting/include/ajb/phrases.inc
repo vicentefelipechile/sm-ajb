@@ -27,7 +27,9 @@ stock void AJB_Reply(int client, const char[] phrase)
 {
 	char prefix[64];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	ReplyToCommand(client, "%T", phrase, AJB_TransTarget(client), prefix);
+	// CReplyToCommand: chat gets morecolors tags; console gets stripped text.
+	// ReplyToCommand would print literal "{green}[AJB]{default} ...".
+	CReplyToCommand(client, "%T", phrase, AJB_TransTarget(client), prefix);
 }
 
 stock void AJB_Chat(int client, const char[] phrase)
