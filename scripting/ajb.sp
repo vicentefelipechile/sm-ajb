@@ -199,7 +199,7 @@ public void OnPluginStart()
 		}
 	}
 
-	RegAdminCmd("sm_ajb_doors_reload", Command_DoorsReload, ADMFLAG_CONFIG, "Reload per-map door targetnames.");
+	RegAdminCmd("sm_ajb_doors_reload", Command_DoorsReload, ADMFLAG_CONFIG, "Reload per-map doors + teleports (configs/ajb/maps/<map>.cfg).");
 	RegAdminCmd("sm_ajb_doors_list", Command_DoorsList, ADMFLAG_CONFIG, "List configured door targetnames.");
 
 	AJB_RefreshModeActive();

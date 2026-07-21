@@ -2,9 +2,12 @@
 // Cell door open/close via per-map config + common name fallbacks + optional name scan
 // =========================================================================================================
 
+// Per-map cfg: configs/ajb/maps/<map>.cfg
+// Doors + teleports (freeday / combat_red / combat_blu). Never invents coordinates.
 void AJB_LoadMapDoors()
 {
 	g_iDoorNameCount = 0;
+	AJB_Settings_ClearTeleports();
 
 	char map[PLATFORM_MAX_PATH];
 	GetCurrentMap(map, sizeof(map));
@@ -21,50 +24,32 @@ void AJB_LoadMapDoors()
 	char path[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, sizeof(path), "%s/%s.cfg", AJB_MAP_CONFIG_DIR, fileMap);
 
+	bool nofallback = false;
+
 	if (FileExists(path))
 	{
-		KeyValues kv = new KeyValues("AJBDoors");
+		// Root name may be "AJB" or legacy "AJBDoors".
+		KeyValues kv = new KeyValues("AJB");
 		if (kv.ImportFromFile(path))
 		{
+			// Teleports first (must be at root; door walks would leave wrong node).
+			AJB_Settings_LoadTeleportsFromKv(kv);
+
+			// New layout: "doors" { "nofallback" "targets" { ... } }
 			if (kv.JumpToKey("doors"))
 			{
-				if (kv.GotoFirstSubKey(false))
-				{
-					do
-					{
-						char name[AJB_MAX_DOOR_NAME_LEN];
-						kv.GetSectionName(name, sizeof(name));
-						char val[AJB_MAX_DOOR_NAME_LEN];
-						kv.GetString(NULL_STRING, val, sizeof(val), name);
-						if (val[0] == '\0')
-						{
-							strcopy(val, sizeof(val), name);
-						}
-						AJB_AddDoorName(val);
-					}
-					while (kv.GotoNextKey(false));
-				}
+				nofallback = kv.GetNum("nofallback", 0) != 0;
+				AJB_LoadDoorTargetsFromKv(kv);
 				kv.GoBack();
 			}
-
-			if (kv.JumpToKey("targets"))
+			else
 			{
-				if (kv.GotoFirstSubKey(false))
-				{
-					do
-					{
-						char val[AJB_MAX_DOOR_NAME_LEN];
-						kv.GetString(NULL_STRING, val, sizeof(val), "");
-						if (val[0] != '\0')
-						{
-							AJB_AddDoorName(val);
-						}
-					}
-					while (kv.GotoNextKey(false));
-				}
+				// Legacy: root "AJBDoors" with top-level "targets" / flat names.
+				nofallback = kv.GetNum("nofallback", 0) != 0;
+				AJB_LoadDoorTargetsFromKv(kv);
 			}
 
-			if (kv.GetNum("nofallback", 0) != 0 && g_iDoorNameCount > 0)
+			if (nofallback && g_iDoorNameCount > 0)
 			{
 				LogMessage("[AJB] Loaded %d door target(s) from %s (nofallback).", g_iDoorNameCount, path);
 				delete kv;
@@ -72,6 +57,10 @@ void AJB_LoadMapDoors()
 			}
 		}
 		delete kv;
+	}
+	else
+	{
+		LogMessage("[AJB] No map cfg %s — no per-map teleports; door fallbacks only.", path);
 	}
 
 	if (g_iDoorNameCount == 0)
@@ -91,6 +80,62 @@ void AJB_LoadMapDoors()
 	AJB_ScanDoorTargetnames();
 
 	LogMessage("[AJB] Found %d doors.", g_iDoorNameCount);
+}
+
+// From current KV node: "targets" { "1" "name" } and/or flat string children (legacy).
+void AJB_LoadDoorTargetsFromKv(KeyValues kv)
+{
+	if (kv.JumpToKey("targets"))
+	{
+		if (kv.GotoFirstSubKey(false))
+		{
+			do
+			{
+				char val[AJB_MAX_DOOR_NAME_LEN];
+				kv.GetString(NULL_STRING, val, sizeof(val), "");
+				if (val[0] != '\0')
+				{
+					AJB_AddDoorName(val);
+				}
+			}
+			while (kv.GotoNextKey(false));
+			kv.GoBack();
+		}
+		kv.GoBack();
+	}
+
+	// Legacy flat list under "doors" or root (section name or value = targetname).
+	if (kv.GotoFirstSubKey(false))
+	{
+		do
+		{
+			char name[AJB_MAX_DOOR_NAME_LEN];
+			kv.GetSectionName(name, sizeof(name));
+			if (StrEqual(name, "targets", false) || StrEqual(name, "teleports", false)
+				|| StrEqual(name, "nofallback", false) || StrEqual(name, "doors", false))
+			{
+				continue;
+			}
+
+			char val[AJB_MAX_DOOR_NAME_LEN];
+			kv.GetString(NULL_STRING, val, sizeof(val), name);
+			if (val[0] == '\0')
+			{
+				strcopy(val, sizeof(val), name);
+			}
+			// Skip pure numeric flags / empty junk.
+			if (val[0] != '\0' && !StrEqual(val, "0", false) && !StrEqual(val, "1", false))
+			{
+				// Only add if it looks like a targetname (not a vector).
+				if (FindCharInString(val, ' ') == -1)
+				{
+					AJB_AddDoorName(val);
+				}
+			}
+		}
+		while (kv.GotoNextKey(false));
+		kv.GoBack();
+	}
 }
 
 void AJB_ScanDoorTargetnames()

@@ -62,11 +62,8 @@ Action Command_SettingsReload(int client, int args)
 	return Plugin_Handled;
 }
 
-void AJB_Settings_Load()
+void AJB_Settings_ClearTeleports()
 {
-	// Defaults
-	g_bFreedayWardenOnlyDamage = true;
-	g_bFreedayTrail = true;
 	g_bTpFreeday = false;
 	g_bTpCombatRed = false;
 	g_bTpCombatBlu = false;
@@ -76,13 +73,20 @@ void AJB_Settings_Load()
 	ZeroVector(g_flTpCombatRedAngles);
 	ZeroVector(g_flTpCombatBluOrigin);
 	ZeroVector(g_flTpCombatBluAngles);
+}
+
+// Global policy only (not map teleports). Teleports: configs/ajb/maps/<map>.cfg
+void AJB_Settings_Load()
+{
+	g_bFreedayWardenOnlyDamage = true;
+	g_bFreedayTrail = true;
 
 	char path[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, sizeof(path), AJB_SETTINGS_FILE);
 
 	if (!FileExists(path))
 	{
-		LogMessage("[AJB] %s missing — using defaults (no teleports).", AJB_SETTINGS_FILE);
+		LogMessage("[AJB] %s missing — using defaults.", AJB_SETTINGS_FILE);
 		return;
 	}
 
@@ -96,19 +100,32 @@ void AJB_Settings_Load()
 
 	g_bFreedayWardenOnlyDamage = kv.GetNum("freeday_warden_only_damage", 1) != 0;
 	g_bFreedayTrail = kv.GetNum("freeday_trail", 1) != 0;
-
-	if (kv.JumpToKey("teleports"))
-	{
-		AJB_Settings_ReadTeleport(kv, "freeday", g_flTpFreedayOrigin, g_flTpFreedayAngles, g_bTpFreeday);
-		AJB_Settings_ReadTeleport(kv, "combat_red", g_flTpCombatRedOrigin, g_flTpCombatRedAngles, g_bTpCombatRed);
-		AJB_Settings_ReadTeleport(kv, "combat_blu", g_flTpCombatBluOrigin, g_flTpCombatBluAngles, g_bTpCombatBlu);
-		kv.GoBack();
-	}
-
 	delete kv;
 
-	LogMessage("[AJB] settings.cfg: warden_only_dmg=%d trail=%d tp_fd=%d tp_red=%d tp_blu=%d",
-		g_bFreedayWardenOnlyDamage, g_bFreedayTrail, g_bTpFreeday, g_bTpCombatRed, g_bTpCombatBlu);
+	LogMessage("[AJB] settings.cfg: warden_only_dmg=%d trail=%d (teleports are per-map).",
+		g_bFreedayWardenOnlyDamage, g_bFreedayTrail);
+}
+
+// Called from map cfg load (configs/ajb/maps/<map>.cfg → "teleports").
+void AJB_Settings_LoadTeleportsFromKv(KeyValues kv)
+{
+	if (kv == null)
+	{
+		return;
+	}
+
+	if (!kv.JumpToKey("teleports"))
+	{
+		return;
+	}
+
+	AJB_Settings_ReadTeleport(kv, "freeday", g_flTpFreedayOrigin, g_flTpFreedayAngles, g_bTpFreeday);
+	AJB_Settings_ReadTeleport(kv, "combat_red", g_flTpCombatRedOrigin, g_flTpCombatRedAngles, g_bTpCombatRed);
+	AJB_Settings_ReadTeleport(kv, "combat_blu", g_flTpCombatBluOrigin, g_flTpCombatBluAngles, g_bTpCombatBlu);
+	kv.GoBack();
+
+	LogMessage("[AJB] map teleports: tp_fd=%d tp_red=%d tp_blu=%d",
+		g_bTpFreeday, g_bTpCombatRed, g_bTpCombatBlu);
 }
 
 void AJB_Settings_ReadTeleport(KeyValues kv, const char[] key, float origin[3], float angles[3], bool &enabled)
@@ -139,7 +156,7 @@ void AJB_Settings_ReadTeleport(KeyValues kv, const char[] key, float origin[3], 
 	float o[3];
 	if (!AJB_Settings_ParseVector(oStr, o))
 	{
-		LogError("[AJB] settings.cfg teleports.%s.origin invalid (need \"x y z\"): \"%s\"", key, oStr);
+		LogError("[AJB] map teleports.%s.origin invalid (need \"x y z\"): \"%s\"", key, oStr);
 		return;
 	}
 
