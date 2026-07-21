@@ -27,6 +27,9 @@
 #define LR_NEAR_RADIUS     200.0
 #define LR_NEAR_MAX        3
 #define LR_FREEDAY_OTHERS_MAX 3
+// Numbered keys: 1–6 players | 7 Confirm | 8 Prev | 9 Next.
+// Separators use ITEMDRAW_RAWLINE (no number). Title ends with ----.
+#define LR_FREEDAY_PAGE_SIZE  6
 
 enum AJB_LRWish
 {
@@ -74,9 +77,12 @@ Handle g_hHotTimer;
 // Seconds remaining when the hurry warning fires (half of menu time).
 int g_iMenuWarnLeft;
 
-// Freeday-for-others multi-pick (menu only)
+// Freeday multi-pick (panel; chooser listed first, then other living prisoners)
 bool g_bPickedFreeday[MAXPLAYERS + 1];
 int g_iFreedayPickCount;
+int g_iFreedayMenuPage;
+// Panel keys 1..PAGE_SIZE → userid for that row (0 = empty spacer).
+int g_iFreedaySlotUserId[LR_FREEDAY_PAGE_SIZE];
 
 // ----- Queued for NEXT round (not applied when chosen, except suicide) -----
 AJB_LRWish g_PendingWish;
@@ -192,7 +198,8 @@ public void AJB_OnLastPrisoner(int client)
 		return;
 	}
 
-	if (g_iPrisoner > 0 || g_bMenuOpen)
+	// No hint if a wish is already open, queued, or mid-pick.
+	if (AJB_LR_IsGrantBlocked())
 	{
 		return;
 	}
@@ -220,7 +227,8 @@ public void AJB_OnWardenGiveLR(int warden)
 		return;
 	}
 
-	if (g_iPrisoner > 0 || g_bMenuOpen)
+	// Warden cannot grant another LR once a wish is picked/queued (admin force only).
+	if (AJB_LR_IsGrantBlocked())
 	{
 		AJB_Reply(warden, "LR Already Active");
 		AJB_ShowWardenMenu(warden);
@@ -310,7 +318,7 @@ Action Command_LR(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if (g_iPrisoner > 0 || g_bMenuOpen)
+	if (AJB_LR_IsGrantBlocked())
 	{
 		AJB_Reply(client, "LR Already Active");
 		return Plugin_Handled;
@@ -369,7 +377,9 @@ Action Command_ForceLR(int client, int args)
 		}
 	}
 
+	// Admin override: drop any open menu / queued wish, then offer.
 	AJB_LR_Cleanup(false);
+	AJB_LR_ClearPendingWish();
 	AJB_LR_Offer(target);
 	return Plugin_Handled;
 }
@@ -531,7 +541,7 @@ public int MenuHandler_Grant(Menu menu, MenuAction action, int param1, int param
 		return 0;
 	}
 
-	if (g_iPrisoner > 0 || g_bMenuOpen)
+	if (AJB_LR_IsGrantBlocked())
 	{
 		AJB_Reply(warden, "LR Already Active");
 		AJB_ShowWardenMenu(warden);
@@ -566,9 +576,15 @@ void AJB_LR_Offer(int prisoner)
 	g_bMenuOpen = true;
 	g_bAwaitingCustom = false;
 	g_iFreedayPickCount = 0;
+	g_iFreedayMenuPage = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_bPickedFreeday[i] = false;
+	}
+
+	if (g_bHasCore)
+	{
+		AJB_SetRoundState(AJBState_LRChoosing);
 	}
 
 	AJB_LR_ChatAll1N("LR Offered", prisoner);
@@ -723,6 +739,7 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 	}
 	else if (StrEqual(info, "fd_others"))
 	{
+		g_iFreedayMenuPage = 0;
 		AJB_LR_ShowFreedayOthersMenu(client);
 		AJB_LR_StartMenuTimers(client);
 	}
@@ -769,6 +786,26 @@ void AJB_LR_CloseMenuState()
 	g_bMenuOpen = false;
 	g_bAwaitingCustom = false;
 	AJB_LR_KillMenuTimer();
+}
+
+// Wish locked → HUD "LR Chosen" (still LR phase for rules).
+void AJB_LR_MarkWishChosen()
+{
+	if (g_bHasCore)
+	{
+		AJB_SetRoundState(AJBState_LRChosen);
+	}
+}
+
+// Warden cannot grant another LR while one is open, being typed, queued, or suicide countdown.
+// Admin force clears this and re-offers.
+bool AJB_LR_IsGrantBlocked()
+{
+	return g_iPrisoner > 0
+		|| g_bMenuOpen
+		|| g_bAwaitingCustom
+		|| g_PendingWish != LRWish_None
+		|| g_hSuicideTimer != null;
 }
 
 void AJB_LR_ClearPendingWish()
@@ -846,6 +883,7 @@ void AJB_LR_QueueWish(int prisoner, AJB_LRWish wish, const char[] phraseKey)
 	}
 
 	AJB_LR_CloseMenuState();
+	AJB_LR_MarkWishChosen();
 }
 
 void AJB_LR_ApplyPendingWish()
@@ -964,58 +1002,108 @@ void AJB_LR_DoFreedayMe(int prisoner)
 	AJB_LR_QueueWish(prisoner, LRWish_FreedayMe, "LR Chose Freeday Me");
 }
 
-void AJB_LR_ShowFreedayOthersMenu(int prisoner)
+// Build ordered list: chooser first, then every other living prisoner.
+int AJB_LR_CollectFreedayTargets(int prisoner, int[] list, int maxList)
 {
-	Menu menu = new Menu(MenuHandler_FreedayOthers);
-	char title[96];
-	Format(title, sizeof(title), "%T", "LR Freeday Others Title", prisoner, g_iFreedayPickCount, LR_FREEDAY_OTHERS_MAX);
-	menu.SetTitle(title);
-
-	int count = 0;
-	for (int i = 1; i <= MaxClients; i++)
+	int n = 0;
+	if (prisoner > 0 && IsClientInGame(prisoner) && IsPlayerAlive(prisoner) && AJB_IsPrisoner(prisoner))
 	{
-		if (!IsClientInGame(i) || !IsPlayerAlive(i) || !AJB_IsPrisoner(i) || i == prisoner)
+		list[n++] = prisoner;
+	}
+
+	for (int i = 1; i <= MaxClients && n < maxList; i++)
+	{
+		if (i == prisoner || !IsClientInGame(i) || !IsPlayerAlive(i) || !AJB_IsPrisoner(i))
 		{
 			continue;
 		}
-
-		char id[8];
-		char name[72];
-		IntToString(GetClientUserId(i), id, sizeof(id));
-		GetClientName(i, name, sizeof(name));
-		if (g_bPickedFreeday[i])
-		{
-			Format(name, sizeof(name), "[*] %s", name);
-		}
-		menu.AddItem(id, name);
-		count++;
+		list[n++] = i;
 	}
+	return n;
+}
 
-	char line[64];
-	Format(line, sizeof(line), "%T", "LR Freeday Others Confirm", prisoner);
-	menu.AddItem("done", line);
-
-	if (count < 1)
+void AJB_LR_ShowFreedayOthersMenu(int prisoner)
+{
+	int list[MAXPLAYERS + 1];
+	int total = AJB_LR_CollectFreedayTargets(prisoner, list, sizeof(list));
+	if (total < 1)
 	{
-		delete menu;
 		AJB_Chat(prisoner, "LR Freeday Others None");
 		AJB_LR_ShowWishMenu(prisoner);
 		return;
 	}
 
-	menu.ExitButton = false;
-	g_bMenuOpen = true;
-	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
-}
-
-public int MenuHandler_FreedayOthers(Menu menu, MenuAction action, int param1, int param2)
-{
-	if (action == MenuAction_End)
+	int pages = (total + LR_FREEDAY_PAGE_SIZE - 1) / LR_FREEDAY_PAGE_SIZE;
+	if (pages < 1)
 	{
-		delete menu;
-		return 0;
+		pages = 1;
+	}
+	if (g_iFreedayMenuPage >= pages)
+	{
+		g_iFreedayMenuPage = pages - 1;
+	}
+	if (g_iFreedayMenuPage < 0)
+	{
+		g_iFreedayMenuPage = 0;
 	}
 
+	// Panel: DrawText = ---- without a number (Radio Menu cannot do that).
+	// Keys: 1–6 players | 7 Confirm | 8 Prev | 9 Next
+	Panel panel = new Panel();
+
+	char title[64];
+	Format(title, sizeof(title), "%T", "LR Freeday Others Title", prisoner, g_iFreedayPickCount, LR_FREEDAY_OTHERS_MAX);
+	panel.SetTitle(title);
+
+	char sep[32];
+	Format(sep, sizeof(sep), "%T", "LR Freeday Others Sep", prisoner);
+	panel.DrawText(sep);
+
+	int start = g_iFreedayMenuPage * LR_FREEDAY_PAGE_SIZE;
+	for (int slot = 0; slot < LR_FREEDAY_PAGE_SIZE; slot++)
+	{
+		g_iFreedaySlotUserId[slot] = 0;
+		int idx = start + slot;
+		if (idx < total)
+		{
+			int target = list[idx];
+			g_iFreedaySlotUserId[slot] = GetClientUserId(target);
+
+			char name[72];
+			GetClientName(target, name, sizeof(name));
+			if (g_bPickedFreeday[target])
+			{
+				Format(name, sizeof(name), "[*] %s", name);
+			}
+			panel.DrawItem(name);
+		}
+		else
+		{
+			panel.DrawItem(" ", ITEMDRAW_SPACER);
+		}
+	}
+
+	panel.DrawText(sep);
+
+	char line[72];
+	Format(line, sizeof(line), "%T", "LR Freeday Others Confirm", prisoner);
+	panel.DrawItem(line);
+
+	int prevStyle = (g_iFreedayMenuPage <= 0) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT;
+	int nextStyle = (g_iFreedayMenuPage >= pages - 1) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT;
+
+	Format(line, sizeof(line), "%T", "LR Freeday Others Prev", prisoner);
+	panel.DrawItem(line, prevStyle);
+	Format(line, sizeof(line), "%T", "LR Freeday Others Next", prisoner);
+	panel.DrawItem(line, nextStyle);
+
+	g_bMenuOpen = true;
+	panel.Send(prisoner, PanelHandler_FreedayOthers, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+public int PanelHandler_FreedayOthers(Menu menu, MenuAction action, int param1, int param2)
+{
+	// Panel callback: param2 is the DrawItem key (DrawText lines do not consume keys).
 	if (action != MenuAction_Select)
 	{
 		return 0;
@@ -1027,34 +1115,44 @@ public int MenuHandler_FreedayOthers(Menu menu, MenuAction action, int param1, i
 		return 0;
 	}
 
-	char info[8];
-	menu.GetItem(param2, info, sizeof(info));
-
-	if (StrEqual(info, "done"))
+	// 1..6 = player row, 7 = confirm, 8 = prev, 9 = next
+	if (param2 == 8)
 	{
-		g_bMenuOpen = false;
-		int given = 0;
-		// Queue personal freedays for NEXT round via core pending.
-		for (int i = 1; i <= MaxClients; i++)
+		if (g_iFreedayMenuPage > 0)
 		{
-			if (g_bPickedFreeday[i] && IsClientInGame(i) && AJB_IsPrisoner(i))
-			{
-				AJB_SetPlayerFreeday(i, true);
-				given++;
-			}
-			g_bPickedFreeday[i] = false;
+			g_iFreedayMenuPage--;
 		}
-		g_iFreedayPickCount = 0;
-		AJB_LR_ChatAllFreedayOthers(client, given);
-		AJB_LR_ClearPendingWish();
-		g_PendingWish = LRWish_FreedayOthers;
-		AJB_LR_RememberChooser(client);
-		AJB_LR_CloseMenuState();
+		AJB_LR_ShowFreedayOthersMenu(client);
 		return 0;
 	}
 
-	int target = GetClientOfUserId(StringToInt(info));
-	if (target < 1 || !IsClientInGame(target) || !AJB_IsPrisoner(target) || target == client)
+	if (param2 == 9)
+	{
+		g_iFreedayMenuPage++;
+		AJB_LR_ShowFreedayOthersMenu(client);
+		return 0;
+	}
+
+	if (param2 == 7)
+	{
+		if (g_iFreedayPickCount < 1)
+		{
+			AJB_Chat(client, "LR Freeday Others Need One");
+			AJB_LR_ShowFreedayOthersMenu(client);
+			return 0;
+		}
+
+		AJB_LR_ShowFreedayReviewPanel(client);
+		return 0;
+	}
+
+	if (param2 < 1 || param2 > LR_FREEDAY_PAGE_SIZE)
+	{
+		return 0;
+	}
+
+	int target = GetClientOfUserId(g_iFreedaySlotUserId[param2 - 1]);
+	if (target < 1 || !IsClientInGame(target) || !IsPlayerAlive(target) || !AJB_IsPrisoner(target))
 	{
 		AJB_LR_ShowFreedayOthersMenu(client);
 		return 0;
@@ -1086,6 +1184,97 @@ public int MenuHandler_FreedayOthers(Menu menu, MenuAction action, int param1, i
 	return 0;
 }
 
+// Review selected names before locking the wish (requires ≥1 pick).
+void AJB_LR_ShowFreedayReviewPanel(int prisoner)
+{
+	Panel panel = new Panel();
+
+	char title[72];
+	Format(title, sizeof(title), "%T", "LR Freeday Others Review Title", prisoner, g_iFreedayPickCount);
+	panel.SetTitle(title);
+
+	char sep[32];
+	Format(sep, sizeof(sep), "%T", "LR Freeday Others Sep", prisoner);
+	panel.DrawText(sep);
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!g_bPickedFreeday[i] || !IsClientInGame(i))
+		{
+			continue;
+		}
+
+		char name[64];
+		GetClientName(i, name, sizeof(name));
+		panel.DrawText(name);
+	}
+
+	panel.DrawText(sep);
+
+	char line[72];
+	Format(line, sizeof(line), "%T", "LR Freeday Others Review Yes", prisoner);
+	panel.DrawItem(line);
+	Format(line, sizeof(line), "%T", "LR Freeday Others Review No", prisoner);
+	panel.DrawItem(line);
+
+	g_bMenuOpen = true;
+	panel.Send(prisoner, PanelHandler_FreedayReview, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+public int PanelHandler_FreedayReview(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (client != g_iPrisoner || !IsClientInGame(client))
+	{
+		return 0;
+	}
+
+	// 1 = yes (lock wish), 2 = no (back to picker)
+	if (param2 == 2)
+	{
+		AJB_LR_ShowFreedayOthersMenu(client);
+		return 0;
+	}
+
+	if (param2 != 1)
+	{
+		return 0;
+	}
+
+	if (g_iFreedayPickCount < 1)
+	{
+		AJB_Chat(client, "LR Freeday Others Need One");
+		AJB_LR_ShowFreedayOthersMenu(client);
+		return 0;
+	}
+
+	g_bMenuOpen = false;
+	int given = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (g_bPickedFreeday[i] && IsClientInGame(i) && AJB_IsPrisoner(i))
+		{
+			AJB_SetPlayerFreeday(i, true);
+			given++;
+		}
+		g_bPickedFreeday[i] = false;
+	}
+	g_iFreedayPickCount = 0;
+	g_iFreedayMenuPage = 0;
+	AJB_LR_ChatAllFreedayOthers(client, given);
+	AJB_LR_ClearPendingWish();
+	g_PendingWish = LRWish_FreedayOthers;
+	AJB_LR_RememberChooser(client);
+	AJB_LR_CloseMenuState();
+	AJB_LR_MarkWishChosen();
+	return 0;
+}
+
 void AJB_LR_DoFreedayAll(int prisoner)
 {
 	// NEXT round: cosmetic global freeday.
@@ -1112,6 +1301,7 @@ void AJB_LR_DoClassWarfare(int prisoner)
 	// Classes announced when applied next live round.
 	AJB_LR_ChatAll1N("LR Chose ClassWarfare", prisoner);
 	AJB_LR_CloseMenuState();
+	AJB_LR_MarkWishChosen();
 }
 
 void AJB_LR_StartCustom(int prisoner)
@@ -1177,6 +1367,7 @@ Action Listener_Say(int client, const char[] command, int argc)
 	AJB_LR_RememberChooser(client);
 	AJB_LR_ChatAllCustom(client, text);
 	AJB_LR_CloseMenuState();
+	AJB_LR_MarkWishChosen();
 	return Plugin_Handled;
 }
 
@@ -1285,6 +1476,7 @@ void AJB_LR_DoSuicide(int prisoner)
 	g_bMenuOpen = false;
 	g_bAwaitingCustom = false;
 	g_iPrisoner = 0;
+	AJB_LR_MarkWishChosen();
 
 	AJB_LR_ChatAll1N("LR Chose Suicide", prisoner);
 
@@ -1356,6 +1548,7 @@ void AJB_LR_DoLowGravity(int prisoner)
 void AJB_LR_Cleanup(bool announce)
 {
 	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity);
+	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
 
 	AJB_LR_KillMenuTimer();
 	AJB_LR_KillSuicideTimer();
@@ -1369,6 +1562,12 @@ void AJB_LR_Cleanup(bool announce)
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_bPickedFreeday[i] = false;
+	}
+
+	// Abort while still picking → leave LR phase (do not clear a queued wish).
+	if (wasChoosing && g_PendingWish == LRWish_None && g_bHasCore)
+	{
+		AJB_SetRoundState(AJBState_CellsOpen);
 	}
 
 	if (g_bHotReds)

@@ -137,7 +137,7 @@ bool AJB_CanClaimWarden()
 
 	return g_RoundState == AJBState_CellsLocked
 		|| g_RoundState == AJBState_CellsOpen
-		|| g_RoundState == AJBState_LastRequest;
+		|| AJB_IsLRPhase(g_RoundState);
 }
 
 bool AJB_CanControlCells(int client)

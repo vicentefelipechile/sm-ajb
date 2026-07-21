@@ -301,7 +301,7 @@ Action AJB_Weapons_OnAmmoTouch(int entity, int other)
 	}
 
 	// Pure LR menu phase (not a resolved combat day).
-	if (g_RoundState == AJBState_LastRequest)
+	if (AJB_IsLRPhase(g_RoundState))
 	{
 		return Plugin_Continue;
 	}
@@ -378,7 +378,7 @@ Action Timer_StripPrisoner(Handle timer, int userid)
 		return Plugin_Stop;
 	}
 
-	if (g_RoundState == AJBState_LastRequest || g_RoundState == AJBState_SpecialDay || AJB_IsCombatDay())
+	if (AJB_IsLRPhase(g_RoundState) || g_RoundState == AJBState_SpecialDay || AJB_IsCombatDay())
 	{
 		return Plugin_Stop;
 	}

@@ -164,7 +164,7 @@ void AJB_TryRebelFromAttack(int attacker, int victim)
 	}
 
 	// Combat days act like normal rounds for rebel; only pure LR menu phase skips.
-	if (g_RoundState == AJBState_LastRequest && !AJB_IsCombatDay())
+	if (AJB_IsLRPhase(g_RoundState) && !AJB_IsCombatDay())
 	{
 		return;
 	}
@@ -259,7 +259,7 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 			return Plugin_Continue;
 		}
 
-		if (g_RoundState == AJBState_LastRequest)
+		if (AJB_IsLRPhase(g_RoundState))
 		{
 			return Plugin_Continue;
 		}

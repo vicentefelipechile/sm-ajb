@@ -584,7 +584,7 @@ void AJB_Boosts_BuyRevive(int client)
 		return;
 	}
 
-	if (AJB_GetRoundState() == AJBState_LastRequest)
+	if (AJB_IsLRPhase(AJB_GetRoundState()))
 	{
 		AJB_Chat(client, "Boosts No LR");
 		return;
@@ -674,7 +674,7 @@ public int MenuHandler_Revive(Menu menu, MenuAction action, int param1, int para
 		return 0;
 	}
 
-	if (AJB_GetRoundState() == AJBState_LastRequest)
+	if (AJB_IsLRPhase(AJB_GetRoundState()))
 	{
 		AJB_Chat(client, "Boosts No LR");
 		return 0;

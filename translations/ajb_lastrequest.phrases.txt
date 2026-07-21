@@ -122,8 +122,8 @@
 
 	"LR Wish Freeday Others"
 	{
-		"en"		"Freeday for others (max 3)"
-		"es"		"Freeday para otros (máx 3)"
+		"en"		"Freeday for others"
+		"es"		"Freeday para otros"
 	}
 
 	"LR Wish Freeday All"
@@ -140,20 +140,20 @@
 
 	"LR Wish ClassWarfare"
 	{
-		"en"		"Class Warfare (one class per team)"
-		"es"		"Class Warfare (una clase por equipo)"
+		"en"		"Class Warfare"
+		"es"		"Class Warfare"
 	}
 
 	"LR Wish Custom"
 	{
-		"en"		"Custom wish (type in chat)"
-		"es"		"Deseo custom (escribe en el chat)"
+		"en"		"Custom wish"
+		"es"		"Deseo custom"
 	}
 
 	"LR Wish HotReds"
 	{
-		"en"		"Hot Reds (touch damage, no rebel)"
-		"es"		"Reds ardientes (daño al tocar, sin rebelde)"
+		"en"		"Hot Reds"
+		"es"		"Reds ardientes"
 	}
 
 	"LR Wish Suicide"
@@ -290,8 +290,14 @@
 	"LR Freeday Others Title"
 	{
 		"#format"	"{1:d},{2:d}"
-		"en"		"Pick freedays ({1}/{2}) — [*] selected"
-		"es"		"Elige freedays ({1}/{2}) — [*] elegido"
+		"en"		"Pick freedays ({1}/{2})"
+		"es"		"Pick freedays ({1}/{2})"
+	}
+
+	"LR Freeday Others Sep"
+	{
+		"en"		"----"
+		"es"		"----"
 	}
 
 	"LR Freeday Others Confirm"
@@ -300,11 +306,49 @@
 		"es"		"Confirmar selección"
 	}
 
+	"LR Freeday Others Need One"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Select at least one player."
+		"es"		"{1} Selecciona al menos un jugador."
+	}
+
+	"LR Freeday Others Review Title"
+	{
+		"#format"	"{1:d}"
+		"en"		"Confirm freedays ({1})"
+		"es"		"Confirmar freedays ({1})"
+	}
+
+	"LR Freeday Others Review Yes"
+	{
+		"en"		"Yes, confirm"
+		"es"		"Sí, confirmar"
+	}
+
+	"LR Freeday Others Review No"
+	{
+		"en"		"Back"
+		"es"		"Volver"
+	}
+
+	"LR Freeday Others Prev"
+	{
+		"en"		"Previous"
+		"es"		"Anterior"
+	}
+
+	"LR Freeday Others Next"
+	{
+		"en"		"Next"
+		"es"		"Siguiente"
+	}
+
 	"LR Freeday Others None"
 	{
 		"#format"	"{1:s}"
-		"en"		"{1} No other living prisoners."
-		"es"		"{1} No hay otros prisioneros vivos."
+		"en"		"{1} No living prisoners."
+		"es"		"{1} No hay prisioneros vivos."
 	}
 
 	"LR Freeday Others Cap"

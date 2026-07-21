@@ -93,8 +93,9 @@ Action Timer_RoundTimeExpired(Handle timer)
 		return Plugin_Stop;
 	}
 
+	// Time up → guards win and the engine ends the round (scoreboard / next round).
 	AJB_ChatAll("Round Time Expired");
-	// No forced win / map reset — that subsystem was removed.
+	AJB_ForceTeamWin(AJB_GetGuardsTeam());
 	return Plugin_Stop;
 }
 

@@ -666,7 +666,8 @@ void AJB_Admin_StateName(AJBRoundState state, char[] buffer, int maxlen)
 		case AJBState_Waiting:      strcopy(buffer, maxlen, "Waiting");
 		case AJBState_CellsLocked:  strcopy(buffer, maxlen, "CellsLocked");
 		case AJBState_CellsOpen:    strcopy(buffer, maxlen, "CellsOpen");
-		case AJBState_LastRequest:  strcopy(buffer, maxlen, "LR");
+		case AJBState_LRChoosing:   strcopy(buffer, maxlen, "LRChoosing");
+		case AJBState_LRChosen:     strcopy(buffer, maxlen, "LRChosen");
 		case AJBState_SpecialDay:   strcopy(buffer, maxlen, "SpecialDay");
 		case AJBState_RoundEnd:     strcopy(buffer, maxlen, "RoundEnd");
 		default:                    strcopy(buffer, maxlen, "?");

@@ -216,7 +216,7 @@ bool AJB_Mutes_ShouldMutePrisoners()
 		return false;
 	}
 
-	if (g_cvUnmuteOnLR.BoolValue && state == AJBState_LastRequest)
+	if (g_cvUnmuteOnLR.BoolValue && AJB_IsLRPhase(state))
 	{
 		return false;
 	}

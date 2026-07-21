@@ -311,7 +311,7 @@ bool AJB_Days_CanStart(int starter)
 		return false;
 	}
 
-	if (state == AJBState_LastRequest)
+	if (AJB_IsLRPhase(state))
 	{
 		if (starter > 0)
 		{

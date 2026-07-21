@@ -252,7 +252,7 @@ Action Timer_LateStartRoundClock(Handle timer)
 	}
 
 	if (g_RoundState == AJBState_CellsLocked || g_RoundState == AJBState_CellsOpen
-		|| g_RoundState == AJBState_LastRequest || g_RoundState == AJBState_SpecialDay)
+		|| AJB_IsLRPhase(g_RoundState) || g_RoundState == AJBState_SpecialDay)
 	{
 		if (!AJB_IsRoundExpireTimerActive() && g_cvRoundTime.FloatValue > 0.0)
 		{

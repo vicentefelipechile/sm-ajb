@@ -160,7 +160,8 @@ public int Native_SetRoundState(Handle plugin, int numParams)
 
 public int Native_ForceTeamWin(Handle plugin, int numParams)
 {
-	// Intentionally a no-op: AJB no longer forces engine round wins / map resets.
+	int team = GetNativeCell(1);
+	AJB_ForceTeamWin(team);
 	return 0;
 }
 

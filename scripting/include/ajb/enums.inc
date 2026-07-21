@@ -17,7 +17,15 @@ enum AJBRoundState
 	AJBState_Waiting,
 	AJBState_CellsLocked,
 	AJBState_CellsOpen,
-	AJBState_LastRequest,
+	// Last Request phases (both count as "LR phase" for rules/weapons/mutes).
+	AJBState_LRChoosing, // prisoner has the wish menu / typing custom
+	AJBState_LRChosen,   // wish locked in (queued for next live round, or suicide)
 	AJBState_SpecialDay,
 	AJBState_RoundEnd
 };
+
+// True while a Last Request is open or already locked this round.
+stock bool AJB_IsLRPhase(AJBRoundState state)
+{
+	return state == AJBState_LRChoosing || state == AJBState_LRChosen;
+}

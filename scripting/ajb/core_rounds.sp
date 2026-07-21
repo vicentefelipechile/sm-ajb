@@ -1,6 +1,5 @@
 // =========================================================================================================
 // Round state machine + TF2 round events
-// AJB does NOT force engine wins, map resets, or mp_restart* — only reacts to stock round events.
 // =========================================================================================================
 
 void AJB_SetRoundState(AJBRoundState newState)
@@ -17,6 +16,68 @@ void AJB_SetRoundState(AJBRoundState newState)
 	Call_PushCell(oldState);
 	Call_PushCell(newState);
 	Call_Finish();
+}
+
+// End the round for `team` (TF2: 2=RED, 3=BLU). Uses game_round_win so the engine
+// fires teamplay_round_win / scoreboard / nextround — not chat-only.
+void AJB_ForceTeamWin(int team)
+{
+	if (!g_bModeActive)
+	{
+		return;
+	}
+
+	if (g_RoundState == AJBState_RoundEnd || g_RoundState == AJBState_Disabled || g_RoundState == AJBState_Waiting)
+	{
+		return;
+	}
+
+	if (team != 2 && team != 3)
+	{
+		return;
+	}
+
+	// Mark AJB phase early; Event_RoundWin will clean runtime when the engine fires.
+	AJB_SetRoundState(AJBState_RoundEnd);
+	AJB_KillRoundExpireTimer();
+
+	int ent = CreateEntityByName("game_round_win");
+	if (ent == -1 || !IsValidEntity(ent))
+	{
+		LogMessage("[AJB] CreateEntityByName(game_round_win) failed (team=%d).", team);
+		return;
+	}
+
+	DispatchSpawn(ent);
+
+	// Winning team.
+	if (HasEntProp(ent, Prop_Data, "m_iTeamNum"))
+	{
+		SetEntProp(ent, Prop_Data, "m_iTeamNum", team);
+	}
+
+	// Jail maps need entity regen (doors/logic) between rounds.
+	if (HasEntProp(ent, Prop_Data, "m_bForceMapReset"))
+	{
+		SetEntProp(ent, Prop_Data, "m_bForceMapReset", 1);
+	}
+
+	AcceptEntityInput(ent, "RoundWin");
+
+	// One-shot entity — drop it next frame.
+	CreateTimer(0.1, Timer_RemoveEntity, EntIndexToEntRef(ent), TIMER_FLAG_NO_MAPCHANGE);
+
+	LogMessage("[AJB] ForceTeamWin team=%d via game_round_win.", team);
+}
+
+Action Timer_RemoveEntity(Handle timer, int ref)
+{
+	int ent = EntRefToEntIndex(ref);
+	if (ent != -1 && IsValidEntity(ent))
+	{
+		AcceptEntityInput(ent, "Kill");
+	}
+	return Plugin_Stop;
 }
 
 // Stop AJB runtime that must not leak into the next round (warden, prep, clocks).
