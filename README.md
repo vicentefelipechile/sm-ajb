@@ -61,5 +61,5 @@ Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in this SourceMod tree.
 
 - Author: **SummerTYT**
 - Version ConVars: `sm_ajb_*_version`
-- Phrases: shared `Prefix` key (`{1}`), same pattern as `tf_building_attributes`
+- Phrases: shared `Prefix` key (`{1}`)
 - Boosts ≠ store/shop/cosmetics

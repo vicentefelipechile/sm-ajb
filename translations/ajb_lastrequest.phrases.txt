@@ -2,51 +2,120 @@
 {
 	"Prefix"
 	{
-		"en"		"[AJB]"
-		"es"		"[AJB]"
+		"en"		"{green}[AJB]{default}"
+		"es"		"{green}[AJB]{default}"
 	}
 
 	"LR Mode Inactive"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Another Jailbreak is not active."
 		"es"		"{1} Another Jailbreak no está activo."
 	}
 
 	"LR Ingame Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} This command must be used in-game."
 		"es"		"{1} Este comando debe usarse dentro del juego."
 	}
 
 	"LR Already Active"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} A Last Request is already in progress."
 		"es"		"{1} Ya hay un Last Request en curso."
 	}
 
 	"LR Not Last"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Only the last living prisoner can use Last Request."
 		"es"		"{1} Solo el último prisionero vivo puede usar Last Request."
 	}
 
+	"LR Warden Only"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Only the warden can grant a Last Request."
+		"es"		"{1} Solo el warden puede dar el último deseo."
+	}
+
 	"LR No Prisoner"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} No living prisoner found."
 		"es"		"{1} No hay prisionero vivo."
+	}
+
+	"LR Prisoner Invalid"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} That prisoner is no longer valid. Pick again."
+		"es"		"{1} Ese prisionero ya no es válido. Elige de nuevo."
+	}
+
+	"LR Force Need Target"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Several prisoners alive — use: sm_ajb_lr_force <#userid|name>"
+		"es"		"{1} Hay varios prisioneros — usa: sm_ajb_lr_force <#userid|nombre>"
+	}
+
+	"LR Last Prisoner Hint"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} is the last prisoner. Warden can grant Last Request from the menu."
+		"es"		"{1} {2} es el último prisionero. El warden puede dar el último deseo desde su menú."
+	}
+
+	"LR Grant Title"
+	{
+		"en"		"Give Last Request"
+		"es"		"Dar último deseo"
+	}
+
+	"LR Grant Nearby Header"
+	{
+		"en"		"-- Nearby players --"
+		"es"		"-- Jugadores cercanos --"
+	}
+
+	"LR Grant Others Header"
+	{
+		"en"		"-- Other players --"
+		"es"		"-- Otros jugadores --"
 	}
 
 	"LR Offered"
 	{
 		"#format"	"{1:s},{2:N}"
-		"en"		"{1} {2} is the last prisoner — choose a Last Request!"
-		"es"		"{1} ¡{2} es el último prisionero — elige un Last Request!"
+		"en"		"{1} {2} was granted a Last Request — choose!"
+		"es"		"{1} ¡{2} recibió el último deseo — elige!"
 	}
 
 	"LR Menu Title"
 	{
 		"en"		"Last Request — pick a game"
-		"es"		"Last Request — elige un juego"
+		"es"		"Último deseo — elige un juego"
+	}
+
+	"LR Type Melee"
+	{
+		"en"		"Melee Duel"
+		"es"		"Duelo melee"
+	}
+
+	"LR Type Fair"
+	{
+		"en"		"Fair Fight (full loadout)"
+		"es"		"Pelea justa (loadout completo)"
+	}
+
+	"LR Type Skip"
+	{
+		"en"		"Skip LR"
+		"es"		"Omitir deseo"
 	}
 
 	"LR Pick Guard"
@@ -71,12 +140,14 @@
 
 	"LR No Guards"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} No living guards available for Last Request."
 		"es"		"{1} No hay guardias vivos para el Last Request."
 	}
 
 	"LR Guard Invalid"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} That guard is no longer valid. Pick again."
 		"es"		"{1} Ese guardia ya no es válido. Elige de nuevo."
 	}
@@ -103,6 +174,7 @@
 
 	"LR Fight Chat"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Fight!"
 		"es"		"{1} ¡A luchar!"
 	}
@@ -123,6 +195,7 @@
 
 	"LR Aborted"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Last Request aborted."
 		"es"		"{1} Last Request cancelado."
 	}

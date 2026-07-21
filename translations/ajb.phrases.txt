@@ -6,13 +6,13 @@
 
 	"Prefix"
 	{
-		"en"		"[AJB]"
-		"es"		"[AJB]"
-		"las"		"[AJB]"
-		"de"		"[AJB]"
-		"fr"		"[AJB]"
-		"pt"		"[AJB]"
-		"ru"		"[AJB]"
+		"en"		"{green}[AJB]{default}"
+		"es"		"{green}[AJB]{default}"
+		"las"		"{green}[AJB]{default}"
+		"de"		"{green}[AJB]{default}"
+		"fr"		"{green}[AJB]{default}"
+		"pt"		"{green}[AJB]{default}"
+		"ru"		"{green}[AJB]{default}"
 	}
 
 	// =====================================================================================
@@ -21,6 +21,7 @@
 
 	"Mode Inactive"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Another Jailbreak is not active on this map."
 		"es"		"{1} Another Jailbreak no está activo en este mapa."
 		"las"		"{1} Another Jailbreak no está activo en este mapa."
@@ -32,6 +33,7 @@
 
 	"Ingame Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} This command must be used in-game."
 		"es"		"{1} Este comando debe usarse dentro del juego."
 		"las"		"{1} Este comando debe usarse dentro del juego."
@@ -41,50 +43,28 @@
 		"ru"		"{1} Эту команду нужно использовать в игре."
 	}
 
-	"Round Cells Locked"
+	"Prepare"
 	{
-		"en"		"{1} Round start — cells locked. Guards: claim warden with !w"
-		"es"		"{1} Inicio de ronda — celdas cerradas. Guardias: reclamen warden con !w"
-		"las"		"{1} Inicio de ronda — celdas cerradas. Guardias: reclamen warden con !w"
-		"de"		"{1} Rundenstart — Zellen zu. Guards: Warden mit !w beanspruchen"
-		"fr"		"{1} Début de manche — cellules fermées. Gardes : !w pour Warden"
-		"pt"		"{1} Início da rodada — celas trancadas. Guardas: !w para Warden"
-		"ru"		"{1} Раунд начался — камеры закрыты. Охрана: !w чтобы стать Warden"
-	}
-
-	"Prep Started"
-	{
-		"#format"	"{1:s},{2:d}"
-		"en"		"{1} Preparation: {2}s — guards can move, prisoners stay locked."
-		"es"		"{1} Preparación: {2}s — los guardias se mueven, los prisioneros quedan fijos."
-		"las"		"{1} Preparación: {2}s — los guardias se mueven, los prisioneros quedan fijos."
-		"de"		"{1} Vorbereitung: {2}s — Guards können laufen, Prisoners bleiben."
-		"fr"		"{1} Préparation : {2}s — les gardes bougent, les prisonniers restent."
-		"pt"		"{1} Preparação: {2}s — guardas podem se mover, prisioneiros ficam."
-		"ru"		"{1} Подготовка: {2}с — охрана может ходить, заключённые на месте."
-	}
-
-	"Prep Ended"
-	{
-		"en"		"{1} Preparation over — round rules apply."
-		"es"		"{1} Fin de preparación — aplican las reglas de ronda."
-		"las"		"{1} Fin de preparación — aplican las reglas de ronda."
-		"de"		"{1} Vorbereitung vorbei — Rundenregeln gelten."
-		"fr"		"{1} Préparation terminée — règles de manche actives."
-		"pt"		"{1} Preparação acabou — regras da rodada valem."
-		"ru"		"{1} Подготовка окончена — действуют правила раунда."
+		"#format"	"{1:s}"
+		"en"		"{1} Prepare yourselves."
+		"es"		"{1} Prepárense."
+		"las"		"{1} Prepárense."
+		"de"		"{1} Macht euch bereit."
+		"fr"		"{1} Préparez-vous."
+		"pt"		"{1} Preparem-se."
+		"ru"		"{1} Приготовьтесь."
 	}
 
 	"Warden Claimed"
 	{
-		"#format"	"{1:s},{2:N}"
-		"en"		"{1} {2} is now the Warden."
-		"es"		"{1} {2} es ahora el Warden."
-		"las"		"{1} {2} es ahora el Warden."
-		"de"		"{1} {2} ist jetzt der Warden."
-		"fr"		"{1} {2} est maintenant le Warden."
-		"pt"		"{1} {2} é agora o Warden."
-		"ru"		"{1} {2} теперь Warden."
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} The new warden is {2}, listen to them."
+		"es"		"{1} El nuevo warden es {2}, escúchenlo."
+		"las"		"{1} El nuevo warden es {2}, escúchenlo."
+		"de"		"{1} Der neue Warden ist {2}, hört auf ihn."
+		"fr"		"{1} Le nouveau warden est {2}, écoutez-le."
+		"pt"		"{1} O novo warden é {2}, ouçam-no."
+		"ru"		"{1} Новый warden — {2}, слушайте его."
 	}
 
 	"Warden Cleared"
@@ -101,6 +81,7 @@
 
 	"Warden Cleared Unknown"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} The Warden slot is now open."
 		"es"		"{1} El puesto de Warden está libre."
 		"las"		"{1} El puesto de Warden está libre."
@@ -112,6 +93,7 @@
 
 	"Warden Guards Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Only living guards can become Warden."
 		"es"		"{1} Solo guardias vivos pueden ser Warden."
 		"las"		"{1} Solo guardias vivos pueden ser Warden."
@@ -135,6 +117,7 @@
 
 	"Warden Already You"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} You are already the Warden."
 		"es"		"{1} Ya eres el Warden."
 		"las"		"{1} Ya eres el Warden."
@@ -146,6 +129,7 @@
 
 	"Warden Not You"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} You are not the Warden."
 		"es"		"{1} No eres el Warden."
 		"las"		"{1} No eres el Warden."
@@ -155,8 +139,141 @@
 		"ru"		"{1} Вы не Warden."
 	}
 
+	"Warden Menu Title"
+	{
+		"en"		"Warden Menu"
+		"es"		"Menú de Warden"
+		"las"		"Menú de Warden"
+		"de"		"Warden-Menü"
+		"fr"		"Menu Warden"
+		"pt"		"Menu do Warden"
+		"ru"		"Меню Warden"
+	}
+
+	"Warden Menu Open Cells"
+	{
+		"en"		"Open cells"
+		"es"		"Abrir celdas"
+		"las"		"Abrir celdas"
+		"de"		"Zellen öffnen"
+		"fr"		"Ouvrir les cellules"
+		"pt"		"Abrir celas"
+		"ru"		"Открыть камеры"
+	}
+
+	"Warden Menu Close Cells"
+	{
+		"en"		"Close cells"
+		"es"		"Cerrar celdas"
+		"las"		"Cerrar celdas"
+		"de"		"Zellen schließen"
+		"fr"		"Fermer les cellules"
+		"pt"		"Fechar celas"
+		"ru"		"Закрыть камеры"
+	}
+
+	"Warden Menu Days"
+	{
+		"en"		"Special days..."
+		"es"		"Días especiales..."
+		"las"		"Días especiales..."
+		"de"		"Special Days..."
+		"fr"		"Jours spéciaux..."
+		"pt"		"Dias especiais..."
+		"ru"		"Особые дни..."
+	}
+
+	"Warden Menu Freeday"
+	{
+		"en"		"Start Freeday"
+		"es"		"Iniciar Freeday"
+		"las"		"Iniciar Freeday"
+		"de"		"Freeday starten"
+		"fr"		"Lancer Freeday"
+		"pt"		"Iniciar Freeday"
+		"ru"		"Запустить Freeday"
+	}
+
+	"Warden Menu WarDay"
+	{
+		"en"		"Start War Day"
+		"es"		"Iniciar War Day"
+		"las"		"Iniciar War Day"
+		"de"		"War Day starten"
+		"fr"		"Lancer War Day"
+		"pt"		"Iniciar War Day"
+		"ru"		"Запустить War Day"
+	}
+
+	"Warden Menu Give LR"
+	{
+		"en"		"Give Last Request..."
+		"es"		"Dar último deseo..."
+		"las"		"Dar último deseo..."
+		"de"		"Last Request geben..."
+		"fr"		"Donner un Last Request..."
+		"pt"		"Dar Last Request..."
+		"ru"		"Выдать Last Request..."
+	}
+
+	"Warden Menu Resign"
+	{
+		"en"		"Resign warden"
+		"es"		"Renunciar a warden"
+		"las"		"Renunciar a warden"
+		"de"		"Warden abgeben"
+		"fr"		"Abandonner le Warden"
+		"pt"		"Renunciar ao Warden"
+		"ru"		"Снять Warden"
+	}
+
+	"Warden Menu Back"
+	{
+		"en"		"Back"
+		"es"		"Volver"
+		"las"		"Volver"
+		"de"		"Zurück"
+		"fr"		"Retour"
+		"pt"		"Voltar"
+		"ru"		"Назад"
+	}
+
+	"Warden Resign Confirm Title"
+	{
+		"en"		"Resign as Warden?"
+		"es"		"¿Renunciar al Warden?"
+		"las"		"¿Renunciar al Warden?"
+		"de"		"Warden abgeben?"
+		"fr"		"Abandonner le Warden ?"
+		"pt"		"Renunciar ao Warden?"
+		"ru"		"Снять Warden?"
+	}
+
+	"Warden Resign Confirm Yes"
+	{
+		"en"		"Yes, resign"
+		"es"		"Sí, renunciar"
+		"las"		"Sí, renunciar"
+		"de"		"Ja, abgeben"
+		"fr"		"Oui, abandonner"
+		"pt"		"Sim, renunciar"
+		"ru"		"Да, снять"
+	}
+
+	"Warden Resign Confirm No"
+	{
+		"en"		"Back"
+		"es"		"Volver"
+		"las"		"Volver"
+		"de"		"Zurück"
+		"fr"		"Retour"
+		"pt"		"Voltar"
+		"ru"		"Назад"
+	}
+
 	"No Cell Access"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Only the Warden (or an admin) can control cells."
 		"es"		"{1} Solo el Warden (o un admin) puede controlar las celdas."
 		"las"		"{1} Solo el Warden (o un admin) puede controlar las celdas."
@@ -168,6 +285,7 @@
 
 	"Cells Opened"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Cells are open."
 		"es"		"{1} Las celdas están abiertas."
 		"las"		"{1} Las celdas están abiertas."
@@ -179,6 +297,7 @@
 
 	"Cells Closed"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Cells are closed."
 		"es"		"{1} Las celdas están cerradas."
 		"las"		"{1} Las celdas están cerradas."
@@ -190,6 +309,7 @@
 
 	"Cells Open Failed"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Could not open cells (check map door config)."
 		"es"		"{1} No se pudieron abrir las celdas (revisa la config de puertas)."
 		"las"		"{1} No se pudieron abrir las celdas (revisa la config de puertas)."
@@ -201,6 +321,7 @@
 
 	"Cells Close Failed"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Could not close cells (check map door config)."
 		"es"		"{1} No se pudieron cerrar las celdas (revisa la config de puertas)."
 		"las"		"{1} No se pudieron cerrar las celdas (revisa la config de puertas)."
@@ -236,6 +357,7 @@
 
 	"Buildings Blocked"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Buildings are disabled during Another Jailbreak."
 		"es"		"{1} Las construcciones están desactivadas en Another Jailbreak."
 		"las"		"{1} Las construcciones están desactivadas en Another Jailbreak."
@@ -287,6 +409,7 @@
 
 	"Freeday Active Now"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Your freeday is active this round."
 		"es"		"{1} Tu freeday está activo esta ronda."
 		"las"		"{1} Tu freeday está activo esta ronda."

@@ -17,6 +17,13 @@ void AJB_SetWarden(int client, bool announce)
 
 	g_iWarden = client;
 
+	// Strip vision from previous warden; grant native see-enemy-health to the new one.
+	if (old > 0 && IsClientInGame(old))
+	{
+		AJB_WardenHealth_Remove(old);
+	}
+	AJB_WardenHealth_Apply(client);
+
 	Call_StartForward(g_hFwdWarden);
 	Call_PushCell(old);
 	Call_PushCell(client);
@@ -24,6 +31,12 @@ void AJB_SetWarden(int client, bool announce)
 
 	if (announce)
 	{
+		// Color the name in code — translation slot {2} is a pre-tagged string.
+		char name[64];
+		char nameTagged[96];
+		GetClientName(client, name, sizeof(name));
+		Format(nameTagged, sizeof(nameTagged), "{lightgreen}%s{default}", name);
+
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (!IsClientInGame(i) || IsFakeClient(i))
@@ -31,10 +44,16 @@ void AJB_SetWarden(int client, bool announce)
 				continue;
 			}
 
-			char prefix[32];
+			char prefix[64];
 			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			PrintToChat(i, "%T", "Warden Claimed", i, prefix, client);
+			CPrintToChat(i, "%T", "Warden Claimed", i, prefix, nameTagged);
 		}
+	}
+
+	// Next frame: Display() during the same stack as claim often fails to show.
+	if (IsClientInGame(client) && !IsFakeClient(client))
+	{
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 	}
 }
 
@@ -47,6 +66,11 @@ void AJB_ClearWarden(bool announce)
 
 	int old = g_iWarden;
 	g_iWarden = 0;
+
+	if (old > 0 && IsClientInGame(old))
+	{
+		AJB_WardenHealth_Remove(old);
+	}
 
 	Call_StartForward(g_hFwdWarden);
 	Call_PushCell(old);
@@ -69,7 +93,7 @@ void AJB_ClearWarden(bool announce)
 
 			char prefix[32];
 			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			PrintToChat(i, "%T", "Warden Cleared", i, prefix, old);
+			CPrintToChat(i, "%T", "Warden Cleared", i, prefix, old);
 		}
 	}
 	else
@@ -128,12 +152,204 @@ Action Command_Warden(int client, int args)
 
 	if (g_iWarden == client)
 	{
-		AJB_Reply(client, "Warden Already You");
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 		return Plugin_Handled;
 	}
 
 	AJB_SetWarden(client, true);
 	return Plugin_Handled;
+}
+
+Action Command_WardenMenu(int client, int args)
+{
+	if (!g_bModeActive)
+	{
+		AJB_Reply(client, "Mode Inactive");
+		return Plugin_Handled;
+	}
+
+	if (client == 0)
+	{
+		AJB_Reply(client, "Ingame Only");
+		return Plugin_Handled;
+	}
+
+	if (!AJB_IsWarden(client))
+	{
+		AJB_Reply(client, "Warden Not You");
+		return Plugin_Handled;
+	}
+
+	RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+	return Plugin_Handled;
+}
+
+void Frame_WardenMenu(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client > 0)
+	{
+		AJB_Warden_ShowMenu(client);
+	}
+}
+
+// =========================================================================================================
+// Warden menu
+// =========================================================================================================
+
+void AJB_Warden_ShowMenu(int client)
+{
+	if (!AJB_IsValidClient(client) || !AJB_IsWarden(client))
+	{
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_Warden);
+
+	// Format first — SetTitle("%T", ...) is unreliable if the phrase set just reloaded.
+	char title[64];
+	char line[64];
+	Format(title, sizeof(title), "%T", "Warden Menu Title", client);
+	menu.SetTitle(title);
+
+	Format(line, sizeof(line), "%T", "Warden Menu Open Cells", client);
+	menu.AddItem("open", line);
+
+	Format(line, sizeof(line), "%T", "Warden Menu Close Cells", client);
+	menu.AddItem("close", line);
+
+	// LR grant is handled by the lastrequest module via AJB_OnWardenGiveLR.
+	Format(line, sizeof(line), "%T", "Warden Menu Give LR", client);
+	menu.AddItem("give_lr", line);
+
+	Format(line, sizeof(line), "%T", "Warden Menu Resign", client);
+	menu.AddItem("resign", line);
+
+	menu.ExitButton = true;
+	// 0 = stay open until dismissed (MENU_TIME_FOREVER).
+	menu.Display(client, 0);
+}
+
+public int MenuHandler_Warden(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (!g_bModeActive || !AJB_IsWarden(client))
+	{
+		return 0;
+	}
+
+	// Resign is allowed while dead; cell control needs a living warden.
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+
+	if (StrEqual(info, "resign"))
+	{
+		AJB_Warden_ShowResignConfirm(client);
+		return 0;
+	}
+
+	if (!IsPlayerAlive(client))
+	{
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
+
+	if (StrEqual(info, "open"))
+	{
+		AJB_OpenCellsInternal(true);
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+	}
+	else if (StrEqual(info, "close"))
+	{
+		AJB_CloseCellsInternal(true);
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+	}
+	else if (StrEqual(info, "give_lr"))
+	{
+		Call_StartForward(g_hFwdWardenGiveLR);
+		Call_PushCell(client);
+		Call_Finish();
+	}
+
+	return 0;
+}
+
+void AJB_Warden_ShowResignConfirm(int client)
+{
+	if (!AJB_IsValidClient(client) || !AJB_IsWarden(client))
+	{
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_WardenResign);
+	char title[96];
+	char yes[64];
+	char back[64];
+	Format(title, sizeof(title), "%T", "Warden Resign Confirm Title", client);
+	Format(yes, sizeof(yes), "%T", "Warden Resign Confirm Yes", client);
+	Format(back, sizeof(back), "%T", "Warden Menu Back", client);
+	menu.SetTitle(title);
+	menu.AddItem("yes", yes);
+	menu.AddItem("back", back);
+	// Submenus always return to the main warden panel — no bare exit.
+	menu.ExitButton = false;
+	menu.ExitBackButton = true;
+	menu.Display(client, 0);
+}
+
+public int MenuHandler_WardenResign(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	int client = param1;
+
+	if (action == MenuAction_Cancel)
+	{
+		// 0 / EscapeBack / Escape → always re-open main warden menu while still warden.
+		if (g_bModeActive && AJB_IsWarden(client))
+		{
+			RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		}
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	if (!g_bModeActive || !AJB_IsWarden(client))
+	{
+		return 0;
+	}
+
+	char info[8];
+	menu.GetItem(param2, info, sizeof(info));
+
+	if (StrEqual(info, "yes"))
+	{
+		AJB_ClearWarden(true);
+		return 0;
+	}
+
+	// "back" or any non-yes → main menu
+	RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+	return 0;
 }
 
 Action Command_UnWarden(int client, int args)
@@ -156,7 +372,8 @@ Action Command_UnWarden(int client, int args)
 		return Plugin_Handled;
 	}
 
-	AJB_ClearWarden(true);
+	// Chat command also requires confirmation.
+	AJB_Warden_ShowResignConfirm(client);
 	return Plugin_Handled;
 }
 

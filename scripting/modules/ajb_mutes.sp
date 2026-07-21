@@ -1,7 +1,6 @@
 // =========================================================================================================
 // Another Jailbreak — Voice / mute module
 // Mutes prisoners during active jail rounds via BaseComm. Does not replace admin mutes.
-// Binary: plugins/ajb_mutes.smx
 // =========================================================================================================
 
 #pragma semicolon 1
@@ -132,7 +131,6 @@ public void OnLibraryRemoved(const char[] name)
 	else if (StrEqual(name, "basecomm"))
 	{
 		g_bHasBaseComm = false;
-		// Cannot safely call BaseComm natives — just forget our tracking.
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			g_bAjbMuted[i] = false;
@@ -151,13 +149,11 @@ public void AJB_OnRoundStateChange(AJBRoundState oldState, AJBRoundState newStat
 
 public void AJB_OnWardenChanged(int oldWarden, int newWarden)
 {
-	// Guards stay unmuted; refresh in case policy expands later.
 	AJB_Mutes_RefreshAll();
 }
 
 public void AJB_OnRebel(int client, bool isRebel)
 {
-	// Rebels stay under the same mute policy as other prisoners for MVP.
 	AJB_Mutes_ApplyClient(client);
 }
 
@@ -179,7 +175,6 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (client > 0)
 	{
-		// Defer one tick so team prop is settled.
 		RequestFrame(Frame_ApplyClient, GetClientUserId(client));
 	}
 }
@@ -226,7 +221,6 @@ bool AJB_Mutes_ShouldMutePrisoners()
 		return false;
 	}
 
-	// Special days often need open mic — unmute by default for that state.
 	if (state == AJBState_SpecialDay)
 	{
 		return false;
@@ -297,14 +291,12 @@ void AJB_Mutes_ApplyClient(int client)
 
 void AJB_Mutes_Mute(int client)
 {
-	// Respect pre-existing admin mutes: if already muted and we did not mute them, leave alone.
 	if (BaseComm_IsClientMuted(client))
 	{
 		if (!g_bAjbMuted[client])
 		{
 			return;
 		}
-		// Already muted by us.
 		return;
 	}
 

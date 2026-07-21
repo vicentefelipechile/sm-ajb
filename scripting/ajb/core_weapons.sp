@@ -15,8 +15,6 @@ Action Timer_StripPrisoner(Handle timer, int userid)
 		return Plugin_Stop;
 	}
 
-	// Freeday keeps soft loadout (strip still applies for gun free-roam baseline).
-	// Only LR / War Day (SpecialDay) skip the jail strip entirely.
 	if (g_RoundState == AJBState_LastRequest || g_RoundState == AJBState_SpecialDay)
 	{
 		return Plugin_Stop;
@@ -33,8 +31,6 @@ void AJB_StripToMelee(int client)
 		return;
 	}
 
-	// Spy: knife + sapper is base Jailbreak loadout (sapper stays available).
-	// Other classes: melee only.
 	if (TF2_GetPlayerClass(client) == TFClass_Spy)
 	{
 		AJB_StripSpyKeepSapper(client);
@@ -56,8 +52,6 @@ void AJB_StripToMelee(int client)
 
 void AJB_StripSpyKeepSapper(int client)
 {
-	// Regenerate restores class weapons, then drop the revolver only.
-	// Secondary sapper (and knife/watch/disguise kit) remain usable.
 	TF2_RegeneratePlayer(client);
 	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Primary);
 

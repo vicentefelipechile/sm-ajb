@@ -9,7 +9,6 @@ void AJB_HookClient(int client)
 		return;
 	}
 
-	// Only attach damage hooks while the mode is active — idle cleanly otherwise.
 	if (!g_bModeActive)
 	{
 		return;
@@ -83,16 +82,12 @@ void AJB_SetRebelInternal(int client, bool rebel, bool announce)
 
 			char prefix[32];
 			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			PrintToChat(i, "%T", rebel ? "Player Rebel" : "Player Unrebel", i, prefix, client);
+			CPrintToChat(i, "%T", rebel ? "Player Rebel" : "Player Unrebel", i, prefix, client);
 		}
 	}
 }
 
-/**
- * Queue an individual freeday wish for the NEXT round.
- * Does not touch current-round rebel or current freeday combat state.
- * (Applying freeday to a rebel mid-round and clearing rebel would be wrong.)
- */
+// Individual wish → next round only. Never clears rebel this round.
 void AJB_QueueFreeday(int client, bool freeday)
 {
 	if (client < 1 || client > MaxClients)
@@ -102,17 +97,14 @@ void AJB_QueueFreeday(int client, bool freeday)
 
 	g_bFreedayPending[client] = freeday;
 
-	// Explicit cancel: also drop a leftover active flag if they somehow have one.
+	// Cancel also drops a stale current-round flag.
 	if (!freeday)
 	{
 		g_bFreeday[client] = false;
 	}
 }
 
-/**
- * Apply freeday on the CURRENT round only (e.g. server-wide Freeday day).
- * Does not clear rebel — caller decides (War/Freeday day already reset or ignore rebel).
- */
+// Current-round only (server-wide Freeday day). Does not clear rebel.
 void AJB_ApplyFreedayNow(int client, bool freeday)
 {
 	if (!AJB_IsValidClient(client))
@@ -140,7 +132,6 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 		return Plugin_Continue;
 	}
 
-	// No combat during preparation window.
 	if (AJB_IsPrepActive())
 	{
 		damage = 0.0;
@@ -152,9 +143,6 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 	bool attackerPrisoner = AJB_ClientIsPrisoner(attacker);
 	bool attackerGuard = AJB_ClientIsGuard(attacker);
 
-	// Rebel is ONLY from prisoner → guard damage (or admin). Never from orders/cells/talk.
-	// Freeday = free roam / soft rules, NOT free fire on guards — that would kill the rebel system.
-	// Free combat without rebel only on Last Request or War Day (SpecialDay).
 	if (attackerPrisoner && victimGuard)
 	{
 		if (g_RoundState == AJBState_LastRequest || g_RoundState == AJBState_SpecialDay)
@@ -167,7 +155,6 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 			AJB_SetRebelInternal(attacker, true, true);
 		}
 
-		// Non-rebels cannot hurt guards on a normal (or freeday) jail round.
 		if (g_cvBlockPrisonerDamage.BoolValue && !g_bRebel[attacker])
 		{
 			damage = 0.0;
@@ -175,14 +162,12 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 		}
 	}
 
-	// Optional: block friendly prisoner-on-prisoner freefight until cells open (keep simple for MVP).
 	if (attackerPrisoner && victimPrisoner && g_RoundState == AJBState_CellsLocked)
 	{
 		damage = 0.0;
 		return Plugin_Changed;
 	}
 
-	// Silence unused warning for guard/guard — allowed.
 	if (attackerGuard && victimGuard)
 	{
 		return Plugin_Continue;

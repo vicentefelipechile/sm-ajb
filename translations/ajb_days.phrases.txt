@@ -2,8 +2,8 @@
 {
 	"Prefix"
 	{
-		"en"		"[AJB]"
-		"es"		"[AJB]"
+		"en"		"{green}[AJB]{default}"
+		"es"		"{green}[AJB]{default}"
 	}
 
 	"Day Menu Title"
@@ -14,48 +14,56 @@
 
 	"Day Mode Inactive"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Another Jailbreak is not active."
 		"es"		"{1} Another Jailbreak no está activo."
 	}
 
 	"Day Disabled"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Special days are disabled."
 		"es"		"{1} Los días especiales están desactivados."
 	}
 
 	"Day Warden Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Only the Warden (or an admin) can start days."
 		"es"		"{1} Solo el Warden (o un admin) puede iniciar días."
 	}
 
 	"Day Guards Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Only guards can start days."
 		"es"		"{1} Solo los guardias pueden iniciar días."
 	}
 
 	"Day Bad State"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Cannot start a day in the current round state."
 		"es"		"{1} No se puede iniciar un día en el estado actual de ronda."
 	}
 
 	"Day During LR"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Cannot start a day during Last Request."
 		"es"		"{1} No se puede iniciar un día durante Last Request."
 	}
 
 	"Day Already Active"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} A special day is already active."
 		"es"		"{1} Ya hay un día especial activo."
 	}
 
 	"Day None Active"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} No special day is active."
 		"es"		"{1} No hay un día especial activo."
 	}
@@ -69,6 +77,7 @@
 
 	"Day Freeday Started Console"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} FREEDAY started! Cells open — prisoners are free."
 		"es"		"{1} ¡FREEDAY iniciado! Celdas abiertas — los prisioneros son libres."
 	}
@@ -82,6 +91,7 @@
 
 	"Day WarDay Started Console"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} WAR DAY started! Full loadouts — fight!"
 		"es"		"{1} ¡WAR DAY iniciado! Loadouts completos — ¡a pelear!"
 	}

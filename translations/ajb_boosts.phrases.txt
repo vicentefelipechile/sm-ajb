@@ -2,8 +2,8 @@
 {
 	"Prefix"
 	{
-		"en"		"[AJB]"
-		"es"		"[AJB]"
+		"en"		"{green}[AJB]{default}"
+		"es"		"{green}[AJB]{default}"
 	}
 
 	"Boosts Menu Title"
@@ -15,18 +15,21 @@
 
 	"Boosts Disabled"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Boosts are disabled."
 		"es"		"{1} Los boosts están desactivados."
 	}
 
 	"Boosts Mode Inactive"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Another Jailbreak is not active."
 		"es"		"{1} Another Jailbreak no está activo."
 	}
 
 	"Boosts Ingame Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Use this in-game."
 		"es"		"{1} Úsalo dentro del juego."
 	}
@@ -98,18 +101,21 @@
 
 	"Boosts Guards Alive Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Only living guards can buy this boost."
 		"es"		"{1} Solo guardias vivos pueden comprar este boost."
 	}
 
 	"Boosts Warden Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Only the Warden can buy Revive."
 		"es"		"{1} Solo el Warden puede comprar Revive."
 	}
 
 	"Boosts No LR"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Not available during Last Request."
 		"es"		"{1} No disponible durante Last Request."
 	}
@@ -129,12 +135,14 @@
 
 	"Boosts Revive None"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} No dead RED/BLU players to revive."
 		"es"		"{1} No hay RED/BLU muertos para revivir."
 	}
 
 	"Boosts Revive Invalid"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} That player cannot be revived."
 		"es"		"{1} Ese jugador no se puede revivir."
 	}

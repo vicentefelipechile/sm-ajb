@@ -1,7 +1,6 @@
 // =========================================================================================================
 // Another Jailbreak — Admin tools module
 // Menu + shortcuts for warden, rebel, cells, freeday, doors, status.
-// Binary: plugins/ajb_admin.smx
 // =========================================================================================================
 
 #pragma semicolon 1
@@ -13,6 +12,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <adminmenu>
 
 #undef REQUIRE_PLUGIN
 #include <ajb/ajb>
@@ -46,6 +46,8 @@ public Plugin myinfo =
 ConVar g_cvEnabled;
 bool g_bHasCore;
 
+TopMenu g_hAdminMenu;
+
 // =========================================================================================================
 // Lifecycle
 // =========================================================================================================
@@ -61,14 +63,22 @@ public void OnPluginStart()
 	LoadTranslations("common.phrases");
 
 	RegAdminCmd("sm_ajb", Command_AdminMenu, ADMFLAG_GENERIC, "Open Another Jailbreak admin menu.");
-	RegAdminCmd("sm_ajbadmin", Command_AdminMenu, ADMFLAG_GENERIC, "Open Another Jailbreak admin menu.");
+	RegAdminCmd("sm_ajb_admin", Command_AdminMenu, ADMFLAG_GENERIC, "Open Another Jailbreak admin menu.");
 	RegAdminCmd("sm_ajb_status", Command_Status, ADMFLAG_GENERIC, "Print AJB live status.");
-	RegAdminCmd("sm_ajb_freeday", Command_Freeday, ADMFLAG_GENERIC, "Usage: sm_ajb_freeday <#userid|name> [0|1]");
+	RegAdminCmd("sm_ajb_freeday", Command_Freeday, ADMFLAG_GENERIC, "Usage: sm_ajb_freeday <#userid|name> [0|1] (next-round wish)");
 	RegAdminCmd("sm_ajb_clearwarden", Command_ClearWarden, ADMFLAG_GENERIC, "Clear the current warden.");
 
 	g_bHasCore = LibraryExists(AJB_LIBRARY);
 
 	LogMessage("[AJB-Admin] loaded (core %s).", g_bHasCore ? "present" : "missing");
+}
+
+public void OnAllPluginsLoaded()
+{
+	if (LibraryExists("adminmenu"))
+	{
+		RegisterAdminMenuItem(GetAdminTopMenu());
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -77,6 +87,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		g_bHasCore = true;
 	}
+	else if (StrEqual(name, "adminmenu"))
+	{
+		RegisterAdminMenuItem(GetAdminTopMenu());
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -84,6 +98,54 @@ public void OnLibraryRemoved(const char[] name)
 	if (StrEqual(name, AJB_LIBRARY))
 	{
 		g_bHasCore = false;
+	}
+	else if (StrEqual(name, "adminmenu"))
+	{
+		g_hAdminMenu = null;
+	}
+}
+
+public void OnAdminMenuReady(Handle topmenu)
+{
+	RegisterAdminMenuItem(TopMenu.FromHandle(topmenu));
+}
+
+// =========================================================================================================
+// Admin menu integration (/admin → Server Commands)
+// =========================================================================================================
+
+void RegisterAdminMenuItem(TopMenu menu)
+{
+	if (menu == null)
+	{
+		return;
+	}
+
+	if (menu == g_hAdminMenu)
+	{
+		return;
+	}
+	g_hAdminMenu = menu;
+
+	TopMenuObject serverCommands = menu.FindCategory(ADMINMENU_SERVERCOMMANDS);
+	if (serverCommands == INVALID_TOPMENUOBJECT)
+	{
+		LogError("[AJB-Admin] Admin menu category '%s' not found; AJB will not appear under /admin.", ADMINMENU_SERVERCOMMANDS);
+		return;
+	}
+
+	menu.AddItem("sm_ajb", AdminMenu_AJB, serverCommands, "sm_ajb", ADMFLAG_GENERIC);
+}
+
+public void AdminMenu_AJB(TopMenu topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if (action == TopMenuAction_DisplayOption)
+	{
+		Format(buffer, maxlength, "%T", "Menu Item", param);
+	}
+	else if (action == TopMenuAction_SelectOption)
+	{
+		AJB_Admin_ShowMain(param, true);
 	}
 }
 
@@ -111,7 +173,7 @@ Action Command_AdminMenu(int client, int args)
 		return Plugin_Handled;
 	}
 
-	AJB_Admin_ShowMain(client);
+	AJB_Admin_ShowMain(client, false);
 	return Plugin_Handled;
 }
 
@@ -195,7 +257,6 @@ Action Command_Freeday(int client, int args)
 		setFd = (StringToInt(flag) != 0);
 	}
 
-	// Individual freeday is a NEXT-round wish — never clears rebel this round.
 	for (int i = 0; i < count; i++)
 	{
 		AJB_SetPlayerFreeday(targetList[i], setFd);
@@ -224,7 +285,7 @@ Action Command_ClearWarden(int client, int args)
 // Menu
 // =========================================================================================================
 
-void AJB_Admin_ShowMain(int client)
+void AJB_Admin_ShowMain(int client, bool fromAdminTopMenu)
 {
 	Menu menu = new Menu(MenuHandler_AdminMain);
 	menu.SetTitle("%T", "Admin Menu Title", client);
@@ -239,6 +300,7 @@ void AJB_Admin_ShowMain(int client)
 	menu.AddItem("doorsr", "Reload door config");
 	menu.AddItem("doorsl", "List door targets");
 
+	menu.ExitBackButton = fromAdminTopMenu && g_hAdminMenu != null;
 	menu.Display(client, 30);
 }
 
@@ -247,6 +309,15 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 	if (action == MenuAction_End)
 	{
 		delete menu;
+		return 0;
+	}
+
+	if (action == MenuAction_Cancel)
+	{
+		if (param2 == MenuCancel_ExitBack && g_hAdminMenu != null)
+		{
+			g_hAdminMenu.Display(param1, TopMenuPosition_LastCategory);
+		}
 		return 0;
 	}
 
@@ -261,64 +332,65 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 		return 0;
 	}
 
+	bool fromTop = menu.ExitBackButton;
+
 	char info[16];
 	menu.GetItem(param2, info, sizeof(info));
 
 	if (StrEqual(info, "status"))
 	{
 		FakeClientCommand(client, "sm_ajb_status");
-		AJB_Admin_ShowMain(client);
+		AJB_Admin_ShowMain(client, fromTop);
 	}
 	else if (StrEqual(info, "open"))
 	{
 		AJB_OpenCells();
 		AJB_Chat(client, "Admin Cells Opened");
-		AJB_Admin_ShowMain(client);
+		AJB_Admin_ShowMain(client, fromTop);
 	}
 	else if (StrEqual(info, "close"))
 	{
 		AJB_CloseCells();
 		AJB_Chat(client, "Admin Cells Closed");
-		AJB_Admin_ShowMain(client);
+		AJB_Admin_ShowMain(client, fromTop);
 	}
 	else if (StrEqual(info, "clearw"))
 	{
 		AJB_ClearWarden();
 		AJB_Chat(client, "Admin Warden Cleared");
-		AJB_Admin_ShowMain(client);
+		AJB_Admin_ShowMain(client, fromTop);
 	}
 	else if (StrEqual(info, "setw"))
 	{
-		AJB_Admin_ShowPlayerPick(client, "setw");
+		AJB_Admin_ShowPlayerPick(client, "setw", fromTop);
 	}
 	else if (StrEqual(info, "rebel"))
 	{
-		AJB_Admin_ShowPlayerPick(client, "rebel");
+		AJB_Admin_ShowPlayerPick(client, "rebel", fromTop);
 	}
 	else if (StrEqual(info, "freeday"))
 	{
-		AJB_Admin_ShowPlayerPick(client, "freeday");
+		AJB_Admin_ShowPlayerPick(client, "freeday", fromTop);
 	}
 	else if (StrEqual(info, "doorsr"))
 	{
 		FakeClientCommand(client, "sm_ajb_doors_reload");
-		AJB_Admin_ShowMain(client);
+		AJB_Admin_ShowMain(client, fromTop);
 	}
 	else if (StrEqual(info, "doorsl"))
 	{
 		FakeClientCommand(client, "sm_ajb_doors_list");
-		AJB_Admin_ShowMain(client);
+		AJB_Admin_ShowMain(client, fromTop);
 	}
 
 	return 0;
 }
 
-void AJB_Admin_ShowPlayerPick(int client, const char[] mode)
+void AJB_Admin_ShowPlayerPick(int client, const char[] mode, bool fromAdminTopMenu)
 {
 	Menu menu = new Menu(MenuHandler_PlayerPick);
 	menu.SetTitle("%T", "Admin Pick Player", client);
 
-	// Encode mode in item info prefix: mode:userid
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || IsFakeClient(i))
@@ -326,9 +398,9 @@ void AJB_Admin_ShowPlayerPick(int client, const char[] mode)
 			continue;
 		}
 
-		char info[32];
+		char info[40];
 		char name[64];
-		Format(info, sizeof(info), "%s:%d", mode, GetClientUserId(i));
+		Format(info, sizeof(info), "%s:%d:%d", mode, GetClientUserId(i), fromAdminTopMenu ? 1 : 0);
 		GetClientName(i, name, sizeof(name));
 		menu.AddItem(info, name);
 	}
@@ -349,7 +421,7 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 	{
 		if (param2 == MenuCancel_ExitBack)
 		{
-			AJB_Admin_ShowMain(param1);
+			AJB_Admin_ShowMain(param1, g_hAdminMenu != null);
 		}
 		return 0;
 	}
@@ -360,20 +432,21 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 	}
 
 	int client = param1;
-	char info[32];
+	char info[40];
 	menu.GetItem(param2, info, sizeof(info));
 
-	char parts[2][16];
-	if (ExplodeString(info, ":", parts, 2, 16) < 2)
+	char parts[3][16];
+	if (ExplodeString(info, ":", parts, 3, 16) < 2)
 	{
 		return 0;
 	}
 
+	bool fromTop = (parts[2][0] == '1');
 	int target = GetClientOfUserId(StringToInt(parts[1]));
 	if (target <= 0 || !IsClientInGame(target))
 	{
 		AJB_Chat(client, "Admin Player Invalid");
-		AJB_Admin_ShowMain(client);
+		AJB_Admin_ShowMain(client, fromTop);
 		return 0;
 	}
 
@@ -388,7 +461,6 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 		}
 		else
 		{
-			// Core admin command path.
 			char cmd[64];
 			Format(cmd, sizeof(cmd), "sm_ajb_setwarden #%d", GetClientUserId(target));
 			FakeClientCommand(client, cmd);
@@ -398,17 +470,16 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 	{
 		bool next = !AJB_IsRebel(target);
 		AJB_SetRebel(target, next);
-		PrintToChat(client, "%T", next ? "Admin Rebel On" : "Admin Rebel Off", client, prefix, target);
+		CPrintToChat(client, "%T", next ? "Admin Rebel On" : "Admin Rebel Off", client, prefix, target);
 	}
 	else if (StrEqual(parts[0], "freeday"))
 	{
-		// Toggle next-round wish (pending), not current-round flag.
 		bool next = !AJB_IsFreedayPending(target);
 		AJB_SetPlayerFreeday(target, next);
-		PrintToChat(client, "%T", next ? "Admin Freeday OnPlayer" : "Admin Freeday OffPlayer", client, prefix, target);
+		CPrintToChat(client, "%T", next ? "Admin Freeday OnPlayer" : "Admin Freeday OffPlayer", client, prefix, target);
 	}
 
-	AJB_Admin_ShowMain(client);
+	AJB_Admin_ShowMain(client, fromTop);
 	return 0;
 }
 
@@ -430,5 +501,4 @@ void AJB_Admin_StateName(AJBRoundState state, char[] buffer, int maxlen)
 		default:                    strcopy(buffer, maxlen, "?");
 	}
 }
-
 

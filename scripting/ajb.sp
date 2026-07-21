@@ -1,7 +1,5 @@
 // =========================================================================================================
-// Another Jailbreak (AJB) — Core mode plugin for Team Fortress 2
-// Owns round lifecycle, teams, warden, rules, doors, native timer bridge, and public API.
-// Feature modules load from plugins/ajb/*.smx and talk through include/ajb/ajb.inc.
+// Another Jailbreak (AJB) — TF2 core mode
 // =========================================================================================================
 
 #pragma semicolon 1
@@ -16,6 +14,10 @@
 #include <sdkhooks>
 #include <tf2>
 #include <tf2_stocks>
+
+#undef REQUIRE_PLUGIN
+#include <tf2attributes>
+#define REQUIRE_PLUGIN
 
 #include <ajb/enums>
 #include <ajb/constants>
@@ -51,6 +53,7 @@ ConVar g_cvStripPrisoners;
 ConVar g_cvBlockBuildings;
 ConVar g_cvBlockPrisonerDamage;
 ConVar g_cvPrepTime;
+ConVar g_cvRoundTime;
 
 // =========================================================================================================
 // Runtime state
@@ -62,11 +65,9 @@ AJBRoundState g_RoundState = AJBState_Disabled;
 int g_iWarden;
 bool g_bRebel[MAXPLAYERS + 1];
 bool g_bFreeday[MAXPLAYERS + 1];
-// Individual "wish" freeday: granted this round, active NEXT round only.
 bool g_bFreedayPending[MAXPLAYERS + 1];
 bool g_bSDKHooked[MAXPLAYERS + 1];
 
-// One-shot per round so LR modules are not spammed every death tick.
 bool g_bLastPrisonerAnnounced;
 
 char g_sDoorNames[AJB_MAX_DOOR_NAMES][AJB_MAX_DOOR_NAME_LEN];
@@ -78,19 +79,19 @@ Handle g_hFwdRebel;
 Handle g_hFwdCellsOpened;
 Handle g_hFwdCellsClosed;
 Handle g_hFwdLastPrisoner;
+Handle g_hFwdWardenGiveLR;
 
 Handle g_hCellsAutoTimer;
 
-// Prep window state lives in core_prep.sp (g_bPrepActive, timers).
-
 // =========================================================================================================
-// Core fragments (same compile unit)
+// Core fragments
 // =========================================================================================================
 
 #include "ajb/core_mode.sp"
 #include "ajb/core_teams.sp"
 #include "ajb/core_rounds.sp"
 #include "ajb/core_warden.sp"
+#include "ajb/core_warden_health.sp"
 #include "ajb/core_rules.sp"
 #include "ajb/core_weapons.sp"
 #include "ajb/core_doors.sp"
@@ -128,7 +129,7 @@ public void OnPluginStart()
 	g_cvForce = CreateConVar("sm_ajb_force", "0", "1 = force AJB on even if the map prefix does not match.", _, true, 0.0, true, 1.0);
 	g_cvGuardsTeam = CreateConVar("sm_ajb_guards_team", "3", "Team index for guards (TF2 BLU = 3).", _, true, 2.0, true, 3.0);
 	g_cvPrisonersTeam = CreateConVar("sm_ajb_prisoners_team", "2", "Team index for prisoners (TF2 RED = 2).", _, true, 2.0, true, 3.0);
-	// Reserved for Phase 1+ autobalance; exposed now so cfg/ajb.cfg is stable.
+	// Exposed for cfg stability; autobalance not enforced yet.
 	g_cvGuardRatio = CreateConVar("sm_ajb_guard_ratio", "3", "Target prisoners per guard for soft balance hints (0 = disable). Not enforced yet.", _, true, 0.0);
 	g_cvCellsAutoOpen = CreateConVar("sm_ajb_cells_auto_open", "0", "Seconds after round start before cells auto-open (0 = manual only). Uses team_round_timer when possible.", _, true, 0.0);
 	g_cvWardenAuto = CreateConVar("sm_ajb_warden_auto", "0", "1 = auto-assign a random living guard as warden when none is set.", _, true, 0.0, true, 1.0);
@@ -137,6 +138,9 @@ public void OnPluginStart()
 	g_cvBlockBuildings = CreateConVar("sm_ajb_block_buildings", "1", "1 = block Engineer building placement while AJB is active.", _, true, 0.0, true, 1.0);
 	g_cvBlockPrisonerDamage = CreateConVar("sm_ajb_block_prisoner_damage", "1", "1 = block non-rebel prisoner damage to guards (freeday does not bypass this).", _, true, 0.0, true, 1.0);
 	g_cvPrepTime = CreateConVar("sm_ajb_prep_time", "10", "Preparation seconds at round start: BLU can move, RED stay frozen in cells (0 = off).", _, true, 0.0, true, 60.0);
+	g_cvRoundTime = CreateConVar("sm_ajb_round_time", "600", "Main round clock seconds on team_round_timer HUD (0 = do not force duration, only unhide map timer).", _, true, 0.0);
+
+	AJB_WardenHealth_OnPluginStart();
 
 	AutoExecConfig(true, "ajb");
 
@@ -144,12 +148,16 @@ public void OnPluginStart()
 	g_cvForce.AddChangeHook(OnAjbCvarChanged);
 	g_cvMapPrefix.AddChangeHook(OnAjbCvarChanged);
 
-	RegConsoleCmd("sm_w", Command_Warden, "Claim warden (guards only).");
-	RegConsoleCmd("sm_warden", Command_Warden, "Claim warden (guards only).");
-	RegConsoleCmd("sm_uw", Command_UnWarden, "Resign warden.");
-	RegConsoleCmd("sm_unwarden", Command_UnWarden, "Resign warden.");
-	RegConsoleCmd("sm_open", Command_OpenCells, "Open cell doors (warden or admin).");
-	RegConsoleCmd("sm_close", Command_CloseCells, "Close cell doors (warden or admin).");
+	// Short alias (only exceptions to sm_ajb_*): /w and !w
+	RegConsoleCmd("sm_w", Command_Warden, "Claim warden / open warden menu.");
+	RegConsoleCmd("sm_ajb_w", Command_Warden, "Claim warden / open warden menu.");
+	RegConsoleCmd("sm_ajb_warden", Command_Warden, "Claim warden / open warden menu.");
+	RegConsoleCmd("sm_ajb_menu", Command_WardenMenu, "Open warden menu.");
+	RegConsoleCmd("sm_ajb_wm", Command_WardenMenu, "Open warden menu.");
+	RegConsoleCmd("sm_ajb_uw", Command_UnWarden, "Resign warden.");
+	RegConsoleCmd("sm_ajb_unwarden", Command_UnWarden, "Resign warden.");
+	RegConsoleCmd("sm_ajb_open", Command_OpenCells, "Open cell doors (warden or admin).");
+	RegConsoleCmd("sm_ajb_close", Command_CloseCells, "Close cell doors (warden or admin).");
 
 	RegAdminCmd("sm_ajb_setwarden", Command_AdminSetWarden, ADMFLAG_GENERIC, "Usage: sm_ajb_setwarden <#userid|name>");
 	RegAdminCmd("sm_ajb_rebel", Command_AdminRebel, ADMFLAG_GENERIC, "Usage: sm_ajb_rebel <#userid|name> [0|1]");
@@ -179,18 +187,52 @@ public void OnPluginStart()
 		AJB_SetRoundState(AJBState_Waiting);
 		AJB_LoadMapDoors();
 		AJB_HookAllClients();
+		// Mid-map reload: restore HUD clock without waiting for next round.
+		CreateTimer(0.5, Timer_LateStartRoundClock, _, TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else
 	{
 		AJB_UnhookAllClients();
 	}
 
-	LogMessage("[AJB] Another Jailbreak %s loaded (mode %s, guard_ratio=%d).", AJB_PLUGIN_VERSION, g_bModeActive ? "active" : "inactive", g_cvGuardRatio.IntValue);
+	LogMessage("[AJB] Another Jailbreak %s loaded (mode %s, guard_ratio=%d, tf2attribs=%s).",
+		AJB_PLUGIN_VERSION,
+		g_bModeActive ? "active" : "inactive",
+		g_cvGuardRatio.IntValue,
+		g_bTf2Attribs ? "yes" : "no");
+}
+
+public void OnAllPluginsLoaded()
+{
+	g_bTf2Attribs = LibraryExists("tf2attributes");
+	if (g_bTf2Attribs && g_iWarden > 0)
+	{
+		AJB_WardenHealth_Apply(g_iWarden);
+	}
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	AJB_WardenHealth_OnLibraryAdded(name);
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	AJB_WardenHealth_OnLibraryRemoved(name);
+}
+
+Action Timer_LateStartRoundClock(Handle timer)
+{
+	if (g_bModeActive)
+	{
+		AJB_StartRoundClock();
+	}
+	return Plugin_Stop;
 }
 
 public void OnPluginEnd()
 {
-	AJB_Prep_Stop(false);
+	AJB_Prep_Stop();
 	AJB_ClearPhaseTimer();
 	AJB_KillCellsAutoTimer();
 	AJB_ClearWarden(false);
@@ -201,9 +243,10 @@ public void OnMapStart()
 	AJB_RefreshModeActive();
 	AJB_ResetPlayerFlags();
 	AJB_ClearWarden(false);
-	AJB_Prep_Stop(false);
+	AJB_Prep_Stop();
 	AJB_KillCellsAutoTimer();
 	AJB_ClearPhaseTimer();
+	AJB_Timer_OnMapStart();
 	g_iDoorNameCount = 0;
 
 	if (g_bModeActive)
@@ -221,7 +264,7 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-	AJB_Prep_Stop(false);
+	AJB_Prep_Stop();
 	AJB_KillCellsAutoTimer();
 	AJB_ClearPhaseTimer();
 	AJB_ClearWarden(false);
@@ -247,7 +290,7 @@ public void OnClientDisconnect(int client)
 	g_bFreedayPending[client] = false;
 	AJB_UnhookClient(client);
 
-	// After disconnect, re-check win / last-prisoner (suicide/disconnect edge cases).
+	// Disconnect can decide last-prisoner / round end without a death event.
 	if (g_bModeActive)
 	{
 		CreateTimer(0.15, Timer_PostDeathChecks, _, TIMER_FLAG_NO_MAPCHANGE);
@@ -280,10 +323,6 @@ void OnAjbCvarChanged(ConVar convar, const char[] oldValue, const char[] newValu
 		LogMessage("[AJB] Mode disabled mid-session.");
 	}
 }
-
-// =========================================================================================================
-// Admin door helpers (core; full admin UI lives in ajb_admin module)
-// =========================================================================================================
 
 Action Command_DoorsReload(int client, int args)
 {

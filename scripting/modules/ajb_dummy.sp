@@ -1,7 +1,6 @@
 // =========================================================================================================
 // Another Jailbreak — Dummy module (Phase 2 API smoke test)
 // Proves late-load / unload against library "ajb" without gameplay side effects.
-// Binary: plugins/ajb_dummy.smx (optional; safe to leave unloaded)
 // =========================================================================================================
 
 #pragma semicolon 1

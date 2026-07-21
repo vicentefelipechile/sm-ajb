@@ -1,7 +1,6 @@
 // =========================================================================================================
 // Another Jailbreak — Boosts
 // Round points + temporary gameplay boosts (NOT a general store/shop; no cosmetics/gadgets).
-// Binary: plugins/ajb_boosts.smx
 // =========================================================================================================
 
 #pragma semicolon 1
@@ -61,7 +60,7 @@ int g_iPoints[MAXPLAYERS + 1];
 int g_iSpentThisRound[MAXPLAYERS + 1];
 int g_iBackstabCharges[MAXPLAYERS + 1];
 
-// BLU passive: award every N completed rounds (server-wide counter of finished jail rounds).
+// Counts finished jail rounds for BLU passive points (every N rounds).
 int g_iFinishedRoundCount;
 
 bool g_bDamageHooked[MAXPLAYERS + 1];
@@ -83,9 +82,10 @@ public void OnPluginStart()
 	LoadTranslations("ajb_boosts.phrases");
 	LoadTranslations("common.phrases");
 
-	RegConsoleCmd("sm_boosts", Command_Boosts, "Open the boosts menu.");
-	RegConsoleCmd("sm_boost", Command_Boosts, "Alias of sm_boosts.");
-	RegConsoleCmd("sm_points", Command_Points, "Show your boost points.");
+	// Short alias (only exceptions to sm_ajb_*): /boost and !boost
+	RegConsoleCmd("sm_boost", Command_Boosts, "Open the boosts menu.");
+	RegConsoleCmd("sm_ajb_boosts", Command_Boosts, "Open the boosts menu.");
+	RegConsoleCmd("sm_ajb_points", Command_Points, "Show your boost points.");
 	RegAdminCmd("sm_ajb_boosts_give", Command_GivePoints, ADMFLAG_GENERIC, "Usage: sm_ajb_boosts_give <#userid|name> <amount>");
 
 	HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_PostNoCopy);
@@ -106,7 +106,6 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
-	// No persistent DB in v1.
 }
 
 public void OnMapStart()
@@ -177,17 +176,14 @@ void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 			continue;
 		}
 
-		// Survive until round end → +1
 		AJB_Boosts_AddPoints(i, 1, "survive");
 
-		// BLU extra every N finished rounds (must also be alive at end)
 		if (bluPassiveRound && AJB_IsGuard(i))
 		{
 			AJB_Boosts_AddPoints(i, 1, "blu_passive");
 		}
 	}
 
-	// Unused charges expire at round end.
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_iBackstabCharges[i] = 0;
@@ -300,7 +296,7 @@ void AJB_Boosts_AddPoints(int client, int amount, const char[] reason)
 	{
 		char prefix[32];
 		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		PrintToChat(client, "%T", "Boosts Points Gained", client, prefix, gained, g_iPoints[client]);
+		CPrintToChat(client, "%T", "Boosts Points Gained", client, prefix, gained, g_iPoints[client]);
 	}
 }
 
@@ -316,7 +312,7 @@ bool AJB_Boosts_TrySpend(int client, int cost)
 	{
 		char prefix[32];
 		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		PrintToChat(client, "%T", "Boosts Spend Cap", client, prefix, cap);
+		CPrintToChat(client, "%T", "Boosts Spend Cap", client, prefix, cap);
 		return false;
 	}
 
@@ -324,7 +320,7 @@ bool AJB_Boosts_TrySpend(int client, int cost)
 	{
 		char prefix[32];
 		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		PrintToChat(client, "%T", "Boosts Not Enough", client, prefix, cost, g_iPoints[client]);
+		CPrintToChat(client, "%T", "Boosts Not Enough", client, prefix, cost, g_iPoints[client]);
 		return false;
 	}
 
@@ -342,7 +338,6 @@ void AJB_Boosts_ShowMenu(int client)
 	Menu menu = new Menu(MenuHandler_Boosts);
 	menu.SetTitle("%T", "Boosts Menu Title", client, g_iPoints[client], g_iSpentThisRound[client]);
 
-	// Role-gated entries (gameplay boosts only).
 	if (AJB_IsGuard(client))
 	{
 		char line[128];
@@ -360,7 +355,6 @@ void AJB_Boosts_ShowMenu(int client)
 	}
 	else if (AJB_IsPrisoner(client))
 	{
-		// No RED boosts in v1 catalog — show empty state line.
 		char line[128];
 		Format(line, sizeof(line), "%T", "Boosts None For Role", client);
 		menu.AddItem("none", line, ITEMDRAW_DISABLED);
@@ -425,7 +419,6 @@ void AJB_Boosts_BuyIronNeck(int client, int charges, int cost)
 		return;
 	}
 
-	// Do not stack infinite charges — replace with higher package if buying II over I.
 	if (!AJB_Boosts_TrySpend(client, cost))
 	{
 		AJB_Boosts_ShowMenu(client);
@@ -443,7 +436,7 @@ void AJB_Boosts_BuyIronNeck(int client, int charges, int cost)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	PrintToChat(client, "%T", "Boosts Purchased Iron Neck", client, prefix, g_iBackstabCharges[client], g_iPoints[client]);
+	CPrintToChat(client, "%T", "Boosts Purchased Iron Neck", client, prefix, g_iBackstabCharges[client], g_iPoints[client]);
 	AJB_Boosts_ShowMenu(client);
 }
 
@@ -461,7 +454,6 @@ void AJB_Boosts_BuyRevive(int client)
 		return;
 	}
 
-	// Pay only when a target is chosen.
 	AJB_Boosts_ShowReviveTargets(client);
 }
 
@@ -484,7 +476,6 @@ void AJB_Boosts_ShowReviveTargets(int client)
 			continue;
 		}
 
-		// Prefer AJB roles when available.
 		if (g_bHasCore && !AJB_IsPrisoner(i) && !AJB_IsGuard(i))
 		{
 			continue;
@@ -575,10 +566,8 @@ public int MenuHandler_Revive(Menu menu, MenuAction action, int param1, int para
 		return 0;
 	}
 
-	// TF2 revive: respawn at team spawn.
 	TF2_RespawnPlayer(target);
 
-	// Prisoners stay under jail loadout rules (core strip on spawn timer).
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || IsFakeClient(i))
@@ -588,12 +577,12 @@ public int MenuHandler_Revive(Menu menu, MenuAction action, int param1, int para
 
 		char prefix[32];
 		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		PrintToChat(i, "%T", "Boosts Revived", i, prefix, client, target);
+		CPrintToChat(i, "%T", "Boosts Revived", i, prefix, client, target);
 	}
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	PrintToChat(client, "%T", "Boosts Points Left", client, prefix, g_iPoints[client]);
+	CPrintToChat(client, "%T", "Boosts Points Left", client, prefix, g_iPoints[client]);
 	return 0;
 }
 
@@ -624,7 +613,6 @@ Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
 		return Plugin_Continue;
 	}
 
-	// Only Spy backstabs.
 	if (damagecustom != TF_CUSTOM_BACKSTAB)
 	{
 		return Plugin_Continue;
@@ -632,7 +620,6 @@ Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
 
 	g_iBackstabCharges[victim]--;
 
-	// Survive: leave the victim critically low instead of dead.
 	int health = GetClientHealth(victim);
 	if (damage >= float(health))
 	{
@@ -644,11 +631,11 @@ Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
 
 		char prefix[32];
 		AJB_GetPrefix(victim, prefix, sizeof(prefix));
-		PrintToChat(victim, "%T", "Boosts Backstab Saved", victim, prefix, g_iBackstabCharges[victim]);
+		CPrintToChat(victim, "%T", "Boosts Backstab Saved", victim, prefix, g_iBackstabCharges[victim]);
 		if (attacker > 0 && attacker <= MaxClients && IsClientInGame(attacker))
 		{
 			AJB_GetPrefix(attacker, prefix, sizeof(prefix));
-			PrintToChat(attacker, "%T", "Boosts Backstab Blocked", attacker, prefix, victim);
+			CPrintToChat(attacker, "%T", "Boosts Backstab Blocked", attacker, prefix, victim);
 		}
 
 		return Plugin_Changed;

@@ -9,7 +9,7 @@ void AJB_LoadMapDoors()
 	char map[PLATFORM_MAX_PATH];
 	GetCurrentMap(map, sizeof(map));
 
-	// Strip workshop prefix if present: workshop/123/jb_map -> jb_map
+	// workshop/123/jb_map.cfg is useless; use the trailing map name.
 	char fileMap[PLATFORM_MAX_PATH];
 	strcopy(fileMap, sizeof(fileMap), map);
 	int slash = FindCharInString(fileMap, '/', true);
@@ -64,7 +64,6 @@ void AJB_LoadMapDoors()
 				}
 			}
 
-			// Optional: skip built-in fallbacks when "nofallback" "1"
 			if (kv.GetNum("nofallback", 0) != 0 && g_iDoorNameCount > 0)
 			{
 				LogMessage("[AJB] Loaded %d door target(s) from %s (nofallback).", g_iDoorNameCount, path);
@@ -77,7 +76,6 @@ void AJB_LoadMapDoors()
 
 	if (g_iDoorNameCount == 0)
 	{
-		// Common community map targetnames — best-effort until map cfg exists.
 		AJB_AddDoorName("cells");
 		AJB_AddDoorName("cell_doors");
 		AJB_AddDoorName("cell_door");
@@ -90,10 +88,8 @@ void AJB_LoadMapDoors()
 		AJB_AddDoorName("jail_door");
 	}
 
-	// Always try a light scan for targetnames containing cell/jail/prison (fills gaps).
 	AJB_ScanDoorTargetnames();
 
-	// Short log only — no full paths or map names on every load.
 	LogMessage("[AJB] Found %d doors.", g_iDoorNameCount);
 }
 
@@ -182,8 +178,11 @@ void AJB_AddDoorName(const char[] name)
 
 bool AJB_OpenCellsInternal(bool announce)
 {
-	AJB_FireDoorInput("Open");
+	// Locked doors ignore Open — Unlock first. A delayed Open covers engines that
+	// only process Open on the next tick after Unlock (avoids needing two menu presses).
 	AJB_FireDoorInput("Unlock");
+	AJB_FireDoorInput("Open");
+	CreateTimer(0.05, Timer_CellsOpenRetry, _, TIMER_FLAG_NO_MAPCHANGE);
 
 	if (g_RoundState == AJBState_CellsLocked || g_RoundState == AJBState_Waiting)
 	{
@@ -191,7 +190,7 @@ bool AJB_OpenCellsInternal(bool announce)
 	}
 
 	AJB_KillCellsAutoTimer();
-	AJB_ClearPhaseTimer();
+	// Keep the round HUD clock running — do not hide/reset it when cells open.
 
 	Call_StartForward(g_hFwdCellsOpened);
 	Call_Finish();
@@ -201,14 +200,27 @@ bool AJB_OpenCellsInternal(bool announce)
 		AJB_ChatAll("Cells Opened");
 	}
 
-	// State still advances even if the map uses buttons the config did not list.
 	return true;
+}
+
+Action Timer_CellsOpenRetry(Handle timer)
+{
+	if (!g_bModeActive)
+	{
+		return Plugin_Stop;
+	}
+
+	AJB_FireDoorInput("Unlock");
+	AJB_FireDoorInput("Open");
+	return Plugin_Stop;
 }
 
 bool AJB_CloseCellsInternal(bool announce)
 {
+	// Close first, then Lock so a re-open path always needs Unlock (handled in Open).
 	AJB_FireDoorInput("Close");
 	AJB_FireDoorInput("Lock");
+	CreateTimer(0.05, Timer_CellsCloseRetry, _, TIMER_FLAG_NO_MAPCHANGE);
 
 	if (g_RoundState == AJBState_CellsOpen)
 	{
@@ -224,6 +236,18 @@ bool AJB_CloseCellsInternal(bool announce)
 	}
 
 	return true;
+}
+
+Action Timer_CellsCloseRetry(Handle timer)
+{
+	if (!g_bModeActive)
+	{
+		return Plugin_Stop;
+	}
+
+	AJB_FireDoorInput("Close");
+	AJB_FireDoorInput("Lock");
+	return Plugin_Stop;
 }
 
 int AJB_FireDoorInput(const char[] input)

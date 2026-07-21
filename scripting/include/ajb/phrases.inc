@@ -1,6 +1,5 @@
 // =========================================================================================================
-// Another Jailbreak — Phrase helpers (Prefix pattern, same idea as tf_building_attributes)
-// Each plugin must LoadTranslations its own file containing a "Prefix" phrase.
+// Phrase helpers — require a "Prefix" key in each plugin's translations file ({1} = prefix)
 // =========================================================================================================
 
 #if defined _ajb_phrases_included
@@ -8,7 +7,12 @@
 #endif
 #define _ajb_phrases_included
 
-// %T needs a client id; console/server replies use LANG_SERVER.
+// morecolors uses legacy syntax; keep it isolated from newdecls required.
+#pragma newdecls optional
+#include <morecolors>
+#pragma newdecls required
+
+// %T needs a client; console uses LANG_SERVER.
 stock int AJB_TransTarget(int client)
 {
 	return (client > 0 && client <= MaxClients) ? client : LANG_SERVER;
@@ -19,15 +23,13 @@ stock void AJB_GetPrefix(int client, char[] buffer, int maxlength)
 	Format(buffer, maxlength, "%T", "Prefix", AJB_TransTarget(client));
 }
 
-// Reply with prefix only (phrase body has no extra args).
 stock void AJB_Reply(int client, const char[] phrase)
 {
-	char prefix[32];
+	char prefix[64];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
 	ReplyToCommand(client, "%T", phrase, AJB_TransTarget(client), prefix);
 }
 
-// PrintToChat one client, prefix only.
 stock void AJB_Chat(int client, const char[] phrase)
 {
 	if (client < 1 || client > MaxClients || !IsClientInGame(client))
@@ -35,12 +37,11 @@ stock void AJB_Chat(int client, const char[] phrase)
 		return;
 	}
 
-	char prefix[32];
+	char prefix[64];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	PrintToChat(client, "%T", phrase, client, prefix);
+	CPrintToChat(client, "%T", phrase, client, prefix);
 }
 
-// Broadcast: each client gets their language's Prefix.
 stock void AJB_ChatAll(const char[] phrase)
 {
 	for (int i = 1; i <= MaxClients; i++)
@@ -50,8 +51,8 @@ stock void AJB_ChatAll(const char[] phrase)
 			continue;
 		}
 
-		char prefix[32];
+		char prefix[64];
 		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		PrintToChat(i, "%T", phrase, i, prefix);
+		CPrintToChat(i, "%T", phrase, i, prefix);
 	}
 }

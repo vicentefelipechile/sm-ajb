@@ -28,14 +28,12 @@ void AJB_ResetPlayerFlags()
 
 void AJB_ResetClientFlags(int client)
 {
-	// Current-round flags only. Pending next-round freeday wishes are kept until applied.
 	g_bRebel[client] = false;
 	g_bFreeday[client] = false;
 }
 
 void AJB_ApplyPendingFreedays()
 {
-	// Called at round start after ResetPlayerFlags: wishes become active this round.
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!g_bFreedayPending[i])
@@ -50,14 +48,13 @@ void AJB_ApplyPendingFreedays()
 			continue;
 		}
 
-		// Fresh round: rebel already cleared. Do NOT clear rebel as a side effect of a late grant.
 		g_bFreeday[i] = true;
 
 		if (!IsFakeClient(i))
 		{
 			char prefix[32];
 			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			PrintToChat(i, "%T", "Freeday Active Now", i, prefix);
+			CPrintToChat(i, "%T", "Freeday Active Now", i, prefix);
 		}
 	}
 }
@@ -88,28 +85,28 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 	AJB_SetRoundState(AJBState_CellsLocked);
 
-	// Prep first: BLU free, RED frozen. Cell auto-open waits until after prep when both are set.
 	float prep = g_cvPrepTime.FloatValue;
 	float autoOpen = g_cvCellsAutoOpen.FloatValue;
 
 	if (prep > 0.0)
 	{
+		// HUD shows prep countdown first; main round clock starts when prep ends.
 		AJB_Prep_Start();
 
 		if (autoOpen > 0.0)
 		{
-			// Open cells this many seconds after prep ends.
 			AJB_StartCellsAutoTimer(prep + autoOpen);
 		}
 	}
-	else if (autoOpen > 0.0)
-	{
-		AJB_SetPhaseTimer(autoOpen);
-		AJB_StartCellsAutoTimer(autoOpen);
-	}
 	else
 	{
-		AJB_ClearPhaseTimer();
+		// No prep — show the full round clock immediately.
+		AJB_StartRoundClock();
+
+		if (autoOpen > 0.0)
+		{
+			AJB_StartCellsAutoTimer(autoOpen);
+		}
 	}
 
 	if (g_cvWardenAuto.BoolValue)
@@ -117,7 +114,8 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 		CreateTimer(1.0, Timer_AutoWarden, _, TIMER_FLAG_NO_MAPCHANGE);
 	}
 
-	AJB_ChatAll("Round Cells Locked");
+	// One short line for round start (prep + cells are implied).
+	AJB_ChatAll("Prepare");
 }
 
 void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
@@ -127,7 +125,7 @@ void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
-	AJB_Prep_Stop(false);
+	AJB_Prep_Stop();
 	AJB_KillCellsAutoTimer();
 	AJB_ClearPhaseTimer();
 	AJB_ClearWarden(false);
@@ -147,7 +145,6 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
-	// Defer strip one tick so TF2 loadout application finishes first.
 	if (g_cvStripPrisoners.BoolValue && AJB_ClientIsPrisoner(client))
 	{
 		CreateTimer(0.1, Timer_StripPrisoner, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);

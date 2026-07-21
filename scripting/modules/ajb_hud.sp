@@ -1,8 +1,6 @@
 // =========================================================================================================
 // Another Jailbreak — HUD extras module
 // Shows warden name, round phase, and rebel hints. Does NOT own the primary countdown clock
-// (that stays on TF2 team_round_timer via core).
-// Binary: plugins/ajb_hud.smx
 // =========================================================================================================
 
 #pragma semicolon 1

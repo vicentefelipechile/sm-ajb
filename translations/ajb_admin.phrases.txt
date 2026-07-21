@@ -2,8 +2,15 @@
 {
 	"Prefix"
 	{
-		"en"		"[AJB]"
-		"es"		"[AJB]"
+		"en"		"{green}[AJB]{default}"
+		"es"		"{green}[AJB]{default}"
+	}
+
+	// Label under /admin → Server Commands
+	"Menu Item"
+	{
+		"en"		"Another Jailbreak"
+		"es"		"Another Jailbreak"
 	}
 
 	"Admin Menu Title"
@@ -20,48 +27,56 @@
 
 	"Admin Disabled"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Admin menu is disabled."
 		"es"		"{1} El menú admin está desactivado."
 	}
 
 	"Admin Mode Inactive"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Another Jailbreak is not active."
 		"es"		"{1} Another Jailbreak no está activo."
 	}
 
 	"Admin Ingame Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Use this command in-game."
 		"es"		"{1} Usa este comando dentro del juego."
 	}
 
 	"Admin Cells Opened"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Cells opened."
 		"es"		"{1} Celdas abiertas."
 	}
 
 	"Admin Cells Closed"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Cells closed."
 		"es"		"{1} Celdas cerradas."
 	}
 
 	"Admin Warden Cleared"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Warden cleared."
 		"es"		"{1} Warden liberado."
 	}
 
 	"Admin Warden Guards Only"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} Target must be a living guard."
 		"es"		"{1} El objetivo debe ser un guardia vivo."
 	}
 
 	"Admin Player Invalid"
 	{
+		"#format"	"{1:s}"
 		"en"		"{1} That player is no longer valid."
 		"es"		"{1} Ese jugador ya no es válido."
 	}

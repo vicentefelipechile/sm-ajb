@@ -10,6 +10,7 @@ void AJB_CreateForwards()
 	g_hFwdCellsOpened = CreateGlobalForward("AJB_OnCellsOpened", ET_Ignore);
 	g_hFwdCellsClosed = CreateGlobalForward("AJB_OnCellsClosed", ET_Ignore);
 	g_hFwdLastPrisoner = CreateGlobalForward("AJB_OnLastPrisoner", ET_Ignore, Param_Cell);
+	g_hFwdWardenGiveLR = CreateGlobalForward("AJB_OnWardenGiveLR", ET_Ignore, Param_Cell);
 }
 
 void AJB_RegisterNatives()
@@ -31,6 +32,7 @@ void AJB_RegisterNatives()
 	CreateNative("AJB_SetPhaseTimer", Native_SetPhaseTimer);
 	CreateNative("AJB_SetRoundState", Native_SetRoundState);
 	CreateNative("AJB_ForceTeamWin", Native_ForceTeamWin);
+	CreateNative("AJB_ShowWardenMenu", Native_ShowWardenMenu);
 }
 
 public int Native_IsEnabled(Handle plugin, int numParams)
@@ -96,7 +98,6 @@ public int Native_SetRebel(Handle plugin, int numParams)
 
 public int Native_SetPlayerFreeday(Handle plugin, int numParams)
 {
-	// Public API: individual wishes always queue for the NEXT round.
 	int client = GetNativeCell(1);
 	bool freeday = GetNativeCell(2) != 0;
 	AJB_QueueFreeday(client, freeday);
@@ -164,5 +165,15 @@ public int Native_ForceTeamWin(Handle plugin, int numParams)
 	}
 
 	AJB_ForceRoundWin(team);
+	return 0;
+}
+
+public int Native_ShowWardenMenu(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	if (g_bModeActive && AJB_IsValidClient(client) && AJB_IsWarden(client))
+	{
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+	}
 	return 0;
 }

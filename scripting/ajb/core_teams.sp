@@ -126,7 +126,6 @@ void AJB_CheckWinConditions()
 		return;
 	}
 
-	// Last Request module owns win/loss while a duel is active.
 	if (g_RoundState == AJBState_Disabled || g_RoundState == AJBState_Waiting
 		|| g_RoundState == AJBState_RoundEnd || g_RoundState == AJBState_LastRequest)
 	{
@@ -136,13 +135,11 @@ void AJB_CheckWinConditions()
 	int prisoners = AJB_CountAliveOnTeam(AJB_GetPrisonersTeam());
 	int guards = AJB_CountAliveOnTeam(AJB_GetGuardsTeam());
 
-	// Empty server / both sides wiped without a fight — do not spam round wins.
 	if (prisoners == 0 && guards == 0)
 	{
 		return;
 	}
 
-	// If only one side ever had players (solo testing), skip auto-win.
 	int totalHumans = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -177,7 +174,6 @@ void AJB_ForceRoundWin(int team)
 
 	AJB_SetRoundState(AJBState_RoundEnd);
 
-	// TF2: game_round_win entity is the standard plugin approach.
 	int ent = CreateEntityByName("game_round_win");
 	if (ent == -1)
 	{
@@ -188,7 +184,6 @@ void AJB_ForceRoundWin(int team)
 	SetEntProp(ent, Prop_Data, "m_iTeamNum", team);
 	AcceptEntityInput(ent, "RoundWin");
 
-	// Entity is one-shot; remove next frame.
 	CreateTimer(0.1, Timer_RemoveEntity, EntIndexToEntRef(ent), TIMER_FLAG_NO_MAPCHANGE);
 }
 

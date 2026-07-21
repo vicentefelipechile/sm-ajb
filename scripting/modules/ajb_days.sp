@@ -1,7 +1,6 @@
 // =========================================================================================================
 // Another Jailbreak — Special Days module
 // Freeday (all prisoners free) + War Day (open combat). Started by warden or admin.
-// Binary: plugins/ajb_days.smx
 // =========================================================================================================
 
 #pragma semicolon 1
@@ -73,10 +72,10 @@ public void OnPluginStart()
 	LoadTranslations("ajb_days.phrases");
 	LoadTranslations("common.phrases");
 
-	RegConsoleCmd("sm_day", Command_DayMenu, "Open special day menu (warden/admin).");
-	RegConsoleCmd("sm_sd", Command_DayMenu, "Alias of sm_day.");
-	RegConsoleCmd("sm_freeday", Command_Freeday, "Start a Freeday.");
-	RegConsoleCmd("sm_warday", Command_WarDay, "Start a War Day.");
+	RegConsoleCmd("sm_ajb_day", Command_DayMenu, "Open special day menu (warden/admin).");
+	RegConsoleCmd("sm_ajb_days", Command_DayMenu, "Open special day menu (warden/admin).");
+	RegConsoleCmd("sm_ajb_startfreeday", Command_Freeday, "Start a Freeday day this round.");
+	RegConsoleCmd("sm_ajb_startwarday", Command_WarDay, "Start a War Day this round.");
 	RegAdminCmd("sm_ajb_day_end", Command_EndDay, ADMFLAG_GENERIC, "End the active special day early.");
 
 	HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_PostNoCopy);
@@ -123,7 +122,6 @@ public void OnLibraryRemoved(const char[] name)
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-	// Core resets freeday flags; we only drop local day marker.
 	g_ActiveDay = Day_None;
 }
 
@@ -336,8 +334,6 @@ bool AJB_Days_CanStart(int starter)
 
 void AJB_Days_StartFreeday(int starter)
 {
-	// Freeday is free roam for prisoners — NOT free fire on guards / not SpecialDay combat mode.
-	// Hitting a guard still marks rebel and is blocked until rebel (same as a normal round).
 	if (!AJB_Days_CanStart(starter))
 	{
 		return;
@@ -345,7 +341,6 @@ void AJB_Days_StartFreeday(int starter)
 
 	g_ActiveDay = Day_Freeday;
 	AJB_OpenCells();
-	// Stay on normal jail combat rules (CellsOpen), not SpecialDay freefire.
 	AJB_SetRoundState(AJBState_CellsOpen);
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -355,12 +350,10 @@ void AJB_Days_StartFreeday(int starter)
 			continue;
 		}
 
-		// Server-wide Freeday day = THIS round (not a queued individual wish).
 		AJB_GiveFreedayNow(i, true);
 
 		if (IsPlayerAlive(i))
 		{
-			// Free roam: melee baseline; Spy keeps sapper (base JB mechanic).
 			TF2_RegeneratePlayer(i);
 			TF2_RemoveWeaponSlot(i, TFWeaponSlot_Primary);
 			if (TF2_GetPlayerClass(i) != TFClass_Spy)
@@ -390,7 +383,7 @@ void AJB_Days_StartFreeday(int starter)
 
 			char prefix[32];
 			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			PrintToChat(i, "%T", "Day Freeday Started", i, prefix, starter);
+			CPrintToChat(i, "%T", "Day Freeday Started", i, prefix, starter);
 		}
 	}
 	else
@@ -401,7 +394,6 @@ void AJB_Days_StartFreeday(int starter)
 
 void AJB_Days_StartWarDay(int starter)
 {
-	// War Day = open combat (SpecialDay): no rebel gate, full loadouts.
 	if (!AJB_Days_CanStart(starter))
 	{
 		return;
@@ -418,7 +410,6 @@ void AJB_Days_StartWarDay(int starter)
 			continue;
 		}
 
-		// Both teams get full loadouts for open combat.
 		if (AJB_IsPrisoner(i) || AJB_IsGuard(i))
 		{
 			TF2_RegeneratePlayer(i);
@@ -442,7 +433,7 @@ void AJB_Days_StartWarDay(int starter)
 
 			char prefix[32];
 			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			PrintToChat(i, "%T", "Day WarDay Started", i, prefix, starter);
+			CPrintToChat(i, "%T", "Day WarDay Started", i, prefix, starter);
 		}
 	}
 	else
@@ -465,7 +456,6 @@ void AJB_Days_End(int starter)
 	AJB_DayType ended = g_ActiveDay;
 	AJB_Days_Clear(true);
 
-	// Return to open-cell normal jail if the round is still running.
 	if (g_bHasCore && AJB_IsEnabled())
 	{
 		AJBRoundState state = AJB_GetRoundState();
@@ -489,7 +479,7 @@ void AJB_Days_End(int starter)
 
 			char prefix[32];
 			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			PrintToChat(i, "%T", "Day Ended", i, prefix, starter, dayName);
+			CPrintToChat(i, "%T", "Day Ended", i, prefix, starter, dayName);
 		}
 	}
 	else
@@ -503,7 +493,7 @@ void AJB_Days_End(int starter)
 
 			char prefix[32];
 			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			PrintToChat(i, "%T", "Day Ended Console", i, prefix, dayName);
+			CPrintToChat(i, "%T", "Day Ended Console", i, prefix, dayName);
 		}
 	}
 }
@@ -518,7 +508,6 @@ void AJB_Days_Clear(bool clearFreedays)
 		{
 			if (IsClientInGame(i) && AJB_IsPrisoner(i))
 			{
-				// End current-round day flag only — do not touch next-round wishes.
 				AJB_GiveFreedayNow(i, false);
 			}
 		}

@@ -9,7 +9,7 @@ Handle g_hPrepTickTimer;
 
 void AJB_Prep_Start()
 {
-	AJB_Prep_Stop(false);
+	AJB_Prep_Stop();
 
 	float prep = g_cvPrepTime.FloatValue;
 	if (prep <= 0.0 || !g_bModeActive)
@@ -19,29 +19,14 @@ void AJB_Prep_Start()
 
 	g_bPrepActive = true;
 
-	// Prefer stock TF2 timer HUD for the countdown.
 	AJB_SetPhaseTimer(prep);
 
-	// Apply immediately, then reassert (maps/engine may re-freeze or release players).
 	AJB_Prep_ApplyAll();
 	g_hPrepTickTimer = CreateTimer(0.5, Timer_PrepTick, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	g_hPrepEndTimer = CreateTimer(prep, Timer_PrepEnd, _, TIMER_FLAG_NO_MAPCHANGE);
-
-	int seconds = RoundToNearest(prep);
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		PrintToChat(i, "%T", "Prep Started", i, prefix, seconds);
-	}
 }
 
-void AJB_Prep_Stop(bool announce)
+void AJB_Prep_Stop()
 {
 	bool was = g_bPrepActive;
 	g_bPrepActive = false;
@@ -58,25 +43,21 @@ void AJB_Prep_Stop(bool announce)
 		g_hPrepTickTimer = null;
 	}
 
-	if (was)
+	if (!was)
 	{
-		// Release prisoners from prep freeze (cells still hold them if closed).
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if (!IsClientInGame(i) || !IsPlayerAlive(i))
-			{
-				continue;
-			}
+		return;
+	}
 
-			if (AJB_ClientIsPrisoner(i))
-			{
-				AJB_Prep_SetMovable(i, true);
-			}
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i))
+		{
+			continue;
 		}
 
-		if (announce)
+		if (AJB_ClientIsPrisoner(i))
 		{
-			AJB_ChatAll("Prep Ended");
+			AJB_Prep_SetMovable(i, true);
 		}
 	}
 }
@@ -101,7 +82,9 @@ Action Timer_PrepTick(Handle timer)
 Action Timer_PrepEnd(Handle timer)
 {
 	g_hPrepEndTimer = null;
-	AJB_Prep_Stop(true);
+	AJB_Prep_Stop();
+	// Prep used the HUD clock for countdown — hand it back to the main round timer.
+	AJB_StartRoundClock();
 	return Plugin_Stop;
 }
 
@@ -116,12 +99,10 @@ void AJB_Prep_ApplyAll()
 
 		if (AJB_ClientIsGuard(i))
 		{
-			// Guards must be free to leave spawn, claim warden, stage.
 			AJB_Prep_SetMovable(i, true);
 		}
 		else if (AJB_ClientIsPrisoner(i))
 		{
-			// Prisoners stay put for the prep window (cells + freeze).
 			AJB_Prep_SetMovable(i, false);
 		}
 	}
@@ -134,7 +115,6 @@ void AJB_Prep_OnPlayerSpawn(int client)
 		return;
 	}
 
-	// Defer one tick so TF2 spawn settles movetype.
 	CreateTimer(0.05, Timer_PrepSpawn, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 }
 
@@ -169,7 +149,6 @@ void AJB_Prep_SetMovable(int client, bool movable)
 	{
 		SetEntityMoveType(client, MOVETYPE_WALK);
 
-		// Clear common TF2 lock conditions that setup/stuns apply.
 		if (TF2_IsPlayerInCondition(client, TFCond_Dazed))
 		{
 			TF2_RemoveCondition(client, TFCond_Dazed);
