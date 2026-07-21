@@ -358,66 +358,6 @@
 		"es"		"{1} Máximo 3 freedays."
 	}
 
-	"LR Class Title"
-	{
-		"en"		"Class Warfare — pick a class"
-		"es"		"Class Warfare — elige clase"
-	}
-
-	"LR Class Scout"
-	{
-		"en"		"Scout"
-		"es"		"Scout"
-	}
-
-	"LR Class Sniper"
-	{
-		"en"		"Sniper"
-		"es"		"Sniper"
-	}
-
-	"LR Class Soldier"
-	{
-		"en"		"Soldier"
-		"es"		"Soldier"
-	}
-
-	"LR Class Demo"
-	{
-		"en"		"Demoman"
-		"es"		"Demoman"
-	}
-
-	"LR Class Medic"
-	{
-		"en"		"Medic"
-		"es"		"Medic"
-	}
-
-	"LR Class Heavy"
-	{
-		"en"		"Heavy"
-		"es"		"Heavy"
-	}
-
-	"LR Class Pyro"
-	{
-		"en"		"Pyro"
-		"es"		"Pyro"
-	}
-
-	"LR Class Spy"
-	{
-		"en"		"Spy"
-		"es"		"Spy"
-	}
-
-	"LR Class Engineer"
-	{
-		"en"		"Engineer"
-		"es"		"Engineer"
-	}
-
 	"LR Custom Prompt"
 	{
 		"#format"	"{1:s}"

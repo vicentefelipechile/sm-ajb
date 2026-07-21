@@ -127,18 +127,6 @@
 		"ru"		"{1} {2} уже Warden. !uw если это вы."
 	}
 
-	"Warden Already You"
-	{
-		"#format"	"{1:s}"
-		"en"		"{1} You are already the Warden."
-		"es"		"{1} Ya eres el Warden."
-		"las"		"{1} Ya eres el Warden."
-		"de"		"{1} Du bist bereits der Warden."
-		"fr"		"{1} Vous êtes déjà le Warden."
-		"pt"		"{1} Você já é o Warden."
-		"ru"		"{1} Вы уже Warden."
-	}
-
 	"Warden Not You"
 	{
 		"#format"	"{1:s}"
@@ -182,39 +170,6 @@
 		"fr"		"Fermer les cellules"
 		"pt"		"Fechar celas"
 		"ru"		"Закрыть камеры"
-	}
-
-	"Warden Menu Days"
-	{
-		"en"		"Special days"
-		"es"		"Días especiales"
-		"las"		"Días especiales"
-		"de"		"Special Days"
-		"fr"		"Jours spéciaux"
-		"pt"		"Dias especiais"
-		"ru"		"Особые дни"
-	}
-
-	"Warden Menu Freeday"
-	{
-		"en"		"Start Freeday"
-		"es"		"Iniciar Freeday"
-		"las"		"Iniciar Freeday"
-		"de"		"Freeday starten"
-		"fr"		"Lancer Freeday"
-		"pt"		"Iniciar Freeday"
-		"ru"		"Запустить Freeday"
-	}
-
-	"Warden Menu WarDay"
-	{
-		"en"		"Start War Day"
-		"es"		"Iniciar War Day"
-		"las"		"Iniciar War Day"
-		"de"		"War Day starten"
-		"fr"		"Lancer War Day"
-		"pt"		"Iniciar War Day"
-		"ru"		"Запустить War Day"
 	}
 
 	"Warden Menu Give LR"
@@ -307,17 +262,6 @@
 		"ru"		"Снять Warden"
 	}
 
-	"Warden Menu Back"
-	{
-		"en"		"Back"
-		"es"		"Volver"
-		"las"		"Volver"
-		"de"		"Zurück"
-		"fr"		"Retour"
-		"pt"		"Voltar"
-		"ru"		"Назад"
-	}
-
 	"Warden Resign Confirm Title"
 	{
 		"en"		"Resign as Warden?"
@@ -338,17 +282,6 @@
 		"fr"		"Oui, abandonner"
 		"pt"		"Sim, renunciar"
 		"ru"		"Да, снять"
-	}
-
-	"Warden Resign Confirm No"
-	{
-		"en"		"Back"
-		"es"		"Volver"
-		"las"		"Volver"
-		"de"		"Zurück"
-		"fr"		"Retour"
-		"pt"		"Voltar"
-		"ru"		"Назад"
 	}
 
 	"No Cell Access"
@@ -519,22 +452,6 @@
 		"fr"		"{1} Cibles de portes ({2}) :"
 		"pt"		"{1} Targets de portas ({2}):"
 		"ru"		"{1} Цели дверей ({2}):"
-	}
-
-	"Freeday Queued"
-	{
-		"#format"	"{1:s},{2:N}"
-		"en"		"{1} Freeday queued for {2}."
-		"es"		"{1} Freeday en cola para {2}."
-		"las"		"{1} Freeday en cola para {2}."
-	}
-
-	"Freeday Queue Cleared"
-	{
-		"#format"	"{1:s},{2:N}"
-		"en"		"{1} Freeday cleared for {2}."
-		"es"		"{1} Freeday cancelado para {2}."
-		"las"		"{1} Freeday cancelado para {2}."
 	}
 
 	"Freeday Active Now"

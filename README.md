@@ -51,8 +51,7 @@ Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in this SourceMod tree.
 | `plugins/ajb.smx` | Core mode |
 | `plugins/ajb_hud.smx` | HUD extras |
 | `plugins/ajb_mutes.smx` | Prisoner mute rules |
-| `plugins/ajb_lastrequest.smx` | Last Request |
-| `plugins/ajb_days.smx` | Freeday / War Day |
+| `plugins/ajb_lastrequest.smx` | Last Request (incl. Freeday-all / War Day wishes) |
 | `plugins/ajb_admin.smx` | Admin menu |
 | `plugins/ajb_boosts.smx` | Round points + boosts |
 | `plugins/ajb_dummy.smx` | API smoke test (optional) |
