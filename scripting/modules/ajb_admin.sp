@@ -72,6 +72,7 @@ public void OnPluginStart()
 	AutoExecConfig(true, "ajb_admin");
 
 	LoadTranslations("ajb_admin.phrases");
+	LoadTranslations("ajb.phrases");
 	LoadTranslations("common.phrases");
 
 	RegAdminCmd("sm_ajb", Command_AdminMenu, ADMFLAG_GENERIC, "Open Another Jailbreak admin menu.");

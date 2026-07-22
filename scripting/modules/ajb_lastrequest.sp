@@ -1056,7 +1056,7 @@ void AJB_LR_ShowFreedayOthersMenu(int prisoner)
 	panel.SetTitle(title);
 
 	char sep[32];
-	Format(sep, sizeof(sep), "%T", "LR Freeday Others Sep", prisoner);
+	Format(sep, sizeof(sep), "%T", "Menu Separator", prisoner);
 	panel.DrawText(sep);
 
 	int start = g_iFreedayMenuPage * LR_FREEDAY_PAGE_SIZE;
@@ -1194,7 +1194,7 @@ void AJB_LR_ShowFreedayReviewPanel(int prisoner)
 	panel.SetTitle(title);
 
 	char sep[32];
-	Format(sep, sizeof(sep), "%T", "LR Freeday Others Sep", prisoner);
+	Format(sep, sizeof(sep), "%T", "Menu Separator", prisoner);
 	panel.DrawText(sep);
 
 	for (int i = 1; i <= MaxClients; i++)

@@ -147,6 +147,7 @@ public void OnPluginStart()
 	AutoExecConfig(true, "ajb_boosts");
 
 	LoadTranslations("ajb_boosts.phrases");
+	LoadTranslations("ajb.phrases");
 	LoadTranslations("common.phrases");
 
 	// Short aliases (exceptions to sm_ajb_*): /boost, /boosts

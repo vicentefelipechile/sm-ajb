@@ -4,6 +4,11 @@
 	{
 		"en"		"{green}[AJB]{default}"
 		"es"		"{green}[AJB]{default}"
+		"las"		"{green}[AJB]{default}"
+		"de"		"{green}[AJB]{default}"
+		"fr"		"{green}[AJB]{default}"
+		"pt"		"{green}[AJB]{default}"
+		"ru"		"{green}[AJB]{default}"
 	}
 
 	"LR Mode Inactive"
@@ -11,6 +16,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Another Jailbreak is not active."
 		"es"		"{1} Another Jailbreak no está activo."
+		"las"		"{1} Another Jailbreak no está activo."
+		"de"		"{1} Another Jailbreak ist nicht aktiv."
+		"fr"		"{1} Another Jailbreak n'est pas actif."
+		"pt"		"{1} Another Jailbreak não está ativo."
+		"ru"		"{1} Another Jailbreak не активен."
 	}
 
 	"LR Ingame Only"
@@ -18,6 +28,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Use this in-game."
 		"es"		"{1} Úsalo dentro del juego."
+		"las"		"{1} Úsalo dentro del juego."
+		"de"		"{1} Nutze dies im Spiel."
+		"fr"		"{1} Utilisez ceci en jeu."
+		"pt"		"{1} Use isto dentro do jogo."
+		"ru"		"{1} Используйте это в игре."
 	}
 
 	"LR Already Active"
@@ -25,6 +40,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} A Last Request is already in progress."
 		"es"		"{1} Ya hay un último deseo en curso."
+		"las"		"{1} Ya hay un último deseo en curso."
+		"de"		"{1} Ein Last Request läuft bereits."
+		"fr"		"{1} Un Last Request est déjà en cours."
+		"pt"		"{1} Já há um Last Request em andamento."
+		"ru"		"{1} Last Request уже выполняется."
 	}
 
 	"LR Warden Only"
@@ -32,6 +52,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Only the warden can grant a Last Request."
 		"es"		"{1} Solo el warden puede dar el último deseo."
+		"las"		"{1} Solo el warden puede dar el último deseo."
+		"de"		"{1} Nur der Warden kann einen Last Request gewähren."
+		"fr"		"{1} Seul le warden peut accorder un Last Request."
+		"pt"		"{1} Apenas o warden pode conceder um Last Request."
+		"ru"		"{1} Только warden может выдать Last Request."
 	}
 
 	"LR No Prisoner"
@@ -39,6 +64,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} No living prisoner found."
 		"es"		"{1} No hay prisionero vivo."
+		"las"		"{1} No hay prisionero vivo."
+		"de"		"{1} Kein lebender Gefangener gefunden."
+		"fr"		"{1} Aucun prisonnier vivant trouvé."
+		"pt"		"{1} Nenhum prisioneiro vivo encontrado."
+		"ru"		"{1} Живых заключённых не найдено."
 	}
 
 	"LR Prisoner Invalid"
@@ -46,6 +76,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} That prisoner is no longer valid."
 		"es"		"{1} Ese prisionero ya no es válido."
+		"las"		"{1} Ese prisionero ya no es válido."
+		"de"		"{1} Dieser Gefangene ist nicht mehr gültig."
+		"fr"		"{1} Ce prisonnier n'est plus valide."
+		"pt"		"{1} Esse prisioneiro não é mais válido."
+		"ru"		"{1} Этот заключённый больше недоступен."
 	}
 
 	"LR Force Need Target"
@@ -53,6 +88,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Several prisoners alive — use: sm_ajb_lr_force <#userid|name>"
 		"es"		"{1} Hay varios prisioneros — usa: sm_ajb_lr_force <#userid|nombre>"
+		"las"		"{1} Hay varios prisioneros — usa: sm_ajb_lr_force <#userid|nombre>"
+		"de"		"{1} Mehrere Gefangene leben — nutze: sm_ajb_lr_force <#userid|name>"
+		"fr"		"{1} Plusieurs prisonniers vivants — utilisez : sm_ajb_lr_force <#userid|nom>"
+		"pt"		"{1} Vários prisioneiros vivos — use: sm_ajb_lr_force <#userid|nome>"
+		"ru"		"{1} Живо несколько заключённых — используйте: sm_ajb_lr_force <#userid|имя>"
 	}
 
 	"LR Last Prisoner Hint"
@@ -60,24 +100,44 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} is the last prisoner. Warden can grant Last Request from the menu."
 		"es"		"{1} {2} es el último prisionero. El warden puede dar el último deseo desde su menú."
+		"las"		"{1} {2} es el último prisionero. El warden puede dar el último deseo desde su menú."
+		"de"		"{1} {2} ist der letzte Gefangene. Der Warden kann Last Request über das Menü gewähren."
+		"fr"		"{1} {2} est le dernier prisonnier. Le warden peut accorder un Last Request depuis le menu."
+		"pt"		"{1} {2} é o último prisioneiro. O warden pode conceder Last Request pelo menu."
+		"ru"		"{1} {2} — последний заключённый. Warden может выдать Last Request через меню."
 	}
 
 	"LR Grant Title"
 	{
 		"en"		"Give Last Request"
 		"es"		"Dar último deseo"
+		"las"		"Dar último deseo"
+		"de"		"Last Request geben"
+		"fr"		"Donner un Last Request"
+		"pt"		"Dar Last Request"
+		"ru"		"Выдать Last Request"
 	}
 
 	"LR Grant Nearby Header"
 	{
 		"en"		"-- Nearby --"
 		"es"		"-- Cercanos --"
+		"las"		"-- Cercanos --"
+		"de"		"-- In der Nähe --"
+		"fr"		"-- À proximité --"
+		"pt"		"-- Próximos --"
+		"ru"		"-- Рядом --"
 	}
 
 	"LR Grant Others Header"
 	{
 		"en"		"-- Others --"
 		"es"		"-- Otros --"
+		"las"		"-- Otros --"
+		"de"		"-- Andere --"
+		"fr"		"-- Autres --"
+		"pt"		"-- Outros --"
+		"ru"		"-- Другие --"
 	}
 
 	"LR Offered"
@@ -85,6 +145,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} was offered a Last Request."
 		"es"		"{1} Se ofreció el último deseo a {2}."
+		"las"		"{1} Se ofreció el último deseo a {2}."
+		"de"		"{1} {2} wurde ein Last Request angeboten."
+		"fr"		"{1} Un Last Request a été proposé à {2}."
+		"pt"		"{1} Um Last Request foi oferecido a {2}."
+		"ru"		"{1} Игроку {2} предложен Last Request."
 	}
 
 	"LR Timeout"
@@ -92,6 +157,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} did not pick a Last Request in time."
 		"es"		"{1} {2} no eligió un deseo a tiempo."
+		"las"		"{1} {2} no eligió un deseo a tiempo."
+		"de"		"{1} {2} hat nicht rechtzeitig einen Last Request gewählt."
+		"fr"		"{1} {2} n'a pas choisi de Last Request à temps."
+		"pt"		"{1} {2} não escolheu um Last Request a tempo."
+		"ru"		"{1} {2} не выбрал Last Request вовремя."
 	}
 
 	"LR Menu Hurry"
@@ -99,6 +169,11 @@
 		"#format"	"{1:s},{2:d}"
 		"en"		"{1} You're taking too long — only {2} seconds left."
 		"es"		"{1} Te estás tardando demasiado, tan solo te quedan {2} segundos."
+		"las"		"{1} Te estás tardando demasiado, tan solo te quedan {2} segundos."
+		"de"		"{1} Du brauchst zu lange — nur noch {2} Sekunden."
+		"fr"		"{1} Vous prenez trop de temps — plus que {2} secondes."
+		"pt"		"{1} Você está demorando demais — só restam {2} segundos."
+		"ru"		"{1} Вы слишком медлите — осталось всего {2} секунд."
 	}
 
 	"LR Aborted"
@@ -106,66 +181,121 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Last Request cancelled."
 		"es"		"{1} Último deseo cancelado."
+		"las"		"{1} Último deseo cancelado."
+		"de"		"{1} Last Request abgebrochen."
+		"fr"		"{1} Last Request annulé."
+		"pt"		"{1} Last Request cancelado."
+		"ru"		"{1} Last Request отменён."
 	}
 
 	"LR Menu Title"
 	{
 		"en"		"Last Request — pick a wish"
 		"es"		"Último deseo — elige"
+		"las"		"Último deseo — elige"
+		"de"		"Last Request — wähle einen Wunsch"
+		"fr"		"Last Request — choisissez un souhait"
+		"pt"		"Last Request — escolha um desejo"
+		"ru"		"Last Request — выберите желание"
 	}
 
 	"LR Wish Freeday Me"
 	{
 		"en"		"Freeday for me"
 		"es"		"Freeday para mí"
+		"las"		"Freeday para mí"
+		"de"		"Freeday für mich"
+		"fr"		"Freeday pour moi"
+		"pt"		"Freeday para mim"
+		"ru"		"Freeday для меня"
 	}
 
 	"LR Wish Freeday Others"
 	{
 		"en"		"Freeday for others"
 		"es"		"Freeday para otros"
+		"las"		"Freeday para otros"
+		"de"		"Freeday für andere"
+		"fr"		"Freeday pour d'autres"
+		"pt"		"Freeday para outros"
+		"ru"		"Freeday для других"
 	}
 
 	"LR Wish Freeday All"
 	{
 		"en"		"Freeday for everyone"
 		"es"		"Freeday para todos"
+		"las"		"Freeday para todos"
+		"de"		"Freeday für alle"
+		"fr"		"Freeday pour tout le monde"
+		"pt"		"Freeday para todos"
+		"ru"		"Freeday для всех"
 	}
 
 	"LR Wish WarDay"
 	{
 		"en"		"War Day"
 		"es"		"War Day"
+		"las"		"War Day"
+		"de"		"War Day"
+		"fr"		"War Day"
+		"pt"		"War Day"
+		"ru"		"War Day"
 	}
 
 	"LR Wish ClassWarfare"
 	{
 		"en"		"Class Warfare"
 		"es"		"Class Warfare"
+		"las"		"Class Warfare"
+		"de"		"Class Warfare"
+		"fr"		"Class Warfare"
+		"pt"		"Class Warfare"
+		"ru"		"Class Warfare"
 	}
 
 	"LR Wish Custom"
 	{
 		"en"		"Custom wish"
 		"es"		"Deseo custom"
+		"las"		"Deseo custom"
+		"de"		"Eigener Wunsch"
+		"fr"		"Souhait personnalisé"
+		"pt"		"Desejo personalizado"
+		"ru"		"Свой вариант"
 	}
 
 	"LR Wish HotReds"
 	{
 		"en"		"Hot Reds"
 		"es"		"Reds ardientes"
+		"las"		"Reds ardientes"
+		"de"		"Hot Reds"
+		"fr"		"Hot Reds"
+		"pt"		"Hot Reds"
+		"ru"		"Hot Reds"
 	}
 
 	"LR Wish Suicide"
 	{
 		"en"		"Suicide"
 		"es"		"Suicidio"
+		"las"		"Suicidio"
+		"de"		"Selbstmord"
+		"fr"		"Suicide"
+		"pt"		"Suicídio"
+		"ru"		"Самоубийство"
 	}
 
 	"LR Wish LowGravity"
 	{
 		"en"		"Low gravity"
 		"es"		"Baja gravedad"
+		"las"		"Baja gravedad"
+		"de"		"Geringe Schwerkraft"
+		"fr"		"Basse gravité"
+		"pt"		"Baixa gravidade"
+		"ru"		"Низкая гравитация"
 	}
 
 	"LR Chose Freeday Me"
@@ -173,6 +303,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} chose Freeday for themselves."
 		"es"		"{1} {2} eligió Freeday para sí."
+		"las"		"{1} {2} eligió Freeday para sí."
+		"de"		"{1} {2} hat Freeday für sich selbst gewählt."
+		"fr"		"{1} {2} a choisi Freeday pour lui-même."
+		"pt"		"{1} {2} escolheu Freeday para si."
+		"ru"		"{1} {2} выбрал Freeday для себя."
 	}
 
 	"LR Chose Freeday Others"
@@ -180,6 +315,11 @@
 		"#format"	"{1:s},{2:N},{3:d}"
 		"en"		"{1} {2} gave Freeday to {3} other prisoner(s)."
 		"es"		"{1} {2} dio Freeday a {3} prisionero(s)."
+		"las"		"{1} {2} dio Freeday a {3} prisionero(s)."
+		"de"		"{1} {2} hat {3} weiteren Gefangenen Freeday gegeben."
+		"fr"		"{1} {2} a donné Freeday à {3} autre(s) prisonnier(s)."
+		"pt"		"{1} {2} deu Freeday a {3} outro(s) prisioneiro(s)."
+		"ru"		"{1} {2} выдал Freeday {3} другим заключённым."
 	}
 
 	"LR Chose Freeday All"
@@ -187,6 +327,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} chose Freeday for everyone."
 		"es"		"{1} {2} eligió Freeday para todos."
+		"las"		"{1} {2} eligió Freeday para todos."
+		"de"		"{1} {2} hat Freeday für alle gewählt."
+		"fr"		"{1} {2} a choisi Freeday pour tout le monde."
+		"pt"		"{1} {2} escolheu Freeday para todos."
+		"ru"		"{1} {2} выбрал Freeday для всех."
 	}
 
 	"LR Chose WarDay"
@@ -194,6 +339,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} chose War Day."
 		"es"		"{1} {2} eligió War Day."
+		"las"		"{1} {2} eligió War Day."
+		"de"		"{1} {2} hat War Day gewählt."
+		"fr"		"{1} {2} a choisi War Day."
+		"pt"		"{1} {2} escolheu War Day."
+		"ru"		"{1} {2} выбрал War Day."
 	}
 
 	"LR Chose ClassWarfare"
@@ -201,6 +351,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} chose Class Warfare."
 		"es"		"{1} {2} eligió Class Warfare."
+		"las"		"{1} {2} eligió Class Warfare."
+		"de"		"{1} {2} hat Class Warfare gewählt."
+		"fr"		"{1} {2} a choisi Class Warfare."
+		"pt"		"{1} {2} escolheu Class Warfare."
+		"ru"		"{1} {2} выбрал Class Warfare."
 	}
 
 	"LR Chose Custom"
@@ -208,6 +363,11 @@
 		"#format"	"{1:s},{2:N},{3:s}"
 		"en"		"{1} {2}'s custom wish: {3}"
 		"es"		"{1} Deseo custom de {2}: {3}"
+		"las"		"{1} Deseo custom de {2}: {3}"
+		"de"		"{1} Eigener Wunsch von {2}: {3}"
+		"fr"		"{1} Souhait personnalisé de {2} : {3}"
+		"pt"		"{1} Desejo personalizado de {2}: {3}"
+		"ru"		"{1} Свой вариант от {2}: {3}"
 	}
 
 	"LR Chose HotReds"
@@ -215,6 +375,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} chose Hot Reds."
 		"es"		"{1} {2} eligió Reds ardientes."
+		"las"		"{1} {2} eligió Reds ardientes."
+		"de"		"{1} {2} hat Hot Reds gewählt."
+		"fr"		"{1} {2} a choisi Hot Reds."
+		"pt"		"{1} {2} escolheu Hot Reds."
+		"ru"		"{1} {2} выбрал Hot Reds."
 	}
 
 	"LR Chose Suicide"
@@ -222,6 +387,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} chose Suicide."
 		"es"		"{1} {2} eligió Suicidio."
+		"las"		"{1} {2} eligió Suicidio."
+		"de"		"{1} {2} hat Selbstmord gewählt."
+		"fr"		"{1} {2} a choisi Suicide."
+		"pt"		"{1} {2} escolheu Suicídio."
+		"ru"		"{1} {2} выбрал Самоубийство."
 	}
 
 	"LR Suicide Countdown"
@@ -229,6 +399,11 @@
 		"#format"	"{1:d}"
 		"en"		"Suicide in {1}..."
 		"es"		"Suicidio en {1}..."
+		"las"		"Suicidio en {1}..."
+		"de"		"Selbstmord in {1}..."
+		"fr"		"Suicide dans {1}..."
+		"pt"		"Suicídio em {1}..."
+		"ru"		"Самоубийство через {1}..."
 	}
 
 	"LR Chose LowGravity"
@@ -236,6 +411,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} chose Low Gravity."
 		"es"		"{1} {2} eligió Baja gravedad."
+		"las"		"{1} {2} eligió Baja gravedad."
+		"de"		"{1} {2} hat Geringe Schwerkraft gewählt."
+		"fr"		"{1} {2} a choisi Basse gravité."
+		"pt"		"{1} {2} escolheu Baixa gravidade."
+		"ru"		"{1} {2} выбрал Низкую гравитацию."
 	}
 
 	"LR Applied Freeday"
@@ -243,6 +423,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1} Freeday: {2}."
 		"es"		"{1} Freeday: {2}."
+		"las"		"{1} Freeday: {2}."
+		"de"		"{1} Freeday: {2}."
+		"fr"		"{1} Freeday : {2}."
+		"pt"		"{1} Freeday: {2}."
+		"ru"		"{1} Freeday: {2}."
 	}
 
 	"LR Applied Freeday All"
@@ -250,6 +435,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1} Freeday for all ({2})."
 		"es"		"{1} Freeday para todos ({2})."
+		"las"		"{1} Freeday para todos ({2})."
+		"de"		"{1} Freeday für alle ({2})."
+		"fr"		"{1} Freeday pour tous ({2})."
+		"pt"		"{1} Freeday para todos ({2})."
+		"ru"		"{1} Freeday для всех ({2})."
 	}
 
 	"LR Applied WarDay"
@@ -257,6 +447,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1} War Day ({2})."
 		"es"		"{1} War Day ({2})."
+		"las"		"{1} War Day ({2})."
+		"de"		"{1} War Day ({2})."
+		"fr"		"{1} War Day ({2})."
+		"pt"		"{1} War Day ({2})."
+		"ru"		"{1} War Day ({2})."
 	}
 
 	"LR Applied ClassWarfare"
@@ -264,6 +459,11 @@
 		"#format"	"{1:s},{2:s},{3:s},{4:s}"
 		"en"		"{1} Class Warfare ({2}): RED {3} vs BLU {4}."
 		"es"		"{1} Class Warfare ({2}): RED {3} vs BLU {4}."
+		"las"		"{1} Class Warfare ({2}): RED {3} vs BLU {4}."
+		"de"		"{1} Class Warfare ({2}): RED {3} vs BLU {4}."
+		"fr"		"{1} Class Warfare ({2}) : RED {3} contre BLU {4}."
+		"pt"		"{1} Class Warfare ({2}): RED {3} vs BLU {4}."
+		"ru"		"{1} Class Warfare ({2}): RED {3} против BLU {4}."
 	}
 
 	"LR Applied Custom"
@@ -271,6 +471,11 @@
 		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1} {2}: {3}"
 		"es"		"{1} {2}: {3}"
+		"las"		"{1} {2}: {3}"
+		"de"		"{1} {2}: {3}"
+		"fr"		"{1} {2} : {3}"
+		"pt"		"{1} {2}: {3}"
+		"ru"		"{1} {2}: {3}"
 	}
 
 	"LR Applied HotReds"
@@ -278,6 +483,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1} Hot Reds ({2})."
 		"es"		"{1} Reds ardientes ({2})."
+		"las"		"{1} Reds ardientes ({2})."
+		"de"		"{1} Hot Reds ({2})."
+		"fr"		"{1} Hot Reds ({2})."
+		"pt"		"{1} Hot Reds ({2})."
+		"ru"		"{1} Hot Reds ({2})."
 	}
 
 	"LR Applied LowGravity"
@@ -285,25 +495,34 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1} Low gravity ({2})."
 		"es"		"{1} Baja gravedad ({2})."
+		"las"		"{1} Baja gravedad ({2})."
+		"de"		"{1} Geringe Schwerkraft ({2})."
+		"fr"		"{1} Basse gravité ({2})."
+		"pt"		"{1} Baixa gravidade ({2})."
+		"ru"		"{1} Низкая гравитация ({2})."
 	}
 
 	"LR Freeday Others Title"
 	{
 		"#format"	"{1:d},{2:d}"
 		"en"		"Pick freedays ({1}/{2})"
-		"es"		"Pick freedays ({1}/{2})"
-	}
-
-	"LR Freeday Others Sep"
-	{
-		"en"		"----"
-		"es"		"----"
+		"es"		"Elige freedays ({1}/{2})"
+		"las"		"Elige freedays ({1}/{2})"
+		"de"		"Freedays wählen ({1}/{2})"
+		"fr"		"Choisir les freedays ({1}/{2})"
+		"pt"		"Escolher freedays ({1}/{2})"
+		"ru"		"Выберите freeday ({1}/{2})"
 	}
 
 	"LR Freeday Others Confirm"
 	{
 		"en"		"Confirm selection"
 		"es"		"Confirmar selección"
+		"las"		"Confirmar selección"
+		"de"		"Auswahl bestätigen"
+		"fr"		"Confirmer la sélection"
+		"pt"		"Confirmar seleção"
+		"ru"		"Подтвердить выбор"
 	}
 
 	"LR Freeday Others Need One"
@@ -311,6 +530,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Select at least one player."
 		"es"		"{1} Selecciona al menos un jugador."
+		"las"		"{1} Selecciona al menos un jugador."
+		"de"		"{1} Wähle mindestens einen Spieler."
+		"fr"		"{1} Sélectionnez au moins un joueur."
+		"pt"		"{1} Selecione ao menos um jogador."
+		"ru"		"{1} Выберите хотя бы одного игрока."
 	}
 
 	"LR Freeday Others Review Title"
@@ -318,30 +542,55 @@
 		"#format"	"{1:d}"
 		"en"		"Confirm freedays ({1})"
 		"es"		"Confirmar freedays ({1})"
+		"las"		"Confirmar freedays ({1})"
+		"de"		"Freedays bestätigen ({1})"
+		"fr"		"Confirmer les freedays ({1})"
+		"pt"		"Confirmar freedays ({1})"
+		"ru"		"Подтвердить freeday ({1})"
 	}
 
 	"LR Freeday Others Review Yes"
 	{
 		"en"		"Yes, confirm"
 		"es"		"Sí, confirmar"
+		"las"		"Sí, confirmar"
+		"de"		"Ja, bestätigen"
+		"fr"		"Oui, confirmer"
+		"pt"		"Sim, confirmar"
+		"ru"		"Да, подтвердить"
 	}
 
 	"LR Freeday Others Review No"
 	{
 		"en"		"Back"
 		"es"		"Volver"
+		"las"		"Volver"
+		"de"		"Zurück"
+		"fr"		"Retour"
+		"pt"		"Voltar"
+		"ru"		"Назад"
 	}
 
 	"LR Freeday Others Prev"
 	{
 		"en"		"Previous"
 		"es"		"Anterior"
+		"las"		"Anterior"
+		"de"		"Zurück"
+		"fr"		"Précédent"
+		"pt"		"Anterior"
+		"ru"		"Предыдущий"
 	}
 
 	"LR Freeday Others Next"
 	{
 		"en"		"Next"
 		"es"		"Siguiente"
+		"las"		"Siguiente"
+		"de"		"Weiter"
+		"fr"		"Suivant"
+		"pt"		"Próximo"
+		"ru"		"Далее"
 	}
 
 	"LR Freeday Others None"
@@ -349,6 +598,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} No living prisoners."
 		"es"		"{1} No hay prisioneros vivos."
+		"las"		"{1} No hay prisioneros vivos."
+		"de"		"{1} Keine lebenden Gefangenen."
+		"fr"		"{1} Aucun prisonnier vivant."
+		"pt"		"{1} Nenhum prisioneiro vivo."
+		"ru"		"{1} Нет живых заключённых."
 	}
 
 	"LR Freeday Others Cap"
@@ -356,6 +610,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Maximum 3 freedays."
 		"es"		"{1} Máximo 3 freedays."
+		"las"		"{1} Máximo 3 freedays."
+		"de"		"{1} Maximal 3 Freedays."
+		"fr"		"{1} Maximum 3 freedays."
+		"pt"		"{1} Máximo de 3 freedays."
+		"ru"		"{1} Максимум 3 freeday."
 	}
 
 	"LR Custom Prompt"
@@ -363,6 +622,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Type your custom wish in chat."
 		"es"		"{1} Escribe tu deseo custom en el chat."
+		"las"		"{1} Escribe tu deseo custom en el chat."
+		"de"		"{1} Gib deinen eigenen Wunsch im Chat ein."
+		"fr"		"{1} Tapez votre souhait personnalisé dans le chat."
+		"pt"		"{1} Digite seu desejo personalizado no chat."
+		"ru"		"{1} Напишите свой вариант в чат."
 	}
 
 	"LR Custom Waiting"
@@ -370,5 +634,10 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} Waiting for {2}'s custom wish in chat..."
 		"es"		"{1} Esperando el deseo custom de {2} en el chat..."
+		"las"		"{1} Esperando el deseo custom de {2} en el chat..."
+		"de"		"{1} Warte auf {2}s eigenen Wunsch im Chat..."
+		"fr"		"{1} En attente du souhait personnalisé de {2} dans le chat..."
+		"pt"		"{1} Aguardando o desejo personalizado de {2} no chat..."
+		"ru"		"{1} Ожидание своего варианта от {2} в чате..."
 	}
 }

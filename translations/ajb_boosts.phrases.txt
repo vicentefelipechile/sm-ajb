@@ -4,13 +4,23 @@
 	{
 		"en"		"{green}[AJB]{default}"
 		"es"		"{green}[AJB]{default}"
+		"las"		"{green}[AJB]{default}"
+		"de"		"{green}[AJB]{default}"
+		"fr"		"{green}[AJB]{default}"
+		"pt"		"{green}[AJB]{default}"
+		"ru"		"{green}[AJB]{default}"
 	}
 
 	"Boosts Menu Title"
 	{
 		"#format"	"{1:d},{2:d}"
 		"en"		"Boosts\n------\nPoints: {1}\nSpent: {2}\n------"
-		"es"		"Boosts\n------\nPoints: {1}\nSpent: {2}\n------"
+		"es"		"Boosts\n------\nPuntos: {1}\nGastados: {2}\n------"
+		"las"		"Boosts\n------\nPuntos: {1}\nGastados: {2}\n------"
+		"de"		"Boosts\n------\nPunkte: {1}\nAusgegeben: {2}\n------"
+		"fr"		"Boosts\n------\nPoints : {1}\nDépensés : {2}\n------"
+		"pt"		"Boosts\n------\nPontos: {1}\nGastos: {2}\n------"
+		"ru"		"Бусты\n------\nОчки: {1}\nПотрачено: {2}\n------"
 	}
 
 	"Boosts Disabled"
@@ -18,6 +28,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Boosts are disabled."
 		"es"		"{1} Los boosts están desactivados."
+		"las"		"{1} Los boosts están desactivados."
+		"de"		"{1} Boosts sind deaktiviert."
+		"fr"		"{1} Les boosts sont désactivés."
+		"pt"		"{1} Os boosts estão desativados."
+		"ru"		"{1} Бусты отключены."
 	}
 
 	"Boosts Mode Inactive"
@@ -25,6 +40,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Another Jailbreak is not active."
 		"es"		"{1} Another Jailbreak no está activo."
+		"las"		"{1} Another Jailbreak no está activo."
+		"de"		"{1} Another Jailbreak ist nicht aktiv."
+		"fr"		"{1} Another Jailbreak n'est pas actif."
+		"pt"		"{1} Another Jailbreak não está ativo."
+		"ru"		"{1} Another Jailbreak не активен."
 	}
 
 	"Boosts Ingame Only"
@@ -32,6 +52,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Use this in-game."
 		"es"		"{1} Úsalo dentro del juego."
+		"las"		"{1} Úsalo dentro del juego."
+		"de"		"{1} Nutze dies im Spiel."
+		"fr"		"{1} Utilisez ceci en jeu."
+		"pt"		"{1} Use isto dentro do jogo."
+		"ru"		"{1} Используйте это в игре."
 	}
 
 	"Boosts Points"
@@ -39,6 +64,11 @@
 		"#format"	"{1:s},{2:d}"
 		"en"		"{1} You have {2} point(s)."
 		"es"		"{1} Tienes {2} punto(s)."
+		"las"		"{1} Tienes {2} punto(s)."
+		"de"		"{1} Du hast {2} Punkt(e)."
+		"fr"		"{1} Vous avez {2} point(s)."
+		"pt"		"{1} Você tem {2} ponto(s)."
+		"ru"		"{1} У вас {2} очк(ов)."
 	}
 
 	"Boosts Points Gained"
@@ -46,6 +76,11 @@
 		"#format"	"{1:s},{2:d},{3:d}"
 		"en"		"{1} +{2} point(s) (total {3})."
 		"es"		"{1} +{2} punto(s) (total {3})."
+		"las"		"{1} +{2} punto(s) (total {3})."
+		"de"		"{1} +{2} Punkt(e) (gesamt {3})."
+		"fr"		"{1} +{2} point(s) (total {3})."
+		"pt"		"{1} +{2} ponto(s) (total {3})."
+		"ru"		"{1} +{2} очк(ов) (всего {3})."
 	}
 
 	"Boosts Points Left"
@@ -53,6 +88,11 @@
 		"#format"	"{1:s},{2:d}"
 		"en"		"{1} Points left: {2}."
 		"es"		"{1} Puntos restantes: {2}."
+		"las"		"{1} Puntos restantes: {2}."
+		"de"		"{1} Verbleibende Punkte: {2}."
+		"fr"		"{1} Points restants : {2}."
+		"pt"		"{1} Pontos restantes: {2}."
+		"ru"		"{1} Осталось очков: {2}."
 	}
 
 	"Boosts Spend Cap"
@@ -60,6 +100,11 @@
 		"#format"	"{1:s},{2:d}"
 		"en"		"{1} Spend cap this round is {2} point(s)."
 		"es"		"{1} El tope de gasto esta ronda es {2} punto(s)."
+		"las"		"{1} El tope de gasto esta ronda es {2} punto(s)."
+		"de"		"{1} Das Ausgabe-Limit diese Runde ist {2} Punkt(e)."
+		"fr"		"{1} La limite de dépense cette manche est {2} point(s)."
+		"pt"		"{1} O limite de gasto nesta rodada é {2} ponto(s)."
+		"ru"		"{1} Лимит траты за раунд — {2} очк(ов)."
 	}
 
 	"Boosts Not Enough"
@@ -67,6 +112,11 @@
 		"#format"	"{1:s},{2:d},{3:d}"
 		"en"		"{1} Need {2} point(s) (you have {3})."
 		"es"		"{1} Necesitas {2} punto(s) (tienes {3})."
+		"las"		"{1} Necesitas {2} punto(s) (tienes {3})."
+		"de"		"{1} Du brauchst {2} Punkt(e) (du hast {3})."
+		"fr"		"{1} Il faut {2} point(s) (vous en avez {3})."
+		"pt"		"{1} Precisa de {2} ponto(s) (você tem {3})."
+		"ru"		"{1} Нужно {2} очк(ов) (у вас {3})."
 	}
 
 	"Boost Iron Neck"
@@ -74,6 +124,11 @@
 		"#format"	"{1:d}"
 		"en"		"Iron neck ({1}) — survive 1 backstab"
 		"es"		"Iron neck ({1}) — sobrevive 1 backstab"
+		"las"		"Iron neck ({1}) — sobrevive 1 backstab"
+		"de"		"Iron neck ({1}) — überlebe 1 Backstab"
+		"fr"		"Iron neck ({1}) — survivez à 1 backstab"
+		"pt"		"Iron neck ({1}) — sobreviva a 1 backstab"
+		"ru"		"Iron neck ({1}) — переживите 1 бэкстаб"
 	}
 
 	"Boost Iron Neck II"
@@ -81,6 +136,11 @@
 		"#format"	"{1:d}"
 		"en"		"Iron neck II ({1}) — survive 2 backstabs"
 		"es"		"Iron neck II ({1}) — sobrevive 2 backstabs"
+		"las"		"Iron neck II ({1}) — sobrevive 2 backstabs"
+		"de"		"Iron neck II ({1}) — überlebe 2 Backstabs"
+		"fr"		"Iron neck II ({1}) — survivez à 2 backstabs"
+		"pt"		"Iron neck II ({1}) — sobreviva a 2 backstabs"
+		"ru"		"Iron neck II ({1}) — переживите 2 бэкстаба"
 	}
 
 	"Boost Revive"
@@ -88,6 +148,11 @@
 		"#format"	"{1:d}"
 		"en"		"Revive ({1}) — bring back one RED or BLU"
 		"es"		"Revive ({1}) — revive a un RED o BLU"
+		"las"		"Revive ({1}) — revive a un RED o BLU"
+		"de"		"Revive ({1}) — hole einen RED oder BLU zurück"
+		"fr"		"Revive ({1}) — ranimez un RED ou BLU"
+		"pt"		"Revive ({1}) — traga de volta um RED ou BLU"
+		"ru"		"Revive ({1}) — воскресите одного RED или BLU"
 	}
 
 	"Boost Second Wind"
@@ -95,6 +160,11 @@
 		"#format"	"{1:d}"
 		"en"		"Second Wind ({1}) — +50 HP"
 		"es"		"Second Wind ({1}) — +50 HP"
+		"las"		"Second Wind ({1}) — +50 HP"
+		"de"		"Second Wind ({1}) — +50 HP"
+		"fr"		"Second Wind ({1}) — +50 PV"
+		"pt"		"Second Wind ({1}) — +50 HP"
+		"ru"		"Second Wind ({1}) — +50 HP"
 	}
 
 	"Boost Mad Milk"
@@ -102,6 +172,11 @@
 		"#format"	"{1:d}"
 		"en"		"Mad Milk ({1}) — throw milk where you look"
 		"es"		"Mad Milk ({1}) — lanza leche hacia donde miras"
+		"las"		"Mad Milk ({1}) — lanza leche hacia donde miras"
+		"de"		"Mad Milk ({1}) — wirf Milch in Blickrichtung"
+		"fr"		"Mad Milk ({1}) — lancez du lait là où vous visez"
+		"pt"		"Mad Milk ({1}) — jogue leite para onde você olha"
+		"ru"		"Mad Milk ({1}) — бросьте молоко туда, куда смотрите"
 	}
 
 	"Boost Melee Crit"
@@ -109,6 +184,11 @@
 		"#format"	"{1:d}"
 		"en"		"Power Strike ({1}) — next melee hit is a crit"
 		"es"		"Golpe Crítico ({1}) — el próximo melee es crítico"
+		"las"		"Golpe Crítico ({1}) — el próximo melee es crítico"
+		"de"		"Power Strike ({1}) — nächster Nahkampftreffer ist ein Crit"
+		"fr"		"Power Strike ({1}) — le prochain coup de mêlée est un crit"
+		"pt"		"Power Strike ({1}) — o próximo golpe corpo a corpo é crítico"
+		"ru"		"Power Strike ({1}) — следующий удар ближнего боя — крит"
 	}
 
 	"Boost Jarate"
@@ -116,6 +196,11 @@
 		"#format"	"{1:d}"
 		"en"		"Jarate ({1}) — throw jarate where you look"
 		"es"		"Jarate ({1}) — lanza jarate hacia donde miras"
+		"las"		"Jarate ({1}) — lanza jarate hacia donde miras"
+		"de"		"Jarate ({1}) — wirf Jarate in Blickrichtung"
+		"fr"		"Jarate ({1}) — lancez du Jarate là où vous visez"
+		"pt"		"Jarate ({1}) — jogue jarate para onde você olha"
+		"ru"		"Jarate ({1}) — бросьте jarate туда, куда смотрите"
 	}
 
 	"Boost Regen"
@@ -123,12 +208,22 @@
 		"#format"	"{1:d}"
 		"en"		"Vitality ({1}) — +50 HP and regen for 20s"
 		"es"		"Vitalidad ({1}) — +50 HP y regen 20s"
+		"las"		"Vitalidad ({1}) — +50 HP y regen 20s"
+		"de"		"Vitalität ({1}) — +50 HP und Regen für 20s"
+		"fr"		"Vitalité ({1}) — +50 PV et régén pendant 20s"
+		"pt"		"Vitalidade ({1}) — +50 HP e regen por 20s"
+		"ru"		"Vitality ({1}) — +50 HP и реген на 20с"
 	}
 
 	"Boosts Join Team"
 	{
 		"en"		"(Join RED or BLU to use boosts)"
 		"es"		"(Entra a RED o BLU para usar boosts)"
+		"las"		"(Entra a RED o BLU para usar boosts)"
+		"de"		"(Tritt RED oder BLU bei, um Boosts zu nutzen)"
+		"fr"		"(Rejoignez RED ou BLU pour utiliser les boosts)"
+		"pt"		"(Entre em RED ou BLU para usar boosts)"
+		"ru"		"(Вступите в RED или BLU, чтобы использовать бусты)"
 	}
 
 	"Boosts Guards Alive Only"
@@ -136,6 +231,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Only living guards can buy this boost."
 		"es"		"{1} Solo guardias vivos pueden comprar este boost."
+		"las"		"{1} Solo guardias vivos pueden comprar este boost."
+		"de"		"{1} Nur lebende Wachen können diesen Boost kaufen."
+		"fr"		"{1} Seuls les gardes vivants peuvent acheter ce boost."
+		"pt"		"{1} Apenas guardas vivos podem comprar este boost."
+		"ru"		"{1} Только живая охрана может купить этот буст."
 	}
 
 	"Boosts Prisoners Alive Only"
@@ -143,6 +243,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Only living prisoners can buy this boost."
 		"es"		"{1} Solo prisioneros vivos pueden comprar este boost."
+		"las"		"{1} Solo prisioneros vivos pueden comprar este boost."
+		"de"		"{1} Nur lebende Gefangene können diesen Boost kaufen."
+		"fr"		"{1} Seuls les prisonniers vivants peuvent acheter ce boost."
+		"pt"		"{1} Apenas prisioneiros vivos podem comprar este boost."
+		"ru"		"{1} Только живые заключённые могут купить этот буст."
 	}
 
 	"Boosts Throw Failed"
@@ -150,6 +255,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Could not throw that. Points refunded."
 		"es"		"{1} No se pudo lanzar. Puntos devueltos."
+		"las"		"{1} No se pudo lanzar. Puntos devueltos."
+		"de"		"{1} Konnte das nicht werfen. Punkte erstattet."
+		"fr"		"{1} Impossible de lancer. Points remboursés."
+		"pt"		"{1} Não foi possível jogar. Pontos reembolsados."
+		"ru"		"{1} Не удалось бросить. Очки возвращены."
 	}
 
 	"Boosts Melee Crit Already"
@@ -157,6 +267,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} You already have a powered melee hit ready."
 		"es"		"{1} Ya tienes un golpe melee potenciado listo."
+		"las"		"{1} Ya tienes un golpe melee potenciado listo."
+		"de"		"{1} Du hast bereits einen aufgeladenen Nahkampftreffer bereit."
+		"fr"		"{1} Vous avez déjà un coup de mêlée renforcé prêt."
+		"pt"		"{1} Você já tem um golpe corpo a corpo potencializado pronto."
+		"ru"		"{1} У вас уже готов усиленный удар ближнего боя."
 	}
 
 	"Boosts Purchased Second Wind"
@@ -164,6 +279,11 @@
 		"#format"	"{1:s},{2:d},{3:d}"
 		"en"		"{1} Second Wind: +{2} HP. Points: {3}."
 		"es"		"{1} Second Wind: +{2} HP. Puntos: {3}."
+		"las"		"{1} Second Wind: +{2} HP. Puntos: {3}."
+		"de"		"{1} Second Wind: +{2} HP. Punkte: {3}."
+		"fr"		"{1} Second Wind : +{2} PV. Points : {3}."
+		"pt"		"{1} Second Wind: +{2} HP. Pontos: {3}."
+		"ru"		"{1} Second Wind: +{2} HP. Очки: {3}."
 	}
 
 	"Boosts Purchased Mad Milk"
@@ -171,6 +291,11 @@
 		"#format"	"{1:s},{2:d}"
 		"en"		"{1} Mad Milk thrown. Points: {2}."
 		"es"		"{1} Mad Milk lanzada. Puntos: {2}."
+		"las"		"{1} Mad Milk lanzada. Puntos: {2}."
+		"de"		"{1} Mad Milk geworfen. Punkte: {2}."
+		"fr"		"{1} Mad Milk lancé. Points : {2}."
+		"pt"		"{1} Mad Milk jogada. Pontos: {2}."
+		"ru"		"{1} Mad Milk брошена. Очки: {2}."
 	}
 
 	"Boosts Purchased Jarate"
@@ -178,6 +303,11 @@
 		"#format"	"{1:s},{2:d}"
 		"en"		"{1} Jarate thrown. Points: {2}."
 		"es"		"{1} Jarate lanzado. Puntos: {2}."
+		"las"		"{1} Jarate lanzado. Puntos: {2}."
+		"de"		"{1} Jarate geworfen. Punkte: {2}."
+		"fr"		"{1} Jarate lancé. Points : {2}."
+		"pt"		"{1} Jarate jogado. Pontos: {2}."
+		"ru"		"{1} Jarate брошен. Очки: {2}."
 	}
 
 	"Boosts Purchased Melee Crit"
@@ -185,6 +315,11 @@
 		"#format"	"{1:s},{2:d}"
 		"en"		"{1} Next melee hit is a crit. Points: {2}."
 		"es"		"{1} Tu próximo melee será crítico. Puntos: {2}."
+		"las"		"{1} Tu próximo melee será crítico. Puntos: {2}."
+		"de"		"{1} Nächster Nahkampftreffer ist ein Crit. Punkte: {2}."
+		"fr"		"{1} Le prochain coup de mêlée est un crit. Points : {2}."
+		"pt"		"{1} Seu próximo golpe corpo a corpo é crítico. Pontos: {2}."
+		"ru"		"{1} Следующий удар ближнего боя — крит. Очки: {2}."
 	}
 
 	"Boosts Purchased Regen"
@@ -192,6 +327,11 @@
 		"#format"	"{1:s},{2:d},{3:d},{4:d}"
 		"en"		"{1} +{2} HP and regen for {3}s. Points: {4}."
 		"es"		"{1} +{2} HP y regeneración {3}s. Puntos: {4}."
+		"las"		"{1} +{2} HP y regeneración {3}s. Puntos: {4}."
+		"de"		"{1} +{2} HP und Regen für {3}s. Punkte: {4}."
+		"fr"		"{1} +{2} PV et régén pendant {3}s. Points : {4}."
+		"pt"		"{1} +{2} HP e regen por {3}s. Pontos: {4}."
+		"ru"		"{1} +{2} HP и реген на {3}с. Очки: {4}."
 	}
 
 	"Boosts Melee Crit Used"
@@ -199,6 +339,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Power Strike consumed."
 		"es"		"{1} Golpe Crítico consumido."
+		"las"		"{1} Golpe Crítico consumido."
+		"de"		"{1} Power Strike verbraucht."
+		"fr"		"{1} Power Strike consommé."
+		"pt"		"{1} Power Strike consumido."
+		"ru"		"{1} Power Strike использован."
 	}
 
 	"Boosts Warden Only"
@@ -206,6 +351,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Only the Warden can buy Revive."
 		"es"		"{1} Solo el Warden puede comprar Revive."
+		"las"		"{1} Solo el Warden puede comprar Revive."
+		"de"		"{1} Nur der Warden kann Revive kaufen."
+		"fr"		"{1} Seul le Warden peut acheter Revive."
+		"pt"		"{1} Apenas o Warden pode comprar Revive."
+		"ru"		"{1} Только Warden может купить Revive."
 	}
 
 	"Boosts No LR"
@@ -213,6 +363,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Not available during Last Request."
 		"es"		"{1} No disponible durante Last Request."
+		"las"		"{1} No disponible durante Last Request."
+		"de"		"{1} Während Last Request nicht verfügbar."
+		"fr"		"{1} Indisponible pendant le Last Request."
+		"pt"		"{1} Indisponível durante o Last Request."
+		"ru"		"{1} Недоступно во время Last Request."
 	}
 
 	"Boosts Purchased Iron Neck"
@@ -220,12 +375,22 @@
 		"#format"	"{1:s},{2:d},{3:d}"
 		"en"		"{1} Iron neck ready ({2} backstab save(s)). Points: {3}."
 		"es"		"{1} Iron neck listo ({2} save(s) de backstab). Puntos: {3}."
+		"las"		"{1} Iron neck listo ({2} save(s) de backstab). Puntos: {3}."
+		"de"		"{1} Iron neck bereit ({2} Backstab-Rettung(en)). Punkte: {3}."
+		"fr"		"{1} Iron neck prêt ({2} sauvetage(s) de backstab). Points : {3}."
+		"pt"		"{1} Iron neck pronto ({2} save(s) de backstab). Pontos: {3}."
+		"ru"		"{1} Iron neck готов ({2} спасение(й) от бэкстаба). Очки: {3}."
 	}
 
 	"Boosts Revive Pick"
 	{
 		"en"		"Revive — pick a dead player"
 		"es"		"Revive — elige un jugador muerto"
+		"las"		"Revive — elige un jugador muerto"
+		"de"		"Revive — wähle einen toten Spieler"
+		"fr"		"Revive — choisissez un joueur mort"
+		"pt"		"Revive — escolha um jogador morto"
+		"ru"		"Revive — выберите мёртвого игрока"
 	}
 
 	"Boosts Revive None"
@@ -233,6 +398,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} No dead RED/BLU players to revive."
 		"es"		"{1} No hay RED/BLU muertos para revivir."
+		"las"		"{1} No hay RED/BLU muertos para revivir."
+		"de"		"{1} Keine toten RED/BLU-Spieler zum Wiederbeleben."
+		"fr"		"{1} Aucun joueur RED/BLU mort à ranimer."
+		"pt"		"{1} Nenhum jogador RED/BLU morto para reviver."
+		"ru"		"{1} Нет мёртвых игроков RED/BLU для воскрешения."
 	}
 
 	"Boosts Revive Invalid"
@@ -240,6 +410,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} That player cannot be revived."
 		"es"		"{1} Ese jugador no se puede revivir."
+		"las"		"{1} Ese jugador no se puede revivir."
+		"de"		"{1} Dieser Spieler kann nicht wiederbelebt werden."
+		"fr"		"{1} Ce joueur ne peut pas être ranimé."
+		"pt"		"{1} Esse jogador não pode ser revivido."
+		"ru"		"{1} Этого игрока нельзя воскресить."
 	}
 
 	"Boosts Revived"
@@ -247,6 +422,11 @@
 		"#format"	"{1:s},{2:N},{3:N}"
 		"en"		"{1} Warden {2} revived {3}."
 		"es"		"{1} El Warden {2} revivió a {3}."
+		"las"		"{1} El Warden {2} revivió a {3}."
+		"de"		"{1} Warden {2} hat {3} wiederbelebt."
+		"fr"		"{1} Le Warden {2} a ranimé {3}."
+		"pt"		"{1} O Warden {2} reviveu {3}."
+		"ru"		"{1} Warden {2} воскресил {3}."
 	}
 
 	"Boosts Backstab Saved"
@@ -254,6 +434,11 @@
 		"#format"	"{1:s},{2:d}"
 		"en"		"{1} Backstab survived! Charges left: {2}."
 		"es"		"{1} ¡Backstab sobrevivido! Cargas: {2}."
+		"las"		"{1} ¡Backstab sobrevivido! Cargas: {2}."
+		"de"		"{1} Backstab überlebt! Verbleibende Ladungen: {2}."
+		"fr"		"{1} Backstab survécu ! Charges restantes : {2}."
+		"pt"		"{1} Backstab sobrevivido! Cargas restantes: {2}."
+		"ru"		"{1} Бэкстаб пережит! Осталось зарядов: {2}."
 	}
 
 	"Boosts Backstab Blocked"
@@ -261,6 +446,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} survived your backstab (Iron neck)."
 		"es"		"{1} {2} sobrevivió tu backstab (Iron neck)."
+		"las"		"{1} {2} sobrevivió tu backstab (Iron neck)."
+		"de"		"{1} {2} hat deinen Backstab überlebt (Iron neck)."
+		"fr"		"{1} {2} a survécu à votre backstab (Iron neck)."
+		"pt"		"{1} {2} sobreviveu ao seu backstab (Iron neck)."
+		"ru"		"{1} {2} пережил ваш бэкстаб (Iron neck)."
 	}
 
 	"Boosts Admin Gave"
@@ -268,5 +458,10 @@
 		"#format"	"{1:s},{2:d},{3:s}"
 		"en"		"{1} Gave {2} point(s) to {3}."
 		"es"		"{1} Diste {2} punto(s) a {3}."
+		"las"		"{1} Diste {2} punto(s) a {3}."
+		"de"		"{1} {2} Punkt(e) an {3} gegeben."
+		"fr"		"{1} {2} point(s) donné(s) à {3}."
+		"pt"		"{1} Você deu {2} ponto(s) a {3}."
+		"ru"		"{1} Выдано {2} очк(ов) игроку {3}."
 	}
 }

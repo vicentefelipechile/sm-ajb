@@ -4,6 +4,11 @@
 	{
 		"en"		"{green}[AJB]{default}"
 		"es"		"{green}[AJB]{default}"
+		"las"		"{green}[AJB]{default}"
+		"de"		"{green}[AJB]{default}"
+		"fr"		"{green}[AJB]{default}"
+		"pt"		"{green}[AJB]{default}"
+		"ru"		"{green}[AJB]{default}"
 	}
 
 	// Label under /admin → Server Commands
@@ -11,90 +16,165 @@
 	{
 		"en"		"Another Jailbreak"
 		"es"		"Another Jailbreak"
+		"las"		"Another Jailbreak"
+		"de"		"Another Jailbreak"
+		"fr"		"Another Jailbreak"
+		"pt"		"Another Jailbreak"
+		"ru"		"Another Jailbreak"
 	}
 
 	"Admin Menu Title"
 	{
 		"en"		"Another Jailbreak — Admin"
 		"es"		"Another Jailbreak — Admin"
+		"las"		"Another Jailbreak — Admin"
+		"de"		"Another Jailbreak — Admin"
+		"fr"		"Another Jailbreak — Admin"
+		"pt"		"Another Jailbreak — Admin"
+		"ru"		"Another Jailbreak — Админ"
 	}
 
 	"Admin Menu Status"
 	{
 		"en"		"Status"
 		"es"		"Estado"
+		"las"		"Estado"
+		"de"		"Status"
+		"fr"		"Statut"
+		"pt"		"Status"
+		"ru"		"Статус"
 	}
 
 	"Admin Menu Open Cells"
 	{
 		"en"		"Open cells"
 		"es"		"Abrir celdas"
+		"las"		"Abrir celdas"
+		"de"		"Zellen öffnen"
+		"fr"		"Ouvrir les cellules"
+		"pt"		"Abrir celas"
+		"ru"		"Открыть камеры"
 	}
 
 	"Admin Menu Close Cells"
 	{
 		"en"		"Close cells"
 		"es"		"Cerrar celdas"
+		"las"		"Cerrar celdas"
+		"de"		"Zellen schließen"
+		"fr"		"Fermer les cellules"
+		"pt"		"Fechar celas"
+		"ru"		"Закрыть камеры"
 	}
 
 	"Admin Menu Clear Warden"
 	{
 		"en"		"Clear warden"
 		"es"		"Quitar warden"
+		"las"		"Quitar warden"
+		"de"		"Warden entfernen"
+		"fr"		"Retirer le warden"
+		"pt"		"Remover warden"
+		"ru"		"Убрать Warden"
 	}
 
 	"Admin Menu Set Warden"
 	{
 		"en"		"Set warden"
 		"es"		"Asignar warden"
+		"las"		"Asignar warden"
+		"de"		"Warden festlegen"
+		"fr"		"Définir le warden"
+		"pt"		"Definir warden"
+		"ru"		"Назначить Warden"
 	}
 
 	"Admin Menu Toggle Rebel"
 	{
 		"en"		"Toggle rebel"
 		"es"		"Alternar rebelde"
+		"las"		"Alternar rebelde"
+		"de"		"Rebell umschalten"
+		"fr"		"Basculer rebelle"
+		"pt"		"Alternar rebelde"
+		"ru"		"Переключить бунтовщика"
 	}
 
 	"Admin Menu Toggle Freeday"
 	{
 		"en"		"Toggle freeday"
 		"es"		"Alternar freeday"
+		"las"		"Alternar freeday"
+		"de"		"Freeday umschalten"
+		"fr"		"Basculer freeday"
+		"pt"		"Alternar freeday"
+		"ru"		"Переключить freeday"
 	}
 
 	"Admin Menu Guard Ban"
 	{
 		"en"		"Ban from guards (BLU)"
 		"es"		"Banear del equipo azul (guardias)"
+		"las"		"Banear del equipo azul (guardias)"
+		"de"		"Von Wachen bannen (BLU)"
+		"fr"		"Bannir des gardes (BLU)"
+		"pt"		"Banir dos guardas (BLU)"
+		"ru"		"Забанить в охране (BLU)"
 	}
 
 	"Admin Menu Give Boost"
 	{
 		"en"		"Give boost points"
 		"es"		"Dar puntos de boost"
+		"las"		"Dar puntos de boost"
+		"de"		"Boost-Punkte geben"
+		"fr"		"Donner des points de boost"
+		"pt"		"Dar pontos de boost"
+		"ru"		"Выдать очки буста"
 	}
 
 	"Admin Menu Take Boost"
 	{
 		"en"		"Take boost points"
 		"es"		"Quitar puntos de boost"
+		"las"		"Quitar puntos de boost"
+		"de"		"Boost-Punkte nehmen"
+		"fr"		"Retirer des points de boost"
+		"pt"		"Retirar pontos de boost"
+		"ru"		"Забрать очки буста"
 	}
 
 	"Admin Menu Reload Doors"
 	{
 		"en"		"Reload door config"
 		"es"		"Recargar config de puertas"
+		"las"		"Recargar config de puertas"
+		"de"		"Tür-Config neu laden"
+		"fr"		"Recharger la config des portes"
+		"pt"		"Recarregar config de portas"
+		"ru"		"Перезагрузить конфиг дверей"
 	}
 
 	"Admin Menu List Doors"
 	{
 		"en"		"List door targets"
 		"es"		"Listar puertas"
+		"las"		"Listar puertas"
+		"de"		"Tür-Targets auflisten"
+		"fr"		"Lister les cibles de portes"
+		"pt"		"Listar targets de portas"
+		"ru"		"Список целей дверей"
 	}
 
 	"Admin Pick Player"
 	{
 		"en"		"Pick a player"
 		"es"		"Elige un jugador"
+		"las"		"Elige un jugador"
+		"de"		"Spieler auswählen"
+		"fr"		"Choisir un joueur"
+		"pt"		"Escolha um jogador"
+		"ru"		"Выберите игрока"
 	}
 
 	"Admin Boost Give Title"
@@ -102,6 +182,11 @@
 		"#format"	"{1:N},{2:d}"
 		"en"		"Give points to {1} (has {2})"
 		"es"		"Dar puntos a {1} (tiene {2})"
+		"las"		"Dar puntos a {1} (tiene {2})"
+		"de"		"Punkte an {1} geben (hat {2})"
+		"fr"		"Donner des points à {1} (a {2})"
+		"pt"		"Dar pontos a {1} (tem {2})"
+		"ru"		"Выдать очки {1} (есть {2})"
 	}
 
 	"Admin Boost Take Title"
@@ -109,6 +194,11 @@
 		"#format"	"{1:N},{2:d}"
 		"en"		"Take points from {1} (has {2})"
 		"es"		"Quitar puntos a {1} (tiene {2})"
+		"las"		"Quitar puntos a {1} (tiene {2})"
+		"de"		"Punkte von {1} nehmen (hat {2})"
+		"fr"		"Retirer des points à {1} (a {2})"
+		"pt"		"Retirar pontos de {1} (tem {2})"
+		"ru"		"Забрать очки у {1} (есть {2})"
 	}
 
 	"Admin Boost Give N"
@@ -116,6 +206,11 @@
 		"#format"	"{1:d}"
 		"en"		"+{1} point(s)"
 		"es"		"+{1} punto(s)"
+		"las"		"+{1} punto(s)"
+		"de"		"+{1} Punkt(e)"
+		"fr"		"+{1} point(s)"
+		"pt"		"+{1} ponto(s)"
+		"ru"		"+{1} очк(ов)"
 	}
 
 	"Admin Boost Take N"
@@ -123,6 +218,11 @@
 		"#format"	"{1:d}"
 		"en"		"-{1} point(s)"
 		"es"		"-{1} punto(s)"
+		"las"		"-{1} punto(s)"
+		"de"		"-{1} Punkt(e)"
+		"fr"		"-{1} point(s)"
+		"pt"		"-{1} ponto(s)"
+		"ru"		"-{1} очк(ов)"
 	}
 
 	"Admin Boost Gave"
@@ -130,6 +230,11 @@
 		"#format"	"{1:s},{2:d},{3:N},{4:d}"
 		"en"		"{1} Gave {2} point(s) to {3} (now {4})."
 		"es"		"{1} Diste {2} punto(s) a {3} (ahora {4})."
+		"las"		"{1} Diste {2} punto(s) a {3} (ahora {4})."
+		"de"		"{1} {2} Punkt(e) an {3} gegeben (jetzt {4})."
+		"fr"		"{1} {2} point(s) donné(s) à {3} (maintenant {4})."
+		"pt"		"{1} Você deu {2} ponto(s) a {3} (agora {4})."
+		"ru"		"{1} Выдано {2} очк(ов) игроку {3} (теперь {4})."
 	}
 
 	"Admin Boost Took"
@@ -137,6 +242,11 @@
 		"#format"	"{1:s},{2:d},{3:N},{4:d}"
 		"en"		"{1} Took {2} point(s) from {3} (now {4})."
 		"es"		"{1} Quitaste {2} punto(s) a {3} (ahora {4})."
+		"las"		"{1} Quitaste {2} punto(s) a {3} (ahora {4})."
+		"de"		"{1} {2} Punkt(e) von {3} genommen (jetzt {4})."
+		"fr"		"{1} {2} point(s) retiré(s) à {3} (maintenant {4})."
+		"pt"		"{1} Você retirou {2} ponto(s) de {3} (agora {4})."
+		"ru"		"{1} Забрано {2} очк(ов) у игрока {3} (теперь {4})."
 	}
 
 	"Admin Boost Received"
@@ -144,6 +254,11 @@
 		"#format"	"{1:s},{2:d},{3:d}"
 		"en"		"{1} An admin gave you {2} boost point(s) (total {3})."
 		"es"		"{1} Un admin te dio {2} punto(s) de boost (total {3})."
+		"las"		"{1} Un admin te dio {2} punto(s) de boost (total {3})."
+		"de"		"{1} Ein Admin hat dir {2} Boost-Punkt(e) gegeben (gesamt {3})."
+		"fr"		"{1} Un admin vous a donné {2} point(s) de boost (total {3})."
+		"pt"		"{1} Um admin te deu {2} ponto(s) de boost (total {3})."
+		"ru"		"{1} Админ выдал вам {2} очк(ов) буста (всего {3})."
 	}
 
 	"Admin Boost Removed"
@@ -151,6 +266,11 @@
 		"#format"	"{1:s},{2:d},{3:d}"
 		"en"		"{1} An admin removed {2} boost point(s) (total {3})."
 		"es"		"{1} Un admin te quitó {2} punto(s) de boost (total {3})."
+		"las"		"{1} Un admin te quitó {2} punto(s) de boost (total {3})."
+		"de"		"{1} Ein Admin hat {2} Boost-Punkt(e) entfernt (gesamt {3})."
+		"fr"		"{1} Un admin a retiré {2} point(s) de boost (total {3})."
+		"pt"		"{1} Um admin removeu {2} ponto(s) de boost (total {3})."
+		"ru"		"{1} Админ забрал {2} очк(ов) буста (всего {3})."
 	}
 
 	"Admin Boosts Missing"
@@ -158,6 +278,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Boosts module is not loaded."
 		"es"		"{1} El módulo de boosts no está cargado."
+		"las"		"{1} El módulo de boosts no está cargado."
+		"de"		"{1} Das Boosts-Modul ist nicht geladen."
+		"fr"		"{1} Le module de boosts n'est pas chargé."
+		"pt"		"{1} O módulo de boosts não está carregado."
+		"ru"		"{1} Модуль бустов не загружен."
 	}
 
 	"Admin Disabled"
@@ -165,6 +290,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Admin menu is disabled."
 		"es"		"{1} El menú admin está desactivado."
+		"las"		"{1} El menú admin está desactivado."
+		"de"		"{1} Das Admin-Menü ist deaktiviert."
+		"fr"		"{1} Le menu admin est désactivé."
+		"pt"		"{1} O menu admin está desativado."
+		"ru"		"{1} Меню админа отключено."
 	}
 
 	"Admin Mode Inactive"
@@ -172,6 +302,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Another Jailbreak is not active."
 		"es"		"{1} Another Jailbreak no está activo."
+		"las"		"{1} Another Jailbreak no está activo."
+		"de"		"{1} Another Jailbreak ist nicht aktiv."
+		"fr"		"{1} Another Jailbreak n'est pas actif."
+		"pt"		"{1} Another Jailbreak não está ativo."
+		"ru"		"{1} Another Jailbreak не активен."
 	}
 
 	"Admin Ingame Only"
@@ -179,6 +314,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Use this command in-game."
 		"es"		"{1} Usa este comando dentro del juego."
+		"las"		"{1} Usa este comando dentro del juego."
+		"de"		"{1} Nutze diesen Befehl im Spiel."
+		"fr"		"{1} Utilisez cette commande en jeu."
+		"pt"		"{1} Use este comando dentro do jogo."
+		"ru"		"{1} Используйте эту команду в игре."
 	}
 
 	"Admin Cells Opened"
@@ -186,6 +326,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Cells opened."
 		"es"		"{1} Celdas abiertas."
+		"las"		"{1} Celdas abiertas."
+		"de"		"{1} Zellen geöffnet."
+		"fr"		"{1} Cellules ouvertes."
+		"pt"		"{1} Celas abertas."
+		"ru"		"{1} Камеры открыты."
 	}
 
 	"Admin Cells Closed"
@@ -193,6 +338,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Cells closed."
 		"es"		"{1} Celdas cerradas."
+		"las"		"{1} Celdas cerradas."
+		"de"		"{1} Zellen geschlossen."
+		"fr"		"{1} Cellules fermées."
+		"pt"		"{1} Celas fechadas."
+		"ru"		"{1} Камеры закрыты."
 	}
 
 	"Admin Warden Cleared"
@@ -200,6 +350,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Warden cleared."
 		"es"		"{1} Warden liberado."
+		"las"		"{1} Warden liberado."
+		"de"		"{1} Warden entfernt."
+		"fr"		"{1} Warden retiré."
+		"pt"		"{1} Warden removido."
+		"ru"		"{1} Warden убран."
 	}
 
 	"Admin Warden Guards Only"
@@ -207,6 +362,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} Target must be a living guard."
 		"es"		"{1} El objetivo debe ser un guardia vivo."
+		"las"		"{1} El objetivo debe ser un guardia vivo."
+		"de"		"{1} Das Ziel muss eine lebende Wache sein."
+		"fr"		"{1} La cible doit être un garde vivant."
+		"pt"		"{1} O alvo deve ser um guarda vivo."
+		"ru"		"{1} Цель должна быть живым охранником."
 	}
 
 	"Admin Player Invalid"
@@ -214,6 +374,11 @@
 		"#format"	"{1:s}"
 		"en"		"{1} That player is no longer valid."
 		"es"		"{1} Ese jugador ya no es válido."
+		"las"		"{1} Ese jugador ya no es válido."
+		"de"		"{1} Dieser Spieler ist nicht mehr gültig."
+		"fr"		"{1} Ce joueur n'est plus valide."
+		"pt"		"{1} Esse jogador não é mais válido."
+		"ru"		"{1} Этот игрок больше недоступен."
 	}
 
 	"Admin Rebel On"
@@ -221,6 +386,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} Marked {2} as rebel."
 		"es"		"{1} {2} marcado como rebelde."
+		"las"		"{1} {2} marcado como rebelde."
+		"de"		"{1} {2} als Rebell markiert."
+		"fr"		"{1} {2} marqué comme rebelle."
+		"pt"		"{1} {2} marcado como rebelde."
+		"ru"		"{1} {2} помечен как бунтовщик."
 	}
 
 	"Admin Rebel Off"
@@ -228,6 +398,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} Cleared rebel on {2}."
 		"es"		"{1} Rebelde quitado a {2}."
+		"las"		"{1} Rebelde quitado a {2}."
+		"de"		"{1} Rebell-Status von {2} entfernt."
+		"fr"		"{1} Statut rebelle retiré à {2}."
+		"pt"		"{1} Status de rebelde removido de {2}."
+		"ru"		"{1} Статус бунтовщика снят с {2}."
 	}
 
 	"Admin Freeday On"
@@ -235,6 +410,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1} Freeday queued: {2}"
 		"es"		"{1} Freeday en cola: {2}"
+		"las"		"{1} Freeday en cola: {2}"
+		"de"		"{1} Freeday eingereiht: {2}"
+		"fr"		"{1} Freeday en file : {2}"
+		"pt"		"{1} Freeday na fila: {2}"
+		"ru"		"{1} Freeday в очереди: {2}"
 	}
 
 	"Admin Freeday Off"
@@ -242,6 +422,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1} Freeday cleared: {2}"
 		"es"		"{1} Freeday cancelado: {2}"
+		"las"		"{1} Freeday cancelado: {2}"
+		"de"		"{1} Freeday entfernt: {2}"
+		"fr"		"{1} Freeday annulé : {2}"
+		"pt"		"{1} Freeday cancelado: {2}"
+		"ru"		"{1} Freeday отменён: {2}"
 	}
 
 	"Admin Freeday OnPlayer"
@@ -249,6 +434,11 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} Freeday queued for {2}."
 		"es"		"{1} Freeday en cola para {2}."
+		"las"		"{1} Freeday en cola para {2}."
+		"de"		"{1} Freeday für {2} eingereiht."
+		"fr"		"{1} Freeday en file pour {2}."
+		"pt"		"{1} Freeday na fila para {2}."
+		"ru"		"{1} Freeday в очереди для {2}."
 	}
 
 	"Admin Freeday OffPlayer"
@@ -256,5 +446,10 @@
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} Freeday cleared for {2}."
 		"es"		"{1} Freeday cancelado para {2}."
+		"las"		"{1} Freeday cancelado para {2}."
+		"de"		"{1} Freeday für {2} entfernt."
+		"fr"		"{1} Freeday annulé pour {2}."
+		"pt"		"{1} Freeday cancelado para {2}."
+		"ru"		"{1} Freeday отменён для {2}."
 	}
 }
