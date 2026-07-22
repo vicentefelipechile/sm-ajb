@@ -90,6 +90,7 @@ void AJB_CleanupRoundRuntime()
 	AJB_DestroyPluginRoundTimer();
 	AJB_ClearWarden(false);
 	AJB_Settings_ClearRoundModes();
+	AJB_Freekill_Reset();
 	g_bLastPrisonerAnnounced = false;
 }
 
@@ -176,6 +177,8 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 	}
 
 	LogMessage("[AJB] teamplay_round_start eng_state=%d.", GameRules_GetProp("m_iRoundState"));
+
+	g_iWardenRoundSerial++;
 
 	AJB_ApplyEngineMovementPolicy();
 
@@ -367,7 +370,10 @@ Action Timer_AutoWarden(Handle timer)
 		return Plugin_Stop;
 	}
 
-	int pick = AJB_PickRandomAliveOnTeam(AJB_GetGuardsTeam());
+	int team = AJB_GetGuardsTeam();
+	int pick = g_cvWardenAutoMode.BoolValue
+		? AJB_PickWeightedWardenGuard(team)
+		: AJB_PickRandomAliveOnTeam(team);
 	if (pick != 0)
 	{
 		AJB_SetWarden(pick, true);

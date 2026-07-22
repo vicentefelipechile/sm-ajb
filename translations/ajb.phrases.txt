@@ -487,4 +487,106 @@
 		"pt"		"{1} A equipe de guardas está cheia (máx {2}) — você foi movido para os prisioneiros."
 		"ru"		"{1} Команда охраны заполнена (макс {2}) — вас перевели к заключённым."
 	}
+
+	// Mass freekill alert to warden/admins: {1}=prefix, {2}=culprit name, {3}=endangered prisoners
+	"Freekill Detected"
+	{
+		"#format"	"{1:s},{2:s},{3:d}"
+		"en"		"{1} Possible mass freekill by {2} ({3} prisoners) — blocked. Use the menu to punish or dismiss."
+		"es"		"{1} Posible freekill masivo de {2} ({3} prisioneros) — bloqueado. Usa el menú para castigar o descartar."
+		"las"		"{1} Posible freekill masivo de {2} ({3} prisioneros) — bloqueado. Usa el menú para castigar o descartar."
+		"pt"		"{1} Possível freekill em massa de {2} ({3} prisioneiros) — bloqueado. Use o menu para punir ou descartar."
+		"ru"		"{1} Возможный масс-фрикилл от {2} ({3} заключённых) — заблокировано. Меню: наказать или отклонить."
+	}
+
+	// Decision menu title: {1}=culprit name, {2}=endangered prisoners
+	"Freekill Menu Title"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"Mass freekill by {1} ({2} prisoners)"
+		"es"		"Freekill masivo de {1} ({2} prisioneros)"
+		"las"		"Freekill masivo de {1} ({2} prisioneros)"
+		"pt"		"Freekill em massa de {1} ({2} prisioneiros)"
+		"ru"		"Масс-фрикилл от {1} ({2} заключённых)"
+	}
+
+	"Freekill Menu Punish"
+	{
+		"en"		"Punish (slay the guard)"
+		"es"		"Castigar (matar al guardia)"
+		"las"		"Castigar (matar al guardia)"
+		"pt"		"Punir (matar o guarda)"
+		"ru"		"Наказать (убить охранника)"
+	}
+
+	"Freekill Menu Dismiss"
+	{
+		"en"		"Dismiss (false positive)"
+		"es"		"Descartar (falso positivo)"
+		"las"		"Descartar (falso positivo)"
+		"pt"		"Descartar (falso positivo)"
+		"ru"		"Отклонить (ложное срабатывание)"
+	}
+
+	// {1}=prefix, {2}=culprit name, {3}=judge name
+	"Freekill Punished"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"{1} {3} confirmed the mass freekill — {2} was slain."
+		"es"		"{1} {3} confirmó el freekill masivo — {2} fue asesinado."
+		"las"		"{1} {3} confirmó el freekill masivo — {2} fue asesinado."
+		"pt"		"{1} {3} confirmou o freekill em massa — {2} foi morto."
+		"ru"		"{1} {3} подтвердил масс-фрикилл — {2} убит."
+	}
+
+	// {1}=prefix, {2}=culprit name, {3}=judge name
+	"Freekill Dismissed"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"{1} {3} dismissed the freekill flag on {2} (false positive)."
+		"es"		"{1} {3} descartó la alerta de freekill sobre {2} (falso positivo)."
+		"las"		"{1} {3} descartó la alerta de freekill sobre {2} (falso positivo)."
+		"pt"		"{1} {3} descartou o alerta de freekill sobre {2} (falso positivo)."
+		"ru"		"{1} {3} отклонил метку фрикилла на {2} (ложное срабатывание)."
+	}
+
+	"Freekill Expired"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} The mass freekill flag expired with no decision — dismissed."
+		"es"		"{1} La alerta de freekill masivo expiró sin decisión — descartada."
+		"las"		"{1} La alerta de freekill masivo expiró sin decisión — descartada."
+		"pt"		"{1} O alerta de freekill em massa expirou sem decisão — descartado."
+		"ru"		"{1} Метка масс-фрикилла истекла без решения — отклонена."
+	}
+
+	"Freekill Culprit Left"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} The flagged guard left — the mass freekill event was dropped."
+		"es"		"{1} El guardia señalado se fue — se descartó el evento de freekill masivo."
+		"las"		"{1} El guardia señalado se fue — se descartó el evento de freekill masivo."
+		"pt"		"{1} O guarda sinalizado saiu — o evento de freekill em massa foi descartado."
+		"ru"		"{1} Отмеченный охранник вышел — событие масс-фрикилла отменено."
+	}
+
+	"Freekill None Pending"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} There is no pending mass freekill to decide."
+		"es"		"{1} No hay ningún freekill masivo pendiente por decidir."
+		"las"		"{1} No hay ningún freekill masivo pendiente por decidir."
+		"pt"		"{1} Não há freekill em massa pendente para decidir."
+		"ru"		"{1} Нет ожидающего решения масс-фрикилла."
+	}
+
+	"Freekill No Access"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Only the warden or an admin can decide this."
+		"es"		"{1} Solo el warden o un admin puede decidir esto."
+		"las"		"{1} Solo el warden o un admin puede decidir esto."
+		"pt"		"{1} Apenas o warden ou um admin pode decidir isto."
+		"ru"		"{1} Решить это может только варден или админ."
+	}
 }

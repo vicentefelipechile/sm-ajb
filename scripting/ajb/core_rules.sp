@@ -279,6 +279,16 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 		return Plugin_Changed;
 	}
 
+	// A guard's crit splash landing on a cluster of prisoners is a mass-freekill candidate.
+	if (attackerGuard && victimPrisoner)
+	{
+		Action fkAct = AJB_Freekill_FilterDamage(victim, attacker, inflictor, damagetype);
+		if (fkAct != Plugin_Continue)
+		{
+			return fkAct;
+		}
+	}
+
 	return Plugin_Continue;
 }
 

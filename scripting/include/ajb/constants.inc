@@ -30,5 +30,7 @@
 #define AJB_MAX_DOOR_NAME_LEN   64
 #define AJB_MAX_MAP_PREFIX_LEN  32
 
+#define AJB_WARDEN_WEIGHT_CAP   10
+
 #define AJB_CONFIG_DIR          "configs/ajb"
 #define AJB_MAP_CONFIG_DIR      "configs/ajb/maps"

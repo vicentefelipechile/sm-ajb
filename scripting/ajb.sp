@@ -50,6 +50,7 @@ ConVar g_cvGuardRatio;
 ConVar g_cvCellsAutoOpen;
 ConVar g_cvWardenAuto;
 ConVar g_cvWardenAutoDelay;
+ConVar g_cvWardenAutoMode;
 ConVar g_cvRebelOnDamage;
 ConVar g_cvWardenRebelControl;
 // When false, prisoner→guard hits never auto-rebel (used by LR “Hot Reds”).
@@ -68,6 +69,8 @@ bool g_bModeActive;
 AJBRoundState g_RoundState = AJBState_Disabled;
 
 int g_iWarden;
+int g_iWardenLastRound[MAXPLAYERS + 1];
+int g_iWardenRoundSerial;
 bool g_bRebel[MAXPLAYERS + 1];
 bool g_bFreeday[MAXPLAYERS + 1];
 bool g_bFreedayPending[MAXPLAYERS + 1];
@@ -108,6 +111,7 @@ Handle g_hCellsAutoTimer;
 #include "ajb/core_prep.sp"
 #include "ajb/core_movement.sp"
 #include "ajb/core_sentry.sp"
+#include "ajb/core_freekill.sp"
 #include "ajb/core_api.sp"
 
 // =========================================================================================================
@@ -145,6 +149,7 @@ public void OnPluginStart()
 	g_cvCellsAutoOpen = CreateConVar("sm_ajb_cells_auto_open", "0", "Seconds after round start before cells auto-open (0 = manual only). Uses team_round_timer when possible.", _, true, 0.0);
 	g_cvWardenAuto = CreateConVar("sm_ajb_warden_auto", "0", "1 = auto-assign a random living guard as warden when the preround ends and none is set.", _, true, 0.0, true, 1.0);
 	g_cvWardenAutoDelay = CreateConVar("sm_ajb_warden_auto_delay", "0", "Seconds to wait after the preround ends before auto-assigning warden (0 = immediately, 1..10 = delay). Requires sm_ajb_warden_auto 1.", _, true, 0.0, true, 10.0);
+	g_cvWardenAutoMode = CreateConVar("sm_ajb_warden_auto_mode", "0", "Auto-warden pick: 0 = uniform random, 1 = weighted toward guards who have not been warden recently.", _, true, 0.0, true, 1.0);
 	g_cvRebelOnDamage = CreateConVar("sm_ajb_rebel_on_damage", "1", "1 = mark prisoner as rebel when they damage a guard.", _, true, 0.0, true, 1.0);
 	g_cvWardenRebelControl = CreateConVar("sm_ajb_warden_rebel_control", "1", "1 = warden can mark/pardon RED rebels from the warden menu.", _, true, 0.0, true, 1.0);
 	g_cvStripPrisoners = CreateConVar("sm_ajb_strip_prisoners", "1", "1 = strip prisoners to melee on spawn.", _, true, 0.0, true, 1.0);
@@ -162,6 +167,7 @@ public void OnPluginStart()
 	AJB_Weapons_OnPluginStart();
 	AJB_Settings_OnPluginStart();
 	AJB_Balance_OnPluginStart();
+	AJB_Freekill_OnPluginStart();
 
 	AutoExecConfig(true, "ajb");
 	// Mid-map reload: hook packs already in the world (OnMapStart will not re-run).
@@ -181,6 +187,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ajb_unwarden", Command_UnWarden, "Resign warden.");
 	RegConsoleCmd("sm_ajb_open", Command_OpenCells, "Open cell doors (warden or admin).");
 	RegConsoleCmd("sm_ajb_close", Command_CloseCells, "Close cell doors (warden or admin).");
+
+	AJB_Freekill_RegisterCommands();
 
 	RegAdminCmd("sm_ajb_balance", Command_AjbBalance, ADMFLAG_GENERIC, "Force the JB team balance now (move excess guards to prisoners).");
 	RegAdminCmd("sm_ajb_setwarden", Command_AdminSetWarden, ADMFLAG_GENERIC, "Usage: sm_ajb_setwarden <#userid|name>");
@@ -322,6 +330,7 @@ public void OnClientPutInServer(int client)
 {
 	AJB_ResetClientFlags(client);
 	g_bFreedayPending[client] = false;
+	g_iWardenLastRound[client] = 0;
 	AJB_HookClient(client);
 }
 
@@ -331,6 +340,8 @@ public void OnClientDisconnect(int client)
 	{
 		AJB_ClearWarden(true);
 	}
+
+	AJB_Freekill_OnClientDisconnect(client);
 
 	AJB_ResetClientFlags(client);
 	g_bFreedayPending[client] = false;

@@ -16,6 +16,7 @@ void AJB_SetWarden(int client, bool announce)
 	}
 
 	g_iWarden = client;
+	g_iWardenLastRound[client] = g_iWardenRoundSerial;
 
 	// Strip vision from previous warden; grant native see-enemy-health to the new one.
 	if (old > 0 && IsClientInGame(old))

@@ -83,6 +83,58 @@ int AJB_PickRandomAliveOnTeam(int team)
 	return candidates[GetRandomInt(0, count - 1)];
 }
 
+int AJB_PickWeightedWardenGuard(int team)
+{
+	int candidates[MAXPLAYERS];
+	int weights[MAXPLAYERS];
+	int count = 0;
+	int total = 0;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || GetClientTeam(i) != team)
+		{
+			continue;
+		}
+
+		int weight = AJB_WARDEN_WEIGHT_CAP;
+		if (g_iWardenLastRound[i] > 0)
+		{
+			weight = g_iWardenRoundSerial - g_iWardenLastRound[i];
+			if (weight < 1)
+			{
+				weight = 1;
+			}
+			else if (weight > AJB_WARDEN_WEIGHT_CAP)
+			{
+				weight = AJB_WARDEN_WEIGHT_CAP;
+			}
+		}
+
+		candidates[count] = i;
+		weights[count] = weight;
+		total += weight;
+		count++;
+	}
+
+	if (count == 0)
+	{
+		return 0;
+	}
+
+	int roll = GetRandomInt(0, total - 1);
+	for (int i = 0; i < count; i++)
+	{
+		roll -= weights[i];
+		if (roll < 0)
+		{
+			return candidates[i];
+		}
+	}
+
+	return candidates[count - 1];
+}
+
 int AJB_CountOnTeam(int team)
 {
 	int count = 0;
