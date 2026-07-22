@@ -894,7 +894,7 @@ Action Timer_BoostRegen(Handle timer, int userid)
 		return Plugin_Stop;
 	}
 
-	// Passiveive heal toward max HP (no stacking overheal from ticks).
+	// Passive heal toward max HP (no stacking overheal from ticks).
 	AJB_Boosts_AddHealth(client, BOOST_REGEN_PER_TICK, false);
 	return Plugin_Continue;
 }

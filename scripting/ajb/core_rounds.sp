@@ -149,7 +149,6 @@ void AJB_NotifyLiveRoundBegin()
 	// Pre-round is a free-for-all; the JB team ratio locks in now that the round is live.
 	AJB_Balance_OnLiveRoundBegin();
 
-	// Auto-warden: the preround just ended, so pick a random living guard as warden.
 	AJB_ScheduleAutoWarden();
 
 	if (g_hFwdLiveRoundBegin != null)
@@ -184,7 +183,6 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 	AJB_CleanupRoundRuntime();
 	AJB_ResetPlayerFlags();
-	// Personal freedays from LR are applied on live-round begin (after prep), not in preround.
 	AJB_LoadMapDoors();
 	// Close cells for the new round (does not force engine map regen).
 	AJB_ResetCellsForRound();
