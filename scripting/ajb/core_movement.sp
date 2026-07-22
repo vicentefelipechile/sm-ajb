@@ -22,12 +22,9 @@
 #endif
 
 DynamicDetour g_hDetourCanPlayerMove;
-bool g_bCanPlayerMoveHooked;
 
 void AJB_Movement_OnPluginStart()
 {
-	g_bCanPlayerMoveHooked = false;
-
 	GameData gd = new GameData(AJB_GAMEDATA_FILE);
 	if (gd == null)
 	{
@@ -52,7 +49,6 @@ void AJB_Movement_OnPluginStart()
 		return;
 	}
 
-	g_bCanPlayerMoveHooked = true;
 	LogMessage("[AJB] CTFPlayer::CanPlayerMove detour armed (server authority; freeze cvar still required for client).");
 }
 
@@ -64,12 +60,6 @@ void AJB_Movement_OnPluginEnd()
 		delete g_hDetourCanPlayerMove;
 		g_hDetourCanPlayerMove = null;
 	}
-	g_bCanPlayerMoveHooked = false;
-}
-
-bool AJB_Movement_DetourActive()
-{
-	return g_bCanPlayerMoveHooked;
 }
 
 // Server-side authority. Client still needs freeze cvar=0 (replicated) to predict movement.
