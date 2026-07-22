@@ -42,7 +42,6 @@ public Plugin myinfo =
 // =========================================================================================================
 
 ConVar g_cvEnabled;
-ConVar g_cvMapPrefix;
 ConVar g_cvForce;
 ConVar g_cvGuardsTeam;
 ConVar g_cvPrisonersTeam;
@@ -140,8 +139,7 @@ public void OnPluginStart()
 	CreateConVar("sm_ajb_version", AJB_PLUGIN_VERSION, "Another Jailbreak version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
 
 	g_cvEnabled = CreateConVar("sm_ajb_enabled", "1", "Master switch for Another Jailbreak.", _, true, 0.0, true, 1.0);
-	g_cvMapPrefix = CreateConVar("sm_ajb_map_prefix", "jb_", "Map name prefix that enables AJB (empty = never by prefix).", _);
-	g_cvForce = CreateConVar("sm_ajb_force", "0", "1 = force AJB on even if the map prefix does not match.", _, true, 0.0, true, 1.0);
+	g_cvForce = CreateConVar("sm_ajb_force", "0", "1 = force AJB on even if the map prefix does not match. Prefixes live in configs/ajb/settings.cfg (map_prefixes).", _, true, 0.0, true, 1.0);
 	g_cvGuardsTeam = CreateConVar("sm_ajb_guards_team", "3", "Team index for guards (TF2 BLU = 3).", _, true, 2.0, true, 3.0);
 	g_cvPrisonersTeam = CreateConVar("sm_ajb_prisoners_team", "2", "Team index for prisoners (TF2 RED = 2).", _, true, 2.0, true, 3.0);
 	// Enforced by core_balance: guards are capped to ~1 per this many prisoners (0 = no cap).
@@ -175,7 +173,6 @@ public void OnPluginStart()
 
 	g_cvEnabled.AddChangeHook(OnAjbCvarChanged);
 	g_cvForce.AddChangeHook(OnAjbCvarChanged);
-	g_cvMapPrefix.AddChangeHook(OnAjbCvarChanged);
 
 	// Short alias (only exceptions to sm_ajb_*): /w and !w
 	RegConsoleCmd("sm_w", Command_Warden, "Claim warden / open warden menu.");
@@ -291,6 +288,8 @@ public void OnPluginEnd()
 
 public void OnMapStart()
 {
+	// Settings (map prefixes) must load before mode is evaluated for this map.
+	AJB_Settings_OnMapStart();
 	AJB_RefreshModeActive();
 	AJB_ResetPlayerFlags();
 	AJB_ClearWarden(false);
@@ -300,7 +299,6 @@ public void OnMapStart()
 	AJB_Timer_OnMapStart();
 	AJB_Weapons_OnMapStart();
 	AJB_Weapons_OnMapStartLoadout();
-	AJB_Settings_OnMapStart();
 	g_iDoorNameCount = 0;
 
 	if (g_bModeActive)

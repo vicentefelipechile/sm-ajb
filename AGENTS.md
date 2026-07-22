@@ -180,7 +180,6 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | ConVar | Default | Purpose |
 | --- | --- | --- |
 | `sm_ajb_enabled` | `1` | Master switch for Another Jailbreak |
-| `sm_ajb_map_prefix` | `jb_` | Map name prefix that enables AJB (empty = never by prefix) |
 | `sm_ajb_force` | `0` | 1 = force AJB on even if map prefix does not match |
 | `sm_ajb_guards_team` | `3` | Team index for guards (TF2 BLU = 3) |
 | `sm_ajb_prisoners_team` | `2` | Team index for prisoners (TF2 RED = 2) |

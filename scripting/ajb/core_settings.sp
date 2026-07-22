@@ -4,8 +4,14 @@
 
 #define AJB_SETTINGS_FILE  "configs/ajb/settings.cfg"
 
+#define AJB_MAX_MAP_PREFIXES  16
+
 bool g_bFreedayWardenOnlyDamage = true;
 bool g_bFreedayTrail = true;
+
+// Map name prefixes that enable AJB (empty list = never by prefix; sm_ajb_force still overrides).
+char g_szMapPrefixes[AJB_MAX_MAP_PREFIXES][AJB_MAX_MAP_PREFIX_LEN];
+int g_iMapPrefixCount;
 
 // Combat day = War Day / Class Warfare (stock sentries, full guns, death ammo, no warden).
 bool g_bCombatDay;
@@ -58,7 +64,9 @@ void AJB_Settings_ClearRoundModes()
 Action Command_SettingsReload(int client, int args)
 {
 	AJB_Settings_Load();
-	ReplyToCommand(client, "[AJB] settings.cfg reloaded.");
+	// Prefixes may have changed — re-evaluate whether AJB is active on this map.
+	AJB_RefreshModeActive();
+	ReplyToCommand(client, "[AJB] settings.cfg reloaded (%d map prefixes).", g_iMapPrefixCount);
 	return Plugin_Handled;
 }
 
@@ -80,6 +88,7 @@ void AJB_Settings_Load()
 {
 	g_bFreedayWardenOnlyDamage = true;
 	g_bFreedayTrail = true;
+	AJB_Settings_SetDefaultPrefixes();
 
 	char path[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, sizeof(path), AJB_SETTINGS_FILE);
@@ -100,10 +109,57 @@ void AJB_Settings_Load()
 
 	g_bFreedayWardenOnlyDamage = kv.GetNum("freeday_warden_only_damage", 1) != 0;
 	g_bFreedayTrail = kv.GetNum("freeday_trail", 1) != 0;
+	AJB_Settings_LoadMapPrefixes(kv);
 	delete kv;
 
-	LogMessage("[AJB] settings.cfg: warden_only_dmg=%d trail=%d (teleports are per-map).",
-		g_bFreedayWardenOnlyDamage, g_bFreedayTrail);
+	LogMessage("[AJB] settings.cfg: warden_only_dmg=%d trail=%d prefixes=%d (teleports are per-map).",
+		g_bFreedayWardenOnlyDamage, g_bFreedayTrail, g_iMapPrefixCount);
+}
+
+void AJB_Settings_SetDefaultPrefixes()
+{
+	g_iMapPrefixCount = 1;
+	strcopy(g_szMapPrefixes[0], AJB_MAX_MAP_PREFIX_LEN, "jb_");
+}
+
+// A missing key keeps the default; a present-but-empty value disables prefix matching (force still overrides).
+void AJB_Settings_LoadMapPrefixes(KeyValues kv)
+{
+	char raw[AJB_MAX_MAP_PREFIX_LEN * AJB_MAX_MAP_PREFIXES];
+	// KvGetDataType tells absent (defaults) apart from empty (disable).
+	if (kv.GetDataType("map_prefixes") == KvData_None)
+	{
+		return;
+	}
+	kv.GetString("map_prefixes", raw, sizeof(raw), "");
+
+	g_iMapPrefixCount = 0;
+
+	char parts[AJB_MAX_MAP_PREFIXES][AJB_MAX_MAP_PREFIX_LEN];
+	int n = ExplodeString(raw, " ", parts, AJB_MAX_MAP_PREFIXES, AJB_MAX_MAP_PREFIX_LEN);
+	for (int i = 0; i < n; i++)
+	{
+		TrimString(parts[i]);
+		if (parts[i][0] == '\0')
+		{
+			continue;
+		}
+
+		strcopy(g_szMapPrefixes[g_iMapPrefixCount], AJB_MAX_MAP_PREFIX_LEN, parts[i]);
+		g_iMapPrefixCount++;
+	}
+}
+
+bool AJB_MapMatchesPrefix(const char[] map)
+{
+	for (int i = 0; i < g_iMapPrefixCount; i++)
+	{
+		if (StrContains(map, g_szMapPrefixes[i], false) == 0)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 // Called from map cfg load (configs/ajb/maps/<map>.cfg → "teleports").

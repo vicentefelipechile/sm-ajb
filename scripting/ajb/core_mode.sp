@@ -168,19 +168,10 @@ void AJB_RefreshModeActive()
 		return;
 	}
 
-	char prefix[AJB_MAX_MAP_PREFIX_LEN];
-	g_cvMapPrefix.GetString(prefix, sizeof(prefix));
-	if (prefix[0] == '\0')
-	{
-		g_bModeActive = false;
-		AJB_ApplyEngineCvarPolicy();
-		return;
-	}
-
 	char map[PLATFORM_MAX_PATH];
 	GetCurrentMap(map, sizeof(map));
 
-	g_bModeActive = (StrContains(map, prefix, false) == 0);
+	g_bModeActive = AJB_MapMatchesPrefix(map);
 	AJB_ApplyEngineCvarPolicy();
 }
 
