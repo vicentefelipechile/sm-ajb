@@ -288,7 +288,6 @@ public void OnPluginEnd()
 
 public void OnMapStart()
 {
-	// Settings (map prefixes) must load before mode is evaluated for this map.
 	AJB_Settings_OnMapStart();
 	AJB_RefreshModeActive();
 	AJB_ResetPlayerFlags();

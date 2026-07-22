@@ -64,7 +64,6 @@ void AJB_Settings_ClearRoundModes()
 Action Command_SettingsReload(int client, int args)
 {
 	AJB_Settings_Load();
-	// Prefixes may have changed — re-evaluate whether AJB is active on this map.
 	AJB_RefreshModeActive();
 	ReplyToCommand(client, "[AJB] settings.cfg reloaded (%d map prefixes).", g_iMapPrefixCount);
 	return Plugin_Handled;
