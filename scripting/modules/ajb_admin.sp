@@ -758,8 +758,15 @@ void AJB_DB_Connect()
 
 	if (!SQL_CheckConfig(cfg))
 	{
-		LogError("[AJB-Admin] databases.cfg has no '%s' entry; guard bans will not persist. Add one (SQLite or MySQL).", cfg);
-		return;
+		// Fall back to the stock SQLite entry so bans still persist.
+		if (!SQL_CheckConfig("storage-local"))
+		{
+			LogError("[AJB-Admin] databases.cfg has no '%s' or 'storage-local' entry; guard bans will not persist. Add one (SQLite or MySQL).", cfg);
+			return;
+		}
+
+		LogMessage("[AJB-Admin] databases.cfg has no '%s' entry; using 'storage-local'.", cfg);
+		strcopy(cfg, sizeof(cfg), "storage-local");
 	}
 
 	Database.Connect(OnDBConnect, cfg);
