@@ -73,6 +73,11 @@ void AJB_ClearWarden(bool announce)
 		AJB_WardenHealth_Remove(old);
 	}
 
+	// A warden's marker should not outlive their wardenship.
+	AJB_Marker_Clear();
+	// Drop any half-composed vote the resigning warden was typing.
+	AJB_Votes_Reset();
+
 	Call_StartForward(g_hFwdWarden);
 	Call_PushCell(old);
 	Call_PushCell(0);
@@ -228,6 +233,8 @@ Action Command_WardenMenu(int client, int args)
 		return Plugin_Handled;
 	}
 
+	// Fresh command open always starts on the first page; reopens keep the page.
+	g_iWardenMenuPage[client] = 0;
 	RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 	return Plugin_Handled;
 }
@@ -245,6 +252,10 @@ void Frame_WardenMenu(int userid)
 // Warden menu
 // =========================================================================================================
 
+// Paged hub. Each page is its own curated section, kept <= 7 items so SourceMod's
+// own pagination never kicks in and the page:N nav items stay in control.
+// The current page lives in g_iWardenMenuPage[client] so reopens (RequestFrame)
+// land back on the same section after an action.
 void AJB_Warden_ShowMenu(int client)
 {
 	if (!AJB_IsValidClient(client) || !AJB_IsWarden(client))
@@ -252,36 +263,73 @@ void AJB_Warden_ShowMenu(int client)
 		return;
 	}
 
+	int page = g_iWardenMenuPage[client];
+	if (page < 0 || page > AJB_WARDEN_MENU_LAST_PAGE)
+	{
+		page = 0;
+		g_iWardenMenuPage[client] = 0;
+	}
+
 	Menu menu = new Menu(MenuHandler_Warden);
 
 	// Format first — SetTitle("%T", ...) is unreliable if the phrase set just reloaded.
 	char title[64];
 	char line[64];
-	Format(title, sizeof(title), "%T", "Warden Menu Title", client);
-	menu.SetTitle(title);
 
-	Format(line, sizeof(line), "%T", "Warden Menu Open Cells", client);
-	menu.AddItem("open", line);
-
-	Format(line, sizeof(line), "%T", "Warden Menu Close Cells", client);
-	menu.AddItem("close", line);
-
-	// LR grant is handled by the lastrequest module via AJB_OnWardenGiveLR.
-	Format(line, sizeof(line), "%T", "Warden Menu Give LR", client);
-	menu.AddItem("give_lr", line);
-
-	// Mark / pardon RED rebels (gated by sm_ajb_warden_rebel_control).
-	if (g_cvWardenRebelControl != null && g_cvWardenRebelControl.BoolValue)
+	if (page == 0)
 	{
-		Format(line, sizeof(line), "%T", "Warden Menu Mark Rebel", client);
-		menu.AddItem("mark_rebel", line);
+		Format(title, sizeof(title), "%T", "Warden Menu Title Shortcuts", client);
+		menu.SetTitle(title);
 
-		Format(line, sizeof(line), "%T", "Warden Menu Pardon Rebel", client);
-		menu.AddItem("pardon_rebel", line);
+		Format(line, sizeof(line), "%T", "Warden Menu Open Cells", client);
+		menu.AddItem("open", line);
+
+		Format(line, sizeof(line), "%T", "Warden Menu Close Cells", client);
+		menu.AddItem("close", line);
+
+		if (g_cvMarkerEnabled != null && g_cvMarkerEnabled.BoolValue)
+		{
+			Format(line, sizeof(line), "%T", "Warden Menu Marker", client);
+			menu.AddItem("marker", line);
+		}
+
+		// Mark / pardon RED rebels (gated by sm_ajb_warden_rebel_control).
+		if (g_cvWardenRebelControl != null && g_cvWardenRebelControl.BoolValue)
+		{
+			Format(line, sizeof(line), "%T", "Warden Menu Mark Rebel", client);
+			menu.AddItem("mark_rebel", line);
+
+			Format(line, sizeof(line), "%T", "Warden Menu Pardon Rebel", client);
+			menu.AddItem("pardon_rebel", line);
+		}
+
+		Format(line, sizeof(line), "%T", "Warden Menu Resign", client);
+		menu.AddItem("resign", line);
+
+		Format(line, sizeof(line), "%T", "Warden Page Next", client);
+		menu.AddItem("page:1", line);
 	}
+	else
+	{
+		Format(title, sizeof(title), "%T", "Warden Menu Title Events", client);
+		menu.SetTitle(title);
 
-	Format(line, sizeof(line), "%T", "Warden Menu Resign", client);
-	menu.AddItem("resign", line);
+		// LR grant is handled by the lastrequest module via AJB_OnWardenGiveLR.
+		Format(line, sizeof(line), "%T", "Warden Menu Give LR", client);
+		menu.AddItem("give_lr", line);
+
+		if (g_cvVoteEnabled != null && g_cvVoteEnabled.BoolValue)
+		{
+			Format(line, sizeof(line), "%T", "Warden Menu Vote YesNo", client);
+			menu.AddItem("vote_yesno", line);
+
+			Format(line, sizeof(line), "%T", "Warden Menu Vote Multi", client);
+			menu.AddItem("vote_multi", line);
+		}
+
+		Format(line, sizeof(line), "%T", "Warden Page Prev", client);
+		menu.AddItem("page:0", line);
+	}
 
 	menu.ExitButton = true;
 	// 0 = stay open until dismissed (MENU_TIME_FOREVER).
@@ -307,10 +355,24 @@ public int MenuHandler_Warden(Menu menu, MenuAction action, int param1, int para
 		return 0;
 	}
 
-	// Resign is allowed while dead; cell control needs a living warden.
 	char info[16];
 	menu.GetItem(param2, info, sizeof(info));
 
+	// Page navigation is allowed regardless of alive state.
+	if (StrEqual(info, "page:0"))
+	{
+		g_iWardenMenuPage[client] = 0;
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
+	else if (StrEqual(info, "page:1"))
+	{
+		g_iWardenMenuPage[client] = 1;
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
+
+	// Resign is allowed while dead; cell control needs a living warden.
 	if (StrEqual(info, "resign"))
 	{
 		AJB_Warden_ShowResignConfirm(client);
@@ -333,11 +395,26 @@ public int MenuHandler_Warden(Menu menu, MenuAction action, int param1, int para
 		AJB_CloseCellsInternal(true);
 		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 	}
+	else if (StrEqual(info, "marker"))
+	{
+		AJB_Warden_PlaceMarker(client);
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+	}
 	else if (StrEqual(info, "give_lr"))
 	{
 		Call_StartForward(g_hFwdWardenGiveLR);
 		Call_PushCell(client);
 		Call_Finish();
+	}
+	else if (StrEqual(info, "vote_yesno"))
+	{
+		// Prompt the warden to type the question; the poll shows to living prisoners.
+		AJB_Warden_StartVoteCompose(client, AJB_VOTE_MODE_YESNO);
+	}
+	else if (StrEqual(info, "vote_multi"))
+	{
+		// Prompt for "question | opt1 | opt2 | ..."; the poll shows to living prisoners.
+		AJB_Warden_StartVoteCompose(client, AJB_VOTE_MODE_MULTI);
 	}
 	else if (StrEqual(info, "mark_rebel"))
 	{

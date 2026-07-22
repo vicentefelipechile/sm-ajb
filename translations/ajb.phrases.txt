@@ -16,6 +16,21 @@
 	}
 
 	// =====================================================================================
+	// Generic menu building blocks (shared by core + modules)
+	// =====================================================================================
+
+	"Menu Separator"
+	{
+		"en"		"----"
+		"es"		"----"
+		"las"		"----"
+		"de"		"----"
+		"fr"		"----"
+		"pt"		"----"
+		"ru"		"----"
+	}
+
+	// =====================================================================================
 	// Chat / command replies  ({1} = Prefix)
 	// =====================================================================================
 
@@ -148,6 +163,289 @@
 		"fr"		"Menu Warden"
 		"pt"		"Menu do Warden"
 		"ru"		"Меню Warden"
+	}
+
+	"Warden Menu Title Shortcuts"
+	{
+		"en"		"Warden — Shortcuts"
+		"es"		"Warden — Atajos"
+		"las"		"Warden — Atajos"
+		"de"		"Warden — Kurzbefehle"
+		"fr"		"Warden — Raccourcis"
+		"pt"		"Warden — Atalhos"
+		"ru"		"Warden — Действия"
+	}
+
+	"Warden Menu Title Events"
+	{
+		"en"		"Warden — Events"
+		"es"		"Warden — Eventos"
+		"las"		"Warden — Eventos"
+		"de"		"Warden — Ereignisse"
+		"fr"		"Warden — Événements"
+		"pt"		"Warden — Eventos"
+		"ru"		"Warden — События"
+	}
+
+	"Warden Page Next"
+	{
+		"en"		"» More options"
+		"es"		"» Más opciones"
+		"las"		"» Más opciones"
+		"de"		"» Mehr Optionen"
+		"fr"		"» Plus d'options"
+		"pt"		"» Mais opções"
+		"ru"		"» Ещё"
+	}
+
+	"Warden Page Prev"
+	{
+		"en"		"« Back"
+		"es"		"« Volver"
+		"las"		"« Volver"
+		"de"		"« Zurück"
+		"fr"		"« Retour"
+		"pt"		"« Voltar"
+		"ru"		"« Назад"
+	}
+
+	"Warden Menu Marker"
+	{
+		"en"		"Create marker (Come here!)"
+		"es"		"Crear marcador (¡Vengan aquí!)"
+		"las"		"Crear marcador (¡Vengan aquí!)"
+		"de"		"Markierung setzen (Hierher!)"
+		"fr"		"Créer un marqueur (Venez ici !)"
+		"pt"		"Criar marcador (Venham aqui!)"
+		"ru"		"Поставить метку (Сюда!)"
+	}
+
+	"Warden Menu Vote YesNo"
+	{
+		"en"		"Create Yes / No vote"
+		"es"		"Crear votación Sí / No"
+		"las"		"Crear votación Sí / No"
+		"de"		"Ja / Nein-Abstimmung erstellen"
+		"fr"		"Créer un vote Oui / Non"
+		"pt"		"Criar votação Sim / Não"
+		"ru"		"Создать голосование Да / Нет"
+	}
+
+	"Warden Menu Vote Multi"
+	{
+		"en"		"Create multiple-choice vote"
+		"es"		"Crear votación de selección múltiple"
+		"las"		"Crear votación de selección múltiple"
+		"de"		"Auswahl-Abstimmung erstellen"
+		"fr"		"Créer un vote à choix multiples"
+		"pt"		"Criar votação de múltipla escolha"
+		"ru"		"Создать голосование с выбором"
+	}
+
+	// Text shown floating on the map annotation (no prefix — it is a world callout).
+	"Warden Marker Text"
+	{
+		"en"		"Come here!"
+		"es"		"¡Vengan aquí!"
+		"las"		"¡Vengan aquí!"
+		"de"		"Hierher!"
+		"fr"		"Venez ici !"
+		"pt"		"Venham aqui!"
+		"ru"		"Сюда!"
+	}
+
+	"Warden Marker Cooldown"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Marker on cooldown — {2}s left."
+		"es"		"{1} Marcador en enfriamiento — quedan {2}s."
+		"las"		"{1} Marcador en enfriamiento — quedan {2}s."
+		"de"		"{1} Markierung auf Abklingzeit — noch {2}s."
+		"fr"		"{1} Marqueur en recharge — {2}s restantes."
+		"pt"		"{1} Marcador em recarga — faltam {2}s."
+		"ru"		"{1} Метка на перезарядке — осталось {2}с."
+	}
+
+	"Warden Marker Disabled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Markers are disabled."
+		"es"		"{1} Los marcadores están desactivados."
+		"las"		"{1} Los marcadores están desactivados."
+		"de"		"{1} Markierungen sind deaktiviert."
+		"fr"		"{1} Les marqueurs sont désactivés."
+		"pt"		"{1} Os marcadores estão desativados."
+		"ru"		"{1} Метки отключены."
+	}
+
+	"Warden Marker No Spot"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Aim at a spot on the map to place a marker."
+		"es"		"{1} Apunta a un punto del mapa para colocar el marcador."
+		"las"		"{1} Apunta a un punto del mapa para colocar el marcador."
+		"de"		"{1} Ziele auf einen Punkt der Map, um eine Markierung zu setzen."
+		"fr"		"{1} Visez un endroit de la carte pour placer un marqueur."
+		"pt"		"{1} Mire em um ponto do mapa para colocar o marcador."
+		"ru"		"{1} Наведитесь на точку на карте, чтобы поставить метку."
+	}
+
+	// -------------------------------------------------------------------------------------------------
+	// Warden votes
+	// -------------------------------------------------------------------------------------------------
+	"Warden Vote Disabled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Warden votes are disabled."
+		"es"		"{1} Las votaciones de warden están desactivadas."
+		"las"		"{1} Las votaciones de warden están desactivadas."
+		"de"		"{1} Warden-Abstimmungen sind deaktiviert."
+		"fr"		"{1} Les votes du warden sont désactivés."
+		"pt"		"{1} As votações do warden estão desativadas."
+		"ru"		"{1} Голосования вардена отключены."
+	}
+
+	"Warden Vote In Progress"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} A vote is already in progress."
+		"es"		"{1} Ya hay una votación en curso."
+		"las"		"{1} Ya hay una votación en curso."
+		"de"		"{1} Es läuft bereits eine Abstimmung."
+		"fr"		"{1} Un vote est déjà en cours."
+		"pt"		"{1} Já há uma votação em andamento."
+		"ru"		"{1} Голосование уже идёт."
+	}
+
+	"Warden Vote No Audience"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} There are no living prisoners to vote."
+		"es"		"{1} No hay prisioneros vivos para votar."
+		"las"		"{1} No hay prisioneros vivos para votar."
+		"de"		"{1} Es gibt keine lebenden Gefangenen zum Abstimmen."
+		"fr"		"{1} Aucun prisonnier vivant pour voter."
+		"pt"		"{1} Não há prisioneiros vivos para votar."
+		"ru"		"{1} Нет живых заключённых для голосования."
+	}
+
+	"Warden Vote Prompt YesNo"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Type the vote question in chat (or 'cancel')."
+		"es"		"{1} Escribe la pregunta de la votación en el chat (o 'cancel')."
+		"las"		"{1} Escribe la pregunta de la votación en el chat (o 'cancel')."
+		"de"		"{1} Gib die Abstimmungsfrage in den Chat ein (oder 'cancel')."
+		"fr"		"{1} Écris la question du vote dans le chat (ou 'cancel')."
+		"pt"		"{1} Digite a pergunta da votação no chat (ou 'cancel')."
+		"ru"		"{1} Напишите вопрос голосования в чат (или 'cancel')."
+	}
+
+	"Warden Vote Prompt Multi"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Type in chat: question | option1 | option2 | ... (2-5 options, or 'cancel')."
+		"es"		"{1} Escribe en el chat: pregunta | opción1 | opción2 | ... (2-5 opciones, o 'cancel')."
+		"las"		"{1} Escribe en el chat: pregunta | opción1 | opción2 | ... (2-5 opciones, o 'cancel')."
+		"de"		"{1} Schreib in den Chat: Frage | Option1 | Option2 | ... (2-5 Optionen, oder 'cancel')."
+		"fr"		"{1} Écris dans le chat : question | option1 | option2 | ... (2-5 options, ou 'cancel')."
+		"pt"		"{1} Digite no chat: pergunta | opção1 | opção2 | ... (2-5 opções, ou 'cancel')."
+		"ru"		"{1} Напишите в чат: вопрос | вариант1 | вариант2 | ... (2-5 вариантов, или 'cancel')."
+	}
+
+	"Warden Vote Cancelled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Vote setup cancelled."
+		"es"		"{1} Configuración de la votación cancelada."
+		"las"		"{1} Configuración de la votación cancelada."
+		"de"		"{1} Abstimmungs-Einrichtung abgebrochen."
+		"fr"		"{1} Configuration du vote annulée."
+		"pt"		"{1} Configuração da votação cancelada."
+		"ru"		"{1} Настройка голосования отменена."
+	}
+
+	"Warden Vote Timeout"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Vote setup timed out."
+		"es"		"{1} Se agotó el tiempo para configurar la votación."
+		"las"		"{1} Se agotó el tiempo para configurar la votación."
+		"de"		"{1} Zeit für die Abstimmungs-Einrichtung abgelaufen."
+		"fr"		"{1} Délai de configuration du vote dépassé."
+		"pt"		"{1} Tempo para configurar a votação esgotado."
+		"ru"		"{1} Время на настройку голосования истекло."
+	}
+
+	"Warden Vote Multi Need Options"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Provide a question and 2-5 options separated by | (or 'cancel')."
+		"es"		"{1} Indica una pregunta y 2-5 opciones separadas por | (o 'cancel')."
+		"las"		"{1} Indica una pregunta y 2-5 opciones separadas por | (o 'cancel')."
+		"de"		"{1} Gib eine Frage und 2-5 mit | getrennte Optionen an (oder 'cancel')."
+		"fr"		"{1} Fournis une question et 2-5 options séparées par | (ou 'cancel')."
+		"pt"		"{1} Informe uma pergunta e 2-5 opções separadas por | (ou 'cancel')."
+		"ru"		"{1} Укажите вопрос и 2-5 вариантов через | (или 'cancel')."
+	}
+
+	// Vote panel option labels (single shared panel → server language).
+	"Warden Vote Yes"
+	{
+		"en"		"Yes"
+		"es"		"Sí"
+		"las"		"Sí"
+		"de"		"Ja"
+		"fr"		"Oui"
+		"pt"		"Sim"
+		"ru"		"Да"
+	}
+
+	"Warden Vote No"
+	{
+		"en"		"No"
+		"es"		"No"
+		"las"		"No"
+		"de"		"Nein"
+		"fr"		"Non"
+		"pt"		"Não"
+		"ru"		"Нет"
+	}
+
+	"Warden Vote Started"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"{1} {2} started a vote: {3}"
+		"es"		"{1} {2} inició una votación: {3}"
+		"las"		"{1} {2} inició una votación: {3}"
+		"de"		"{1} {2} hat eine Abstimmung gestartet: {3}"
+		"fr"		"{1} {2} a lancé un vote : {3}"
+		"pt"		"{1} {2} iniciou uma votação: {3}"
+		"ru"		"{1} {2} начал голосование: {3}"
+	}
+
+	"Warden Vote Result"
+	{
+		"#format"	"{1:s},{2:s},{3:d},{4:d}"
+		"en"		"{1} Vote result: {2} ({3}/{4} votes)."
+		"es"		"{1} Resultado de la votación: {2} ({3}/{4} votos)."
+		"las"		"{1} Resultado de la votación: {2} ({3}/{4} votos)."
+		"de"		"{1} Abstimmungsergebnis: {2} ({3}/{4} Stimmen)."
+		"fr"		"{1} Résultat du vote : {2} ({3}/{4} votes)."
+		"pt"		"{1} Resultado da votação: {2} ({3}/{4} votos)."
+		"ru"		"{1} Итог голосования: {2} ({3}/{4} голосов)."
+	}
+
+	"Warden Vote No Result"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} The vote ended with no votes."
+		"es"		"{1} La votación terminó sin votos."
+		"las"		"{1} La votación terminó sin votos."
+		"de"		"{1} Die Abstimmung endete ohne Stimmen."
+		"fr"		"{1} Le vote s'est terminé sans aucune voix."
+		"pt"		"{1} A votação terminou sem votos."
+		"ru"		"{1} Голосование завершилось без голосов."
 	}
 
 	"Warden Menu Open Cells"
@@ -460,6 +758,10 @@
 		"en"		"{1} Your freeday is active."
 		"es"		"{1} Tu freeday está activo."
 		"las"		"{1} Tu freeday está activo."
+		"de"		"{1} Dein Freeday ist aktiv."
+		"fr"		"{1} Votre freeday est actif."
+		"pt"		"{1} Seu freeday está ativo."
+		"ru"		"{1} Ваш freeday активен."
 	}
 
 	// Team balance admin reply: {1}=prefix, {2}=guards moved, {3}=current max guards
@@ -495,6 +797,8 @@
 		"en"		"{1} Possible mass freekill by {2} ({3} prisoners) — blocked. Use the menu to punish or dismiss."
 		"es"		"{1} Posible freekill masivo de {2} ({3} prisioneros) — bloqueado. Usa el menú para castigar o descartar."
 		"las"		"{1} Posible freekill masivo de {2} ({3} prisioneros) — bloqueado. Usa el menú para castigar o descartar."
+		"de"		"{1} Möglicher Massen-Freekill durch {2} ({3} Gefangene) — blockiert. Nutze das Menü zum Bestrafen oder Verwerfen."
+		"fr"		"{1} Possible freekill de masse par {2} ({3} prisonniers) — bloqué. Utilisez le menu pour punir ou rejeter."
 		"pt"		"{1} Possível freekill em massa de {2} ({3} prisioneiros) — bloqueado. Use o menu para punir ou descartar."
 		"ru"		"{1} Возможный масс-фрикилл от {2} ({3} заключённых) — заблокировано. Меню: наказать или отклонить."
 	}
@@ -506,6 +810,8 @@
 		"en"		"Mass freekill by {1} ({2} prisoners)"
 		"es"		"Freekill masivo de {1} ({2} prisioneros)"
 		"las"		"Freekill masivo de {1} ({2} prisioneros)"
+		"de"		"Massen-Freekill durch {1} ({2} Gefangene)"
+		"fr"		"Freekill de masse par {1} ({2} prisonniers)"
 		"pt"		"Freekill em massa de {1} ({2} prisioneiros)"
 		"ru"		"Масс-фрикилл от {1} ({2} заключённых)"
 	}
@@ -515,6 +821,8 @@
 		"en"		"Punish (slay the guard)"
 		"es"		"Castigar (matar al guardia)"
 		"las"		"Castigar (matar al guardia)"
+		"de"		"Bestrafen (Wache töten)"
+		"fr"		"Punir (tuer le garde)"
 		"pt"		"Punir (matar o guarda)"
 		"ru"		"Наказать (убить охранника)"
 	}
@@ -524,6 +832,8 @@
 		"en"		"Dismiss (false positive)"
 		"es"		"Descartar (falso positivo)"
 		"las"		"Descartar (falso positivo)"
+		"de"		"Verwerfen (Fehlalarm)"
+		"fr"		"Rejeter (faux positif)"
 		"pt"		"Descartar (falso positivo)"
 		"ru"		"Отклонить (ложное срабатывание)"
 	}
@@ -535,6 +845,8 @@
 		"en"		"{1} {3} confirmed the mass freekill — {2} was slain."
 		"es"		"{1} {3} confirmó el freekill masivo — {2} fue asesinado."
 		"las"		"{1} {3} confirmó el freekill masivo — {2} fue asesinado."
+		"de"		"{1} {3} hat den Massen-Freekill bestätigt — {2} wurde getötet."
+		"fr"		"{1} {3} a confirmé le freekill de masse — {2} a été tué."
 		"pt"		"{1} {3} confirmou o freekill em massa — {2} foi morto."
 		"ru"		"{1} {3} подтвердил масс-фрикилл — {2} убит."
 	}
@@ -546,6 +858,8 @@
 		"en"		"{1} {3} dismissed the freekill flag on {2} (false positive)."
 		"es"		"{1} {3} descartó la alerta de freekill sobre {2} (falso positivo)."
 		"las"		"{1} {3} descartó la alerta de freekill sobre {2} (falso positivo)."
+		"de"		"{1} {3} hat die Freekill-Markierung von {2} verworfen (Fehlalarm)."
+		"fr"		"{1} {3} a rejeté l'alerte de freekill sur {2} (faux positif)."
 		"pt"		"{1} {3} descartou o alerta de freekill sobre {2} (falso positivo)."
 		"ru"		"{1} {3} отклонил метку фрикилла на {2} (ложное срабатывание)."
 	}
@@ -556,6 +870,8 @@
 		"en"		"{1} The mass freekill flag expired with no decision — dismissed."
 		"es"		"{1} La alerta de freekill masivo expiró sin decisión — descartada."
 		"las"		"{1} La alerta de freekill masivo expiró sin decisión — descartada."
+		"de"		"{1} Die Massen-Freekill-Markierung ist ohne Entscheidung abgelaufen — verworfen."
+		"fr"		"{1} L'alerte de freekill de masse a expiré sans décision — rejetée."
 		"pt"		"{1} O alerta de freekill em massa expirou sem decisão — descartado."
 		"ru"		"{1} Метка масс-фрикилла истекла без решения — отклонена."
 	}
@@ -566,6 +882,8 @@
 		"en"		"{1} The flagged guard left — the mass freekill event was dropped."
 		"es"		"{1} El guardia señalado se fue — se descartó el evento de freekill masivo."
 		"las"		"{1} El guardia señalado se fue — se descartó el evento de freekill masivo."
+		"de"		"{1} Die markierte Wache hat das Spiel verlassen — das Massen-Freekill-Ereignis wurde verworfen."
+		"fr"		"{1} Le garde signalé est parti — l'événement de freekill de masse a été abandonné."
 		"pt"		"{1} O guarda sinalizado saiu — o evento de freekill em massa foi descartado."
 		"ru"		"{1} Отмеченный охранник вышел — событие масс-фрикилла отменено."
 	}
@@ -576,6 +894,8 @@
 		"en"		"{1} There is no pending mass freekill to decide."
 		"es"		"{1} No hay ningún freekill masivo pendiente por decidir."
 		"las"		"{1} No hay ningún freekill masivo pendiente por decidir."
+		"de"		"{1} Es gibt keinen ausstehenden Massen-Freekill zu entscheiden."
+		"fr"		"{1} Aucun freekill de masse en attente de décision."
 		"pt"		"{1} Não há freekill em massa pendente para decidir."
 		"ru"		"{1} Нет ожидающего решения масс-фрикилла."
 	}
@@ -586,6 +906,8 @@
 		"en"		"{1} Only the warden or an admin can decide this."
 		"es"		"{1} Solo el warden o un admin puede decidir esto."
 		"las"		"{1} Solo el warden o un admin puede decidir esto."
+		"de"		"{1} Nur der Warden oder ein Admin kann darüber entscheiden."
+		"fr"		"{1} Seul le warden ou un admin peut en décider."
 		"pt"		"{1} Apenas o warden ou um admin pode decidir isto."
 		"ru"		"{1} Решить это может только варден или админ."
 	}

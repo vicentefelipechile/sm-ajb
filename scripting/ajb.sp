@@ -70,6 +70,7 @@ AJBRoundState g_RoundState = AJBState_Disabled;
 int g_iWarden;
 int g_iWardenLastRound[MAXPLAYERS + 1];
 int g_iWardenRoundSerial;
+int g_iWardenMenuPage[MAXPLAYERS + 1];   // current page of the paged warden menu
 bool g_bRebel[MAXPLAYERS + 1];
 bool g_bFreeday[MAXPLAYERS + 1];
 bool g_bFreedayPending[MAXPLAYERS + 1];
@@ -101,6 +102,8 @@ Handle g_hCellsAutoTimer;
 #include "ajb/core_balance.sp"
 #include "ajb/core_settings.sp"
 #include "ajb/core_rounds.sp"
+#include "ajb/core_warden_marker.sp"
+#include "ajb/core_warden_votes.sp"
 #include "ajb/core_warden.sp"
 #include "ajb/core_warden_health.sp"
 #include "ajb/core_rules.sp"
@@ -157,6 +160,8 @@ public void OnPluginStart()
 	g_cvRoundTime = CreateConVar("sm_ajb_round_time", "600", "Main round HUD duration in seconds (0 = no main clock). Does not force engine wins.", _, true, 0.0);
 
 	AJB_WardenHealth_OnPluginStart();
+	AJB_Marker_OnPluginStart();
+	AJB_Votes_OnPluginStart();
 	// CanPlayerMove detour before mode policy (so policy sees detour active).
 	AJB_Movement_OnPluginStart();
 	// Sentry FindTarget detour (rebels-only).
@@ -298,6 +303,7 @@ public void OnMapStart()
 	AJB_Timer_OnMapStart();
 	AJB_Weapons_OnMapStart();
 	AJB_Weapons_OnMapStartLoadout();
+	AJB_Marker_OnMapStart();
 	g_iDoorNameCount = 0;
 
 	if (g_bModeActive)
@@ -319,6 +325,8 @@ public void OnMapEnd()
 	AJB_KillCellsAutoTimer();
 	AJB_ClearPhaseTimer();
 	AJB_ClearWarden(false);
+	AJB_Marker_Clear();
+	AJB_Votes_Reset();
 	g_bModeActive = false;
 	g_RoundState = AJBState_Disabled;
 }
@@ -328,6 +336,7 @@ public void OnClientPutInServer(int client)
 	AJB_ResetClientFlags(client);
 	g_bFreedayPending[client] = false;
 	g_iWardenLastRound[client] = 0;
+	g_iWardenMenuPage[client] = 0;
 	AJB_HookClient(client);
 }
 
