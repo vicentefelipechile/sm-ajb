@@ -173,6 +173,7 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | --- | --- | --- |
 | `sm_ajb_lr` | console | Warden: grant Last Request to a prisoner |
 | `sm_ajb_lr_force <#userid\|name>` | GENERIC | Force LR menu for a living prisoner |
+| `sm_reopenlr`, `sm_ajb_reopenlr` | console | Prisoner: reopen your LR menu if a map vote / external menu closed it |
 
 ### ConVars
 
@@ -189,7 +190,8 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_warden_auto` | `0` | 1 = auto-assign a random living guard as warden at preround end |
 | `sm_ajb_warden_auto_delay` | `0` | Seconds to wait before auto-assigning warden (0–10) |
 | `sm_ajb_warden_auto_mode` | `0` | 0 = uniform random, 1 = weighted anti-repetition |
-| `sm_ajb_rebel_on_damage` | `1` | 1 = mark prisoner as rebel when they damage a guard |
+| `sm_ajb_rebel_on_damage` | `1` | 1 = mark prisoner as rebel when they damage a BLU guard |
+| `sm_ajb_rebel_on_warden_damage` | `1` | 1 = mark prisoner as rebel when they damage the warden (set this `1` + `sm_ajb_rebel_on_damage 0` to allow hitting BLU except the warden) |
 | `sm_ajb_warden_rebel_control` | `1` | 1 = warden can mark/pardon RED rebels from menu |
 | `sm_ajb_strip_prisoners` | `1` | 1 = strip prisoners to melee on spawn |
 | `sm_ajb_block_buildings` | `0` | 1 = block Engineer buildings (see `sm_ajb_allow_sentry`) |
@@ -219,6 +221,8 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_warden_vote` | `1` | `core_warden_votes.sp` | 1 = warden can start Yes/No and multiple-choice votes from the menu |
 | `sm_ajb_warden_vote_time` | `20.0` | `core_warden_votes.sp` | Seconds a warden vote panel stays open (5–60) |
 | `sm_ajb_warden_vote_audience` | `0` | `core_warden_votes.sp` | 0 = living prisoners (RED) only, 1 = all living players |
+| `sm_ajb_warden_friendlyfire` | `1` | `core_friendlyfire.sp` | 1 = warden can toggle `mp_friendlyfire` from the warden menu (resets OFF each round) |
+| `sm_ajb_ff_protect_guards` | `1` | `core_friendlyfire.sp` | 1 = guards cannot damage each other even while friendly fire is on |
 
 **Module — `ajb_admin.sp`**
 
@@ -244,6 +248,8 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_lr_suicide_delay` | `5` | Seconds before suicide LR kills the prisoner (1–30) |
 | `sm_ajb_lr_hot_damage` | `8` | Damage per tick when Hot Reds touch a guard (1–100) |
 | `sm_ajb_lr_low_gravity` | `200` | `sv_gravity` value for Low Gravity LR (stock 800) |
+| `sm_ajb_lr_hs_hide_time` | `30` | Hide and Seek LR: seconds RED get to hide before frozen BLU seekers release (5–120) |
+| `sm_ajb_lr_hs_round_time` | `300` | Hide and Seek LR: total round duration in seconds, hiders win on timeout (60–900) |
 
 **Module — `ajb_mutes.sp`**
 

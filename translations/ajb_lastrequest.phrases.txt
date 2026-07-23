@@ -59,6 +59,18 @@
 		"ru"		"{1} Только warden может выдать Last Request."
 	}
 
+	"LR Reopen None"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} You have no open Last Request menu to reopen."
+		"es"		"{1} No tienes ningún menú de Deseo abierto para reabrir."
+		"las"		"{1} No tienes ningún menú de Deseo abierto para reabrir."
+		"de"		"{1} Du hast kein offenes Last-Request-Menü zum erneuten Öffnen."
+		"fr"		"{1} Vous n'avez aucun menu de Last Request à rouvrir."
+		"pt"		"{1} Você não tem nenhum menu de Last Request aberto para reabrir."
+		"ru"		"{1} У вас нет открытого меню Last Request для повторного открытия."
+	}
+
 	"LR No Prisoner"
 	{
 		"#format"	"{1:s}"

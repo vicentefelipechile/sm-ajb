@@ -153,7 +153,7 @@ void AJB_ApplyFreedayNow(int client, bool freeday)
 // Also ends personal freeday (armed/aggressive freerun).
 void AJB_TryRebelFromAttack(int attacker, int victim)
 {
-	if (!g_bModeActive || !g_cvRebelOnDamage.BoolValue || !g_bRebelOnHit)
+	if (!g_bModeActive || !g_bRebelOnHit)
 	{
 		return;
 	}
@@ -175,6 +175,13 @@ void AJB_TryRebelFromAttack(int attacker, int victim)
 	}
 
 	if (g_bRebel[attacker])
+	{
+		return;
+	}
+
+	// The warden has its own switch so servers can allow hitting BLU freely except the warden.
+	bool rebel = AJB_IsWarden(victim) ? g_cvRebelOnWardenDamage.BoolValue : g_cvRebelOnDamage.BoolValue;
+	if (!rebel)
 	{
 		return;
 	}

@@ -30,6 +30,8 @@
 // Numbered keys: 1–6 players | 7 Confirm | 8 Prev | 9 Next.
 // Separators use ITEMDRAW_RAWLINE (no number). Title ends with ----.
 #define LR_FREEDAY_PAGE_SIZE  6
+// A forced map vote can hijack the panel slot; retry the timeout instead of dropping the offer.
+#define LR_REOPEN_RETRY       5.0
 
 enum AJB_LRWish
 {
@@ -67,6 +69,7 @@ bool g_bHasCore;
 
 int g_iPrisoner;
 bool g_bMenuOpen;
+bool g_bMenuInterrupted;   // an external menu/vote hijacked the panel; reopen once it frees up
 bool g_bAwaitingCustom;
 bool g_bHotReds;
 bool g_bLowGravity;
@@ -127,6 +130,8 @@ public void OnPluginStart()
 
 	RegConsoleCmd("sm_ajb_lr", Command_LR, "Warden: grant Last Request to a prisoner.");
 	RegAdminCmd("sm_ajb_lr_force", Command_ForceLR, ADMFLAG_GENERIC, "Force LR menu for a living prisoner.");
+	RegConsoleCmd("sm_reopenlr", Command_ReopenLR, "Prisoner: reopen your Last Request menu if it got closed (e.g. by a map vote).");
+	RegConsoleCmd("sm_ajb_reopenlr", Command_ReopenLR, "Prisoner: reopen your Last Request menu if it got closed (e.g. by a map vote).");
 
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
@@ -392,6 +397,55 @@ Action Command_ForceLR(int client, int args)
 	AJB_LR_ClearPendingWish();
 	AJB_LR_Offer(target);
 	return Plugin_Handled;
+}
+
+// Re-pull the wish menu for the prisoner who currently holds the offer. Handy when a forced
+// map vote (or any external menu) hijacked the panel and left the LR menu closed on screen.
+Action Command_ReopenLR(int client, int args)
+{
+	if (client < 1)
+	{
+		return Plugin_Handled;
+	}
+
+	if (!g_bHasCore || !AJB_IsEnabled() || !g_cvEnabled.BoolValue)
+	{
+		AJB_Reply(client, "LR Mode Inactive");
+		return Plugin_Handled;
+	}
+
+	// Only the prisoner with an open (not yet chosen) offer can reopen it.
+	if (client != g_iPrisoner || !(g_bMenuOpen || g_bAwaitingCustom) || !IsPlayerAlive(client))
+	{
+		AJB_Reply(client, "LR Reopen None");
+		return Plugin_Handled;
+	}
+
+	// Custom is a chat prompt, not a panel — remind them what to type instead of drawing a menu.
+	if (g_bAwaitingCustom)
+	{
+		AJB_Chat(client, "LR Custom Prompt");
+		return Plugin_Handled;
+	}
+
+	AJB_LR_ShowWishMenu(client);
+	return Plugin_Handled;
+}
+
+// True while a forced menu-vote or another plugin's menu currently owns the client's panel slot.
+bool AJB_LR_IsExternalMenuBlocking(int client)
+{
+	if (client < 1 || !IsClientInGame(client))
+	{
+		return false;
+	}
+
+	if (IsVoteInProgress())
+	{
+		return true;
+	}
+
+	return GetClientMenu(client) == MenuSource_External;
 }
 
 // =========================================================================================================
@@ -696,6 +750,28 @@ Action Timer_MenuTimeout(Handle timer, int userid)
 	}
 
 	int client = GetClientOfUserId(userid);
+
+	// A forced map vote / external menu can outlast the LR timer and would silently drop the
+	// offer. Hold it open and retry until the panel is free again (or the prisoner /reopenlr).
+	if (client > 0 && AJB_LR_IsExternalMenuBlocking(client))
+	{
+		g_bMenuInterrupted = true;
+		g_hMenuTimer = CreateTimer(LR_REOPEN_RETRY, Timer_MenuTimeout, userid, TIMER_FLAG_NO_MAPCHANGE);
+		return Plugin_Stop;
+	}
+
+	// Panel is free again after an interruption: re-show the wish menu with a fresh window
+	// rather than dropping an LR the prisoner never actually got to see.
+	if (g_bMenuInterrupted && !g_bAwaitingCustom
+		&& client > 0 && client == g_iPrisoner
+		&& IsClientInGame(client) && IsPlayerAlive(client))
+	{
+		g_bMenuInterrupted = false;
+		AJB_LR_ShowWishMenu(client);
+		return Plugin_Stop;
+	}
+
+	g_bMenuInterrupted = false;
 	g_bMenuOpen = false;
 	g_bAwaitingCustom = false;
 	if (client > 0)
@@ -800,6 +876,7 @@ void AJB_LR_CloseMenuState()
 {
 	g_iPrisoner = 0;
 	g_bMenuOpen = false;
+	g_bMenuInterrupted = false;
 	g_bAwaitingCustom = false;
 	AJB_LR_KillMenuTimer();
 }
@@ -1773,6 +1850,7 @@ void AJB_LR_Cleanup(bool announce)
 
 	g_iPrisoner = 0;
 	g_bMenuOpen = false;
+	g_bMenuInterrupted = false;
 	g_bAwaitingCustom = false;
 	g_iFreedayPickCount = 0;
 

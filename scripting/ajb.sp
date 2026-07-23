@@ -51,6 +51,7 @@ ConVar g_cvWardenAuto;
 ConVar g_cvWardenAutoDelay;
 ConVar g_cvWardenAutoMode;
 ConVar g_cvRebelOnDamage;
+ConVar g_cvRebelOnWardenDamage;
 ConVar g_cvWardenRebelControl;
 // When false, prisoner→guard hits never auto-rebel (used by LR “Hot Reds”).
 bool g_bRebelOnHit = true;
@@ -159,7 +160,8 @@ public void OnPluginStart()
 	g_cvWardenAuto = CreateConVar("sm_ajb_warden_auto", "0", "1 = auto-assign a random living guard as warden when the preround ends and none is set.", _, true, 0.0, true, 1.0);
 	g_cvWardenAutoDelay = CreateConVar("sm_ajb_warden_auto_delay", "0", "Seconds to wait after the preround ends before auto-assigning warden (0 = immediately, 1..10 = delay). Requires sm_ajb_warden_auto 1.", _, true, 0.0, true, 10.0);
 	g_cvWardenAutoMode = CreateConVar("sm_ajb_warden_auto_mode", "0", "Auto-warden pick: 0 = uniform random, 1 = weighted toward guards who have not been warden recently.", _, true, 0.0, true, 1.0);
-	g_cvRebelOnDamage = CreateConVar("sm_ajb_rebel_on_damage", "1", "1 = mark prisoner as rebel when they damage a guard.", _, true, 0.0, true, 1.0);
+	g_cvRebelOnDamage = CreateConVar("sm_ajb_rebel_on_damage", "1", "1 = mark prisoner as rebel when they damage a BLU guard (see sm_ajb_rebel_on_warden_damage for the warden).", _, true, 0.0, true, 1.0);
+	g_cvRebelOnWardenDamage = CreateConVar("sm_ajb_rebel_on_warden_damage", "1", "1 = mark prisoner as rebel when they damage the warden. Set this 1 and sm_ajb_rebel_on_damage 0 to let prisoners hit BLU freely except the warden.", _, true, 0.0, true, 1.0);
 	g_cvWardenRebelControl = CreateConVar("sm_ajb_warden_rebel_control", "1", "1 = warden can mark/pardon RED rebels from the warden menu.", _, true, 0.0, true, 1.0);
 	g_cvStripPrisoners = CreateConVar("sm_ajb_strip_prisoners", "1", "1 = strip prisoners to melee on spawn.", _, true, 0.0, true, 1.0);
 	g_cvBlockBuildings = CreateConVar("sm_ajb_block_buildings", "0", "1 = block Engineer buildings while AJB is active (see sm_ajb_allow_sentry for sentry exception). Default 0 = allow builds.", _, true, 0.0, true, 1.0);

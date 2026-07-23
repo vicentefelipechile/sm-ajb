@@ -321,7 +321,7 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 
 void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!g_bModeActive || !g_cvRebelOnDamage.BoolValue)
+	if (!g_bModeActive || (!g_cvRebelOnDamage.BoolValue && !g_cvRebelOnWardenDamage.BoolValue))
 	{
 		return;
 	}

@@ -68,8 +68,10 @@ void AJB_Weapons_LoadBuiltinDefIndices()
 	AJB_Weapons_AllowDefIndex(35);   // Kritzkrieg
 	AJB_Weapons_AllowDefIndex(411);  // Quick-Fix
 	AJB_Weapons_AllowDefIndex(998);  // Vaccinator
-	// Mobility
+	// Pyro secondaries
 	AJB_Weapons_AllowDefIndex(1179); // Thermal Thruster
+	AJB_Weapons_AllowDefIndex(1180); // Gas Passer
+	// Mobility
 	AJB_Weapons_AllowDefIndex(1101);  // B.A.S.E. Jumper
 	// Demo shields
 	AJB_Weapons_AllowDefIndex(131);  // Chargin' Targe
