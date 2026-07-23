@@ -34,6 +34,50 @@
 		"ru"		"Another Jailbreak — Админ"
 	}
 
+	"Admin Cat Round"
+	{
+		"en"		"Round & cells"
+		"es"		"Ronda y celdas"
+		"las"		"Ronda y celdas"
+		"de"		"Runde & Zellen"
+		"fr"		"Manche et cellules"
+		"pt"		"Rodada e celas"
+		"ru"		"Раунд и камеры"
+	}
+
+	"Admin Cat Warden"
+	{
+		"en"		"Warden"
+		"es"		"Warden"
+		"las"		"Warden"
+		"de"		"Warden"
+		"fr"		"Warden"
+		"pt"		"Warden"
+		"ru"		"Warden"
+	}
+
+	"Admin Cat Players"
+	{
+		"en"		"Players"
+		"es"		"Jugadores"
+		"las"		"Jugadores"
+		"de"		"Spieler"
+		"fr"		"Joueurs"
+		"pt"		"Jogadores"
+		"ru"		"Игроки"
+	}
+
+	"Admin Cat Doors"
+	{
+		"en"		"Doors"
+		"es"		"Puertas"
+		"las"		"Puertas"
+		"de"		"Türen"
+		"fr"		"Portes"
+		"pt"		"Portas"
+		"ru"		"Двери"
+	}
+
 	"Admin Menu Status"
 	{
 		"en"		"Status"
@@ -109,6 +153,17 @@
 		"fr"		"Basculer freeday"
 		"pt"		"Alternar freeday"
 		"ru"		"Переключить freeday"
+	}
+
+	"Admin Menu Force LR"
+	{
+		"en"		"Force Last Request"
+		"es"		"Dar Deseo forzado"
+		"las"		"Dar Deseo forzado"
+		"de"		"Last Request erzwingen"
+		"fr"		"Forcer Last Request"
+		"pt"		"Forçar Last Request"
+		"ru"		"Принудительный Last Request"
 	}
 
 	"Admin Menu Guard Ban"
@@ -439,6 +494,30 @@
 		"fr"		"{1} Freeday en file pour {2}."
 		"pt"		"{1} Freeday na fila para {2}."
 		"ru"		"{1} Freeday в очереди для {2}."
+	}
+
+	"Admin LR Forced"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Forced Last Request for {2}."
+		"es"		"{1} Deseo forzado para {2}."
+		"las"		"{1} Deseo forzado para {2}."
+		"de"		"{1} Last Request für {2} erzwungen."
+		"fr"		"{1} Last Request forcé pour {2}."
+		"pt"		"{1} Last Request forçado para {2}."
+		"ru"		"{1} Принудительный Last Request для {2}."
+	}
+
+	"Admin LR Not Prisoner"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} That player must be a living prisoner."
+		"es"		"{1} Ese jugador debe ser un prisionero vivo."
+		"las"		"{1} Ese jugador debe ser un prisionero vivo."
+		"de"		"{1} Dieser Spieler muss ein lebender Gefangener sein."
+		"fr"		"{1} Ce joueur doit être un prisonnier vivant."
+		"pt"		"{1} Esse jogador deve ser um prisioneiro vivo."
+		"ru"		"{1} Этот игрок должен быть живым заключённым."
 	}
 
 	"Admin Freeday OffPlayer"

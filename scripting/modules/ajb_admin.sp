@@ -51,6 +51,11 @@ bool g_bHasBoosts;
 
 TopMenu g_hAdminMenu;
 
+// Current /ajb submenu category + whether /ajb was opened from the /admin top menu.
+// Threaded so player picks and sub-actions can return to the right submenu.
+char g_sAdminCat[MAXPLAYERS + 1][16];
+bool g_bAdminFromTop[MAXPLAYERS + 1];
+
 // Guard-ban store (blocks a player from joining the guards/BLU team).
 // Persisted in SQL (databases.cfg entry named by sm_ajb_admin_db), keyed by SteamID64.
 // g_hBanCache mirrors active bans (steamid64 -> expire unix, 0 = permanent) so the
@@ -335,41 +340,22 @@ Action Command_ClearWarden(int client, int args)
 // Menu
 // =========================================================================================================
 
+// Root /ajb hub: just the category buttons. The actual commands live in submenus
+// so the list is short enough to read.
 void AJB_Admin_ShowMain(int client, bool fromAdminTopMenu)
 {
 	Menu menu = new Menu(MenuHandler_AdminMain);
 	menu.SetTitle("%T", "Admin Menu Title", client);
 
 	char line[64];
-	Format(line, sizeof(line), "%T", "Admin Menu Status", client);
-	menu.AddItem("status", line);
-	Format(line, sizeof(line), "%T", "Admin Menu Open Cells", client);
-	menu.AddItem("open", line);
-	Format(line, sizeof(line), "%T", "Admin Menu Close Cells", client);
-	menu.AddItem("close", line);
-	Format(line, sizeof(line), "%T", "Admin Menu Clear Warden", client);
-	menu.AddItem("clearw", line);
-	Format(line, sizeof(line), "%T", "Admin Menu Set Warden", client);
-	menu.AddItem("setw", line);
-	Format(line, sizeof(line), "%T", "Admin Menu Toggle Rebel", client);
-	menu.AddItem("rebel", line);
-	Format(line, sizeof(line), "%T", "Admin Menu Toggle Freeday", client);
-	menu.AddItem("freeday", line);
-	Format(line, sizeof(line), "%T", "Admin Menu Guard Ban", client);
-	menu.AddItem("guardban", line);
-
-	if (g_bHasBoosts)
-	{
-		Format(line, sizeof(line), "%T", "Admin Menu Give Boost", client);
-		menu.AddItem("giveboost", line);
-		Format(line, sizeof(line), "%T", "Admin Menu Take Boost", client);
-		menu.AddItem("takeboost", line);
-	}
-
-	Format(line, sizeof(line), "%T", "Admin Menu Reload Doors", client);
-	menu.AddItem("doorsr", line);
-	Format(line, sizeof(line), "%T", "Admin Menu List Doors", client);
-	menu.AddItem("doorsl", line);
+	Format(line, sizeof(line), "%T", "Admin Cat Round", client);
+	menu.AddItem("cat:round", line);
+	Format(line, sizeof(line), "%T", "Admin Cat Warden", client);
+	menu.AddItem("cat:warden", line);
+	Format(line, sizeof(line), "%T", "Admin Cat Players", client);
+	menu.AddItem("cat:players", line);
+	Format(line, sizeof(line), "%T", "Admin Cat Doors", client);
+	menu.AddItem("cat:doors", line);
 
 	menu.ExitBackButton = fromAdminTopMenu && g_hAdminMenu != null;
 	menu.Display(client, MENU_TIME_FOREVER);
@@ -408,28 +394,155 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 	char info[16];
 	menu.GetItem(param2, info, sizeof(info));
 
+	if (StrEqual(info, "cat:round"))
+	{
+		AJB_Admin_ShowCategory(client, "round", fromTop);
+	}
+	else if (StrEqual(info, "cat:warden"))
+	{
+		AJB_Admin_ShowCategory(client, "warden", fromTop);
+	}
+	else if (StrEqual(info, "cat:players"))
+	{
+		AJB_Admin_ShowCategory(client, "players", fromTop);
+	}
+	else if (StrEqual(info, "cat:doors"))
+	{
+		AJB_Admin_ShowCategory(client, "doors", fromTop);
+	}
+
+	return 0;
+}
+
+// Return to the submenu the admin was last in (or the root hub if none set).
+void AJB_Admin_ReturnToCat(int client, bool fromTop)
+{
+	if (g_sAdminCat[client][0] != '\0')
+	{
+		AJB_Admin_ShowCategory(client, g_sAdminCat[client], fromTop);
+	}
+	else
+	{
+		AJB_Admin_ShowMain(client, fromTop);
+	}
+}
+
+// One curated submenu of the /ajb hub. No headers — each category is its own menu.
+void AJB_Admin_ShowCategory(int client, const char[] cat, bool fromAdminTopMenu)
+{
+	strcopy(g_sAdminCat[client], sizeof(g_sAdminCat[]), cat);
+	g_bAdminFromTop[client] = fromAdminTopMenu;
+
+	Menu menu = new Menu(MenuHandler_AdminCategory);
+	char line[64];
+
+	if (StrEqual(cat, "round"))
+	{
+		menu.SetTitle("%T", "Admin Cat Round", client);
+		Format(line, sizeof(line), "%T", "Admin Menu Status", client);
+		menu.AddItem("status", line);
+		Format(line, sizeof(line), "%T", "Admin Menu Open Cells", client);
+		menu.AddItem("open", line);
+		Format(line, sizeof(line), "%T", "Admin Menu Close Cells", client);
+		menu.AddItem("close", line);
+	}
+	else if (StrEqual(cat, "warden"))
+	{
+		menu.SetTitle("%T", "Admin Cat Warden", client);
+		Format(line, sizeof(line), "%T", "Admin Menu Set Warden", client);
+		menu.AddItem("setw", line);
+		Format(line, sizeof(line), "%T", "Admin Menu Clear Warden", client);
+		menu.AddItem("clearw", line);
+		Format(line, sizeof(line), "%T", "Admin Menu Force LR", client);
+		menu.AddItem("forcelr", line);
+	}
+	else if (StrEqual(cat, "players"))
+	{
+		menu.SetTitle("%T", "Admin Cat Players", client);
+		Format(line, sizeof(line), "%T", "Admin Menu Toggle Rebel", client);
+		menu.AddItem("rebel", line);
+		Format(line, sizeof(line), "%T", "Admin Menu Toggle Freeday", client);
+		menu.AddItem("freeday", line);
+		Format(line, sizeof(line), "%T", "Admin Menu Guard Ban", client);
+		menu.AddItem("guardban", line);
+
+		if (g_bHasBoosts)
+		{
+			Format(line, sizeof(line), "%T", "Admin Menu Give Boost", client);
+			menu.AddItem("giveboost", line);
+			Format(line, sizeof(line), "%T", "Admin Menu Take Boost", client);
+			menu.AddItem("takeboost", line);
+		}
+	}
+	else if (StrEqual(cat, "doors"))
+	{
+		menu.SetTitle("%T", "Admin Cat Doors", client);
+		Format(line, sizeof(line), "%T", "Admin Menu Reload Doors", client);
+		menu.AddItem("doorsr", line);
+		Format(line, sizeof(line), "%T", "Admin Menu List Doors", client);
+		menu.AddItem("doorsl", line);
+	}
+
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action == MenuAction_Cancel)
+	{
+		if (param2 == MenuCancel_ExitBack)
+		{
+			// Back to the /ajb root category list.
+			AJB_Admin_ShowMain(param1, g_bAdminFromTop[param1]);
+		}
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (!g_bHasCore || !AJB_IsEnabled())
+	{
+		return 0;
+	}
+
+	bool fromTop = g_bAdminFromTop[client];
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+
 	if (StrEqual(info, "status"))
 	{
 		FakeClientCommand(client, "sm_ajb_status");
-		AJB_Admin_ShowMain(client, fromTop);
+		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "open"))
 	{
 		AJB_OpenCells();
 		AJB_Chat(client, "Admin Cells Opened");
-		AJB_Admin_ShowMain(client, fromTop);
+		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "close"))
 	{
 		AJB_CloseCells();
 		AJB_Chat(client, "Admin Cells Closed");
-		AJB_Admin_ShowMain(client, fromTop);
+		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "clearw"))
 	{
 		AJB_ClearWarden();
 		AJB_Chat(client, "Admin Warden Cleared");
-		AJB_Admin_ShowMain(client, fromTop);
+		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "setw"))
 	{
@@ -443,6 +556,10 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 	{
 		AJB_Admin_ShowPlayerPick(client, "freeday", fromTop);
 	}
+	else if (StrEqual(info, "forcelr"))
+	{
+		AJB_Admin_ShowPlayerPick(client, "forcelr", fromTop);
+	}
 	else if (StrEqual(info, "guardban"))
 	{
 		AJB_Admin_ShowPlayerPick(client, "guardban", fromTop);
@@ -452,7 +569,7 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 		if (!g_bHasBoosts)
 		{
 			AJB_Chat(client, "Admin Boosts Missing");
-			AJB_Admin_ShowMain(client, fromTop);
+			AJB_Admin_ReturnToCat(client, fromTop);
 			return 0;
 		}
 		AJB_Admin_ShowPlayerPick(client, "giveboost", fromTop);
@@ -462,7 +579,7 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 		if (!g_bHasBoosts)
 		{
 			AJB_Chat(client, "Admin Boosts Missing");
-			AJB_Admin_ShowMain(client, fromTop);
+			AJB_Admin_ReturnToCat(client, fromTop);
 			return 0;
 		}
 		AJB_Admin_ShowPlayerPick(client, "takeboost", fromTop);
@@ -470,12 +587,12 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 	else if (StrEqual(info, "doorsr"))
 	{
 		FakeClientCommand(client, "sm_ajb_doors_reload");
-		AJB_Admin_ShowMain(client, fromTop);
+		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "doorsl"))
 	{
 		FakeClientCommand(client, "sm_ajb_doors_list");
-		AJB_Admin_ShowMain(client, fromTop);
+		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 
 	return 0;
@@ -523,7 +640,7 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 	{
 		if (param2 == MenuCancel_ExitBack)
 		{
-			AJB_Admin_ShowMain(param1, g_hAdminMenu != null);
+			AJB_Admin_ReturnToCat(param1, g_bAdminFromTop[param1]);
 		}
 		return 0;
 	}
@@ -548,7 +665,7 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 	if (target <= 0 || !IsClientInGame(target))
 	{
 		AJB_Chat(client, "Admin Player Invalid");
-		AJB_Admin_ShowMain(client, fromTop);
+		AJB_Admin_ReturnToCat(client, fromTop);
 		return 0;
 	}
 
@@ -579,6 +696,21 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 		bool next = !AJB_IsFreedayPending(target);
 		AJB_SetPlayerFreeday(target, next);
 		CPrintToChat(client, "%T", next ? "Admin Freeday OnPlayer" : "Admin Freeday OffPlayer", client, prefix, target);
+	}
+	else if (StrEqual(parts[0], "forcelr"))
+	{
+		// Force the Last Request wish menu for a living prisoner (ajb_lastrequest handles it).
+		if (!AJB_IsPrisoner(target) || !IsPlayerAlive(target))
+		{
+			AJB_Chat(client, "Admin LR Not Prisoner");
+		}
+		else
+		{
+			char cmd[64];
+			Format(cmd, sizeof(cmd), "sm_ajb_lr_force #%d", GetClientUserId(target));
+			FakeClientCommand(client, cmd);
+			CPrintToChat(client, "%T", "Admin LR Forced", client, prefix, target);
+		}
 	}
 	else if (StrEqual(parts[0], "guardban"))
 	{
@@ -612,7 +744,7 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 		if (!g_bHasBoosts)
 		{
 			AJB_Chat(client, "Admin Boosts Missing");
-			AJB_Admin_ShowMain(client, fromTop);
+			AJB_Admin_ReturnToCat(client, fromTop);
 			return 0;
 		}
 
@@ -621,7 +753,7 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 		return 0;
 	}
 
-	AJB_Admin_ShowMain(client, fromTop);
+	AJB_Admin_ReturnToCat(client, fromTop);
 	return 0;
 }
 
@@ -631,7 +763,7 @@ void AJB_Admin_ShowBoostAmount(int client, int target, bool give, bool fromAdmin
 	if (!IsClientInGame(target))
 	{
 		AJB_Chat(client, "Admin Player Invalid");
-		AJB_Admin_ShowMain(client, fromAdminTopMenu);
+		AJB_Admin_ReturnToCat(client, fromAdminTopMenu);
 		return;
 	}
 
@@ -666,7 +798,7 @@ public int MenuHandler_BoostAmount(Menu menu, MenuAction action, int param1, int
 	{
 		if (param2 == MenuCancel_ExitBack)
 		{
-			AJB_Admin_ShowMain(param1, g_hAdminMenu != null);
+			AJB_Admin_ReturnToCat(param1, g_bAdminFromTop[param1]);
 		}
 		return 0;
 	}
@@ -694,14 +826,14 @@ public int MenuHandler_BoostAmount(Menu menu, MenuAction action, int param1, int
 	if (target <= 0 || !IsClientInGame(target) || amount < 1 || amount > 3)
 	{
 		AJB_Chat(client, "Admin Player Invalid");
-		AJB_Admin_ShowMain(client, fromTop);
+		AJB_Admin_ReturnToCat(client, fromTop);
 		return 0;
 	}
 
 	if (!g_bHasBoosts)
 	{
 		AJB_Chat(client, "Admin Boosts Missing");
-		AJB_Admin_ShowMain(client, fromTop);
+		AJB_Admin_ReturnToCat(client, fromTop);
 		return 0;
 	}
 
@@ -720,7 +852,7 @@ public int MenuHandler_BoostAmount(Menu menu, MenuAction action, int param1, int
 		CPrintToChat(target, "%T", give ? "Admin Boost Received" : "Admin Boost Removed", target, tprefix, amount, total);
 	}
 
-	AJB_Admin_ShowMain(client, fromTop);
+	AJB_Admin_ReturnToCat(client, fromTop);
 	return 0;
 }
 

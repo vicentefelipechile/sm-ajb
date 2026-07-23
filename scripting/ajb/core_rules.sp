@@ -239,6 +239,14 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 	bool victimGuard = AJB_ClientIsGuard(victim);
 	bool attackerGuard = AJB_ClientIsGuard(attacker);
 
+	// Guards never damage each other while protection is on — even with friendly fire enabled.
+	if (attackerGuard && victimGuard
+		&& g_cvFFProtectGuards != null && g_cvFFProtectGuards.BoolValue)
+	{
+		damage = 0.0;
+		return Plugin_Changed;
+	}
+
 	// Personal freeday: only the warden (or world/non-player) may damage them.
 	if (victimPrisoner && g_bFreeday[victim] && !g_bRebel[victim]
 		&& g_bFreedayWardenOnlyDamage

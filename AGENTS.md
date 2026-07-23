@@ -128,8 +128,9 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_balance` | GENERIC | Force JB team balance now (move excess guards to prisoners) |
 | `sm_ajb_setwarden <#userid\|name>` | GENERIC | Set warden |
 | `sm_ajb_rebel <#userid\|name> [0\|1]` | GENERIC | Mark/pardon rebel |
-| `sm_ajb_doors_reload` | CONFIG | Reload per-map doors + teleports |
+| `sm_ajb_doors_reload` | CONFIG | Reload per-map doors + teleports (`configs/ajb/maps/<map>.cfg`) |
 | `sm_ajb_doors_list` | CONFIG | List configured door targetnames |
+| `sm_ajb_gen_config` | CONFIG | (Re)generate the per-map config stub from live entities (overwrites) |
 
 **Core — `ajb/core_freekill.sp`**
 
@@ -193,6 +194,9 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_strip_prisoners` | `1` | 1 = strip prisoners to melee on spawn |
 | `sm_ajb_block_buildings` | `0` | 1 = block Engineer buildings (see `sm_ajb_allow_sentry`) |
 | `sm_ajb_block_prisoner_damage` | `1` | 1 = block non-rebel prisoner damage to guards |
+| `sm_ajb_door_auto` | `1` | 1 = auto-detect door-like entities near RED spawn when config/name finds none |
+| `sm_ajb_door_auto_radius` | `800` | Max distance (units) from a RED spawn for auto-door detection |
+| `sm_ajb_gen_config_auto` | `1` | 1 = auto-generate `configs/ajb/maps/<map>.cfg` stub when none exists |
 | `sm_ajb_prep_time` | `10` | Preparation seconds at round start (0 = off) |
 | `sm_ajb_round_time` | `600` | Main round HUD duration in seconds (0 = no main clock) |
 
@@ -210,6 +214,11 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_ammo_arms_prisoners` | `1` | `core_weapons.sp` | 1 = map ammo packs arm melee-only prisoners (full class loadout) |
 | `sm_ajb_block_death_ammo` | `1` | `core_weapons.sp` | 1 = delete player death ammo drops (`tf_ammo_pack`) |
 | `sm_ajb_warden_see_health` | `1` | `core_warden_health.sp` | 1 = warden sees prisoner HP under crosshair |
+| `sm_ajb_warden_marker` | `1` | `core_warden_marker.sp` | 1 = warden can place a 'Come here!' marker (beam ring + annotation) |
+| `sm_ajb_warden_marker_time` | `8.0` | `core_warden_marker.sp` | Seconds a warden marker stays visible (2–30) |
+| `sm_ajb_warden_vote` | `1` | `core_warden_votes.sp` | 1 = warden can start Yes/No and multiple-choice votes from the menu |
+| `sm_ajb_warden_vote_time` | `20.0` | `core_warden_votes.sp` | Seconds a warden vote panel stays open (5–60) |
+| `sm_ajb_warden_vote_audience` | `0` | `core_warden_votes.sp` | 0 = living prisoners (RED) only, 1 = all living players |
 
 **Module — `ajb_admin.sp`**
 
@@ -223,8 +232,7 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | ConVar | Default | Purpose |
 | --- | --- | --- |
 | `sm_ajb_boosts_enabled` | `1` | Enable the boosts system |
-| `sm_ajb_boosts_max_points` | `3` | Max points a player can hold (0 = unlimited) |
-| `sm_ajb_boosts_spend_cap` | `3` | Max points spendable per round (0 = unlimited) |
+| `sm_ajb_boosts_max_points` | `3` | Max points a player can earn-hold (0 = unlimited; admin grants ignore it) |
 | `sm_ajb_boosts_blu_every` | `2` | BLU survivors get +1 extra every N finished rounds |
 
 **Module — `ajb_lastrequest.sp`**

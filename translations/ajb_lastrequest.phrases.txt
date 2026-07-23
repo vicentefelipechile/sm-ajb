@@ -39,8 +39,8 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"{1} A Last Request is already in progress."
-		"es"		"{1} Ya hay un último deseo en curso."
-		"las"		"{1} Ya hay un último deseo en curso."
+		"es"		"{1} Ya hay un Deseo en curso."
+		"las"		"{1} Ya hay un Deseo en curso."
 		"de"		"{1} Ein Last Request läuft bereits."
 		"fr"		"{1} Un Last Request est déjà en cours."
 		"pt"		"{1} Já há um Last Request em andamento."
@@ -51,8 +51,8 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"{1} Only the warden can grant a Last Request."
-		"es"		"{1} Solo el warden puede dar el último deseo."
-		"las"		"{1} Solo el warden puede dar el último deseo."
+		"es"		"{1} Solo el warden puede dar un Deseo."
+		"las"		"{1} Solo el warden puede dar un Deseo."
 		"de"		"{1} Nur der Warden kann einen Last Request gewähren."
 		"fr"		"{1} Seul le warden peut accorder un Last Request."
 		"pt"		"{1} Apenas o warden pode conceder um Last Request."
@@ -99,8 +99,8 @@
 	{
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} is the last prisoner. Warden can grant Last Request from the menu."
-		"es"		"{1} {2} es el último prisionero. El warden puede dar el último deseo desde su menú."
-		"las"		"{1} {2} es el último prisionero. El warden puede dar el último deseo desde su menú."
+		"es"		"{1} {2} es el último prisionero. El warden puede dar un Deseo desde su menú."
+		"las"		"{1} {2} es el último prisionero. El warden puede dar un Deseo desde su menú."
 		"de"		"{1} {2} ist der letzte Gefangene. Der Warden kann Last Request über das Menü gewähren."
 		"fr"		"{1} {2} est le dernier prisonnier. Le warden peut accorder un Last Request depuis le menu."
 		"pt"		"{1} {2} é o último prisioneiro. O warden pode conceder Last Request pelo menu."
@@ -110,8 +110,8 @@
 	"LR Grant Title"
 	{
 		"en"		"Give Last Request"
-		"es"		"Dar último deseo"
-		"las"		"Dar último deseo"
+		"es"		"Dar Deseo"
+		"las"		"Dar Deseo"
 		"de"		"Last Request geben"
 		"fr"		"Donner un Last Request"
 		"pt"		"Dar Last Request"
@@ -144,8 +144,8 @@
 	{
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} was offered a Last Request."
-		"es"		"{1} Se ofreció el último deseo a {2}."
-		"las"		"{1} Se ofreció el último deseo a {2}."
+		"es"		"{1} Se le ofreció un Deseo a {2}."
+		"las"		"{1} Se le ofreció un Deseo a {2}."
 		"de"		"{1} {2} wurde ein Last Request angeboten."
 		"fr"		"{1} Un Last Request a été proposé à {2}."
 		"pt"		"{1} Um Last Request foi oferecido a {2}."
@@ -156,8 +156,8 @@
 	{
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} did not pick a Last Request in time."
-		"es"		"{1} {2} no eligió un deseo a tiempo."
-		"las"		"{1} {2} no eligió un deseo a tiempo."
+		"es"		"{1} {2} no eligió un Deseo a tiempo."
+		"las"		"{1} {2} no eligió un Deseo a tiempo."
 		"de"		"{1} {2} hat nicht rechtzeitig einen Last Request gewählt."
 		"fr"		"{1} {2} n'a pas choisi de Last Request à temps."
 		"pt"		"{1} {2} não escolheu um Last Request a tempo."
@@ -180,8 +180,8 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"{1} Last Request cancelled."
-		"es"		"{1} Último deseo cancelado."
-		"las"		"{1} Último deseo cancelado."
+		"es"		"{1} Deseo cancelado."
+		"las"		"{1} Deseo cancelado."
 		"de"		"{1} Last Request abgebrochen."
 		"fr"		"{1} Last Request annulé."
 		"pt"		"{1} Last Request cancelado."
@@ -191,8 +191,8 @@
 	"LR Menu Title"
 	{
 		"en"		"Last Request — pick a wish"
-		"es"		"Último deseo — elige"
-		"las"		"Último deseo — elige"
+		"es"		"Deseo — elige"
+		"las"		"Deseo — elige"
 		"de"		"Last Request — wähle einen Wunsch"
 		"fr"		"Last Request — choisissez un souhait"
 		"pt"		"Last Request — escolha um desejo"
@@ -298,12 +298,23 @@
 		"ru"		"Низкая гравитация"
 	}
 
+	"LR Wish HideAndSeek"
+	{
+		"en"		"Hide and Seek"
+		"es"		"Escondite (Hide and Seek)"
+		"las"		"Escondite (Hide and Seek)"
+		"de"		"Verstecken (Hide and Seek)"
+		"fr"		"Cache-cache (Hide and Seek)"
+		"pt"		"Esconde-esconde (Hide and Seek)"
+		"ru"		"Прятки (Hide and Seek)"
+	}
+
 	"LR Chose Freeday Me"
 	{
 		"#format"	"{1:s},{2:N}"
 		"en"		"{1} {2} chose Freeday for themselves."
-		"es"		"{1} {2} eligió Freeday para sí."
-		"las"		"{1} {2} eligió Freeday para sí."
+		"es"		"{1} {2} eligió Freeday para sí mismo."
+		"las"		"{1} {2} eligió Freeday para sí mismo."
 		"de"		"{1} {2} hat Freeday für sich selbst gewählt."
 		"fr"		"{1} {2} a choisi Freeday pour lui-même."
 		"pt"		"{1} {2} escolheu Freeday para si."
@@ -418,6 +429,18 @@
 		"ru"		"{1} {2} выбрал Низкую гравитацию."
 	}
 
+	"LR Chose HideSeek"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Hide and Seek."
+		"es"		"{1} {2} eligió Escondite (Hide and Seek)."
+		"las"		"{1} {2} eligió Escondite (Hide and Seek)."
+		"de"		"{1} {2} hat Verstecken gewählt."
+		"fr"		"{1} {2} a choisi Cache-cache."
+		"pt"		"{1} {2} escolheu Esconde-esconde."
+		"ru"		"{1} {2} выбрал Прятки."
+	}
+
 	"LR Applied Freeday"
 	{
 		"#format"	"{1:s},{2:s}"
@@ -500,6 +523,42 @@
 		"fr"		"{1} Basse gravité ({2})."
 		"pt"		"{1} Baixa gravidade ({2})."
 		"ru"		"{1} Низкая гравитация ({2})."
+	}
+
+	"LR Applied HideSeek"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Hide and Seek ({2})! Seekers frozen — RED, run and hide!"
+		"es"		"{1} ¡Escondite ({2})! Buscadores congelados — REDs, ¡corran a esconderse!"
+		"las"		"{1} ¡Escondite ({2})! Buscadores congelados — REDs, ¡corran a esconderse!"
+		"de"		"{1} Verstecken ({2})! Sucher eingefroren — RED, lauft und versteckt euch!"
+		"fr"		"{1} Cache-cache ({2}) ! Chercheurs gelés — RED, courez vous cacher !"
+		"pt"		"{1} Esconde-esconde ({2})! Procuradores congelados — RED, corram e escondam-se!"
+		"ru"		"{1} Прятки ({2})! Искатели заморожены — RED, бегите прятаться!"
+	}
+
+	"LR HideSeek Released"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} The seekers are released — find the hiders!"
+		"es"		"{1} ¡Los buscadores están libres — encuentren a los escondidos!"
+		"las"		"{1} ¡Los buscadores están libres — encuentren a los escondidos!"
+		"de"		"{1} Die Sucher sind frei — findet die Versteckten!"
+		"fr"		"{1} Les chercheurs sont libérés — trouvez les cachés !"
+		"pt"		"{1} Os procuradores estão livres — encontrem os escondidos!"
+		"ru"		"{1} Искатели освобождены — найдите прячущихся!"
+	}
+
+	"LR HideSeek TimeUp"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Time's up — the hiders survived!"
+		"es"		"{1} ¡Se acabó el tiempo — los escondidos sobrevivieron!"
+		"las"		"{1} ¡Se acabó el tiempo — los escondidos sobrevivieron!"
+		"de"		"{1} Zeit abgelaufen — die Versteckten haben überlebt!"
+		"fr"		"{1} Temps écoulé — les cachés ont survécu !"
+		"pt"		"{1} Tempo esgotado — os escondidos sobreviveram!"
+		"ru"		"{1} Время вышло — прячущиеся выжили!"
 	}
 
 	"LR Freeday Others Title"

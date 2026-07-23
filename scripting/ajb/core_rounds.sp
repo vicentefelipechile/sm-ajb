@@ -179,10 +179,15 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 	g_iWardenRoundSerial++;
 
+	AJB_Teams_ApplyNames();
 	AJB_ApplyEngineMovementPolicy();
 
 	AJB_CleanupRoundRuntime();
 	AJB_ResetPlayerFlags();
+	// Teammate push starts disabled every round; the warden may re-enable it.
+	AJB_Collisions_ResetForRound();
+	// Friendly fire also starts disabled every round.
+	AJB_FF_ResetForRound();
 	AJB_LoadMapDoors();
 	// Close cells for the new round (does not force engine map regen).
 	AJB_ResetCellsForRound();

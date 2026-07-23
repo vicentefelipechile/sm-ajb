@@ -84,6 +84,16 @@ void AJB_Weapons_LoadBuiltinDefIndices()
 	AJB_Weapons_AllowDefIndex(933);
 	AJB_Weapons_AllowDefIndex(1080);
 	AJB_Weapons_AllowDefIndex(1102);
+	// Soldier banners (team buff)
+	AJB_Weapons_AllowDefIndex(129);  // Buff Banner
+	AJB_Weapons_AllowDefIndex(226);  // Battalion's Backup
+	AJB_Weapons_AllowDefIndex(354);  // Concheror
+	// Sniper thrown (Jarate)
+	AJB_Weapons_AllowDefIndex(58);   // Jarate
+	AJB_Weapons_AllowDefIndex(1083); // Self-Aware Beauty Mark
+	// Scout thrown (Mad Milk)
+	AJB_Weapons_AllowDefIndex(222);  // Mad Milk
+	AJB_Weapons_AllowDefIndex(1121); // Mutated Milk
 }
 
 // Returns number of item definition IDs loaded.

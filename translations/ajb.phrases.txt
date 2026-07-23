@@ -16,6 +16,32 @@
 	}
 
 	// =====================================================================================
+	// Forced team names (scoreboard header). No prefix — plain names.
+	// =====================================================================================
+
+	"Team Guards"
+	{
+		"en"		"Guards"
+		"es"		"Guardias"
+		"las"		"Guardias"
+		"de"		"Wärter"
+		"fr"		"Gardiens"
+		"pt"		"Guardas"
+		"ru"		"Охрана"
+	}
+
+	"Team Prisoners"
+	{
+		"en"		"Prisoners"
+		"es"		"Prisioneros"
+		"las"		"Prisioneros"
+		"de"		"Gefangene"
+		"fr"		"Prisonniers"
+		"pt"		"Prisioneiros"
+		"ru"		"Заключённые"
+	}
+
+	// =====================================================================================
 	// Generic menu building blocks (shared by core + modules)
 	// =====================================================================================
 
@@ -189,35 +215,90 @@
 
 	"Warden Page Next"
 	{
-		"en"		"» More options"
-		"es"		"» Más opciones"
-		"las"		"» Más opciones"
-		"de"		"» Mehr Optionen"
-		"fr"		"» Plus d'options"
-		"pt"		"» Mais opções"
-		"ru"		"» Ещё"
+		"en"		"Events »"
+		"es"		"Eventos »"
+		"las"		"Eventos »"
+		"de"		"Ereignisse »"
+		"fr"		"Événements »"
+		"pt"		"Eventos »"
+		"ru"		"События »"
 	}
 
 	"Warden Page Prev"
 	{
-		"en"		"« Back"
-		"es"		"« Volver"
-		"las"		"« Volver"
-		"de"		"« Zurück"
-		"fr"		"« Retour"
-		"pt"		"« Voltar"
-		"ru"		"« Назад"
+		"en"		"« Shortcuts"
+		"es"		"« Atajos"
+		"las"		"« Atajos"
+		"de"		"« Kurzbefehle"
+		"fr"		"« Raccourcis"
+		"pt"		"« Atalhos"
+		"ru"		"« Действия"
+	}
+
+	"Warden Header Cells"
+	{
+		"en"		"Cells"
+		"es"		"Celdas"
+		"las"		"Celdas"
+		"de"		"Zellen"
+		"fr"		"Cellules"
+		"pt"		"Celas"
+		"ru"		"Камеры"
+	}
+
+	"Warden Header Tools"
+	{
+		"en"		"Tools"
+		"es"		"Herramientas"
+		"las"		"Herramientas"
+		"de"		"Werkzeuge"
+		"fr"		"Outils"
+		"pt"		"Ferramentas"
+		"ru"		"Инструменты"
+	}
+
+	"Warden Header Manage"
+	{
+		"en"		"Warden"
+		"es"		"Warden"
+		"las"		"Warden"
+		"de"		"Warden"
+		"fr"		"Warden"
+		"pt"		"Warden"
+		"ru"		"Warden"
+	}
+
+	"Warden Header Events"
+	{
+		"en"		"Events"
+		"es"		"Eventos"
+		"las"		"Eventos"
+		"de"		"Ereignisse"
+		"fr"		"Événements"
+		"pt"		"Eventos"
+		"ru"		"События"
+	}
+
+	"Warden Header Rebels"
+	{
+		"en"		"Rebels"
+		"es"		"Rebeldes"
+		"las"		"Rebeldes"
+		"de"		"Rebellen"
+		"fr"		"Rebelles"
+		"pt"		"Rebeldes"
+		"ru"		"Бунтовщики"
 	}
 
 	"Warden Menu Marker"
 	{
-		"en"		"Create marker (Come here!)"
-		"es"		"Crear marcador (¡Vengan aquí!)"
-		"las"		"Crear marcador (¡Vengan aquí!)"
-		"de"		"Markierung setzen (Hierher!)"
-		"fr"		"Créer un marqueur (Venez ici !)"
-		"pt"		"Criar marcador (Venham aqui!)"
-		"ru"		"Поставить метку (Сюда!)"
+		"en"		"Create marker"
+		"es"		"Crear marcador"
+		"las"		"Crear marcador"
+		"de"		"Markierung setzen"
+		"fr"		"Créer un marqueur"
+		"pt"		"Criar marcador"
+		"ru"		"Поставить метку"
 	}
 
 	"Warden Menu Vote YesNo"
@@ -252,18 +333,6 @@
 		"fr"		"Venez ici !"
 		"pt"		"Venham aqui!"
 		"ru"		"Сюда!"
-	}
-
-	"Warden Marker Cooldown"
-	{
-		"#format"	"{1:s},{2:d}"
-		"en"		"{1} Marker on cooldown — {2}s left."
-		"es"		"{1} Marcador en enfriamiento — quedan {2}s."
-		"las"		"{1} Marcador en enfriamiento — quedan {2}s."
-		"de"		"{1} Markierung auf Abklingzeit — noch {2}s."
-		"fr"		"{1} Marqueur en recharge — {2}s restantes."
-		"pt"		"{1} Marcador em recarga — faltam {2}s."
-		"ru"		"{1} Метка на перезарядке — осталось {2}с."
 	}
 
 	"Warden Marker Disabled"
@@ -473,12 +542,104 @@
 	"Warden Menu Give LR"
 	{
 		"en"		"Give Last Request"
-		"es"		"Dar último deseo"
-		"las"		"Dar último deseo"
+		"es"		"Dar Deseo"
+		"las"		"Dar Deseo"
 		"de"		"Last Request geben"
 		"fr"		"Donner un Last Request"
 		"pt"		"Dar Last Request"
 		"ru"		"Выдать Last Request"
+	}
+
+	"Warden Menu Collisions Enable"
+	{
+		"en"		"Enable collisions"
+		"es"		"Activar colisiones"
+		"las"		"Activar colisiones"
+		"de"		"Kollisionen aktivieren"
+		"fr"		"Activer les collisions"
+		"pt"		"Ativar colisões"
+		"ru"		"Включить столкновения"
+	}
+
+	"Warden Menu Collisions Disable"
+	{
+		"en"		"Disable collisions"
+		"es"		"Desactivar colisiones"
+		"las"		"Desactivar colisiones"
+		"de"		"Kollisionen deaktivieren"
+		"fr"		"Désactiver les collisions"
+		"pt"		"Desativar colisões"
+		"ru"		"Выключить столкновения"
+	}
+
+	"Collisions Enabled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Teammate push has been {green}enabled{default}."
+		"es"		"{1} El empuje entre compañeros ha sido {green}activado{default}."
+		"las"		"{1} El empuje entre compañeros ha sido {green}activado{default}."
+		"de"		"{1} Teamkollision wurde {green}aktiviert{default}."
+		"fr"		"{1} La poussée alliée a été {green}activée{default}."
+		"pt"		"{1} O empurrão entre aliados foi {green}ativado{default}."
+		"ru"		"{1} Отталкивание союзников {green}включено{default}."
+	}
+
+	"Collisions Disabled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Teammate push has been {red}disabled{default}."
+		"es"		"{1} El empuje entre compañeros ha sido {red}desactivado{default}."
+		"las"		"{1} El empuje entre compañeros ha sido {red}desactivado{default}."
+		"de"		"{1} Teamkollision wurde {red}deaktiviert{default}."
+		"fr"		"{1} La poussée alliée a été {red}désactivée{default}."
+		"pt"		"{1} O empurrão entre aliados foi {red}desativado{default}."
+		"ru"		"{1} Отталкивание союзников {red}выключено{default}."
+	}
+
+	"Warden Menu FriendlyFire Enable"
+	{
+		"en"		"Enable friendly fire"
+		"es"		"Activar Fuego Amigo"
+		"las"		"Activar Fuego Amigo"
+		"de"		"Eigenbeschuss aktivieren"
+		"fr"		"Activer le tir allié"
+		"pt"		"Ativar fogo amigo"
+		"ru"		"Включить огонь по своим"
+	}
+
+	"Warden Menu FriendlyFire Disable"
+	{
+		"en"		"Disable friendly fire"
+		"es"		"Desactivar Fuego Amigo"
+		"las"		"Desactivar Fuego Amigo"
+		"de"		"Eigenbeschuss deaktivieren"
+		"fr"		"Désactiver le tir allié"
+		"pt"		"Desativar fogo amigo"
+		"ru"		"Выключить огонь по своим"
+	}
+
+	"FriendlyFire Enabled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Friendly fire has been {green}enabled{default}."
+		"es"		"{1} El fuego amigo ha sido {green}activado{default}."
+		"las"		"{1} El fuego amigo ha sido {green}activado{default}."
+		"de"		"{1} Eigenbeschuss wurde {green}aktiviert{default}."
+		"fr"		"{1} Le tir allié a été {green}activé{default}."
+		"pt"		"{1} O fogo amigo foi {green}ativado{default}."
+		"ru"		"{1} Огонь по своим {green}включён{default}."
+	}
+
+	"FriendlyFire Disabled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Friendly fire has been {red}disabled{default}."
+		"es"		"{1} El fuego amigo ha sido {red}desactivado{default}."
+		"las"		"{1} El fuego amigo ha sido {red}desactivado{default}."
+		"de"		"{1} Eigenbeschuss wurde {red}deaktiviert{default}."
+		"fr"		"{1} Le tir allié a été {red}désactivé{default}."
+		"pt"		"{1} O fogo amigo foi {red}desativado{default}."
+		"ru"		"{1} Огонь по своим {red}выключен{default}."
 	}
 
 	"Warden Menu Mark Rebel"
@@ -501,6 +662,17 @@
 		"fr"		"Pardonner rebelle"
 		"pt"		"Perdoar rebelde"
 		"ru"		"Помиловать бунтовщика"
+	}
+
+	"Warden Menu Exit"
+	{
+		"en"		"Exit"
+		"es"		"Salir"
+		"las"		"Salir"
+		"de"		"Beenden"
+		"fr"		"Quitter"
+		"pt"		"Sair"
+		"ru"		"Выход"
 	}
 
 	"Warden Mark Rebel Title"
@@ -580,6 +752,17 @@
 		"fr"		"Oui, abandonner"
 		"pt"		"Sim, renunciar"
 		"ru"		"Да, снять"
+	}
+
+	"Warden Resign Confirm No"
+	{
+		"en"		"No, go back"
+		"es"		"No, volver"
+		"las"		"No, volver"
+		"de"		"Nein, zurück"
+		"fr"		"Non, retour"
+		"pt"		"Não, voltar"
+		"ru"		"Нет, назад"
 	}
 
 	"No Cell Access"

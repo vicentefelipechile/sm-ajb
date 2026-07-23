@@ -42,7 +42,8 @@ enum AJB_LRWish
 	LRWish_Custom,
 	LRWish_HotReds,
 	LRWish_Suicide,
-	LRWish_LowGravity
+	LRWish_LowGravity,
+	LRWish_HideSeek
 };
 
 public Plugin myinfo =
@@ -59,6 +60,8 @@ ConVar g_cvMenuTime;
 ConVar g_cvSuicideDelay;
 ConVar g_cvHotDamage;
 ConVar g_cvGravity;
+ConVar g_cvHSHideTime;
+ConVar g_cvHSRoundTime;
 
 bool g_bHasCore;
 
@@ -69,10 +72,15 @@ bool g_bHotReds;
 bool g_bLowGravity;
 int g_iSavedGravity = -1;
 
+// Hide and Seek: BLU are frozen "seekers" for the hide window, RED run and hide.
+bool g_bHideSeek;
+
 Handle g_hMenuTimer;
 Handle g_hMenuWarnTimer;
 Handle g_hSuicideTimer;
 Handle g_hHotTimer;
+Handle g_hHSHideTimer;   // fires when the hide window ends → release seekers
+Handle g_hHSEndTimer;    // authoritative 5-minute round end (hiders win on timeout)
 
 // Seconds remaining when the hurry warning fires (half of menu time).
 int g_iMenuWarnLeft;
@@ -108,6 +116,8 @@ public void OnPluginStart()
 	g_cvSuicideDelay = CreateConVar("sm_ajb_lr_suicide_delay", "5", "Seconds before suicide LR kills the prisoner.", _, true, 1.0, true, 30.0);
 	g_cvHotDamage = CreateConVar("sm_ajb_lr_hot_damage", "8", "Damage per tick when Hot Reds touch a guard.", _, true, 1.0, true, 100.0);
 	g_cvGravity = CreateConVar("sm_ajb_lr_low_gravity", "200", "sv_gravity value for Low Gravity LR (stock is 800).", _, true, 50.0, true, 800.0);
+	g_cvHSHideTime = CreateConVar("sm_ajb_lr_hs_hide_time", "30", "Hide and Seek: seconds RED get to hide before the frozen BLU seekers are released.", _, true, 5.0, true, 120.0);
+	g_cvHSRoundTime = CreateConVar("sm_ajb_lr_hs_round_time", "300", "Hide and Seek: total round duration in seconds (hiders win on timeout).", _, true, 60.0, true, 900.0);
 
 	AutoExecConfig(true, "ajb_lastrequest");
 
@@ -617,6 +627,8 @@ void AJB_LR_ShowWishMenu(int prisoner)
 	menu.AddItem("suicide", line);
 	Format(line, sizeof(line), "%T", "LR Wish LowGravity", prisoner);
 	menu.AddItem("lowgrav", line);
+	Format(line, sizeof(line), "%T", "LR Wish HideAndSeek", prisoner);
+	menu.AddItem("hideseek", line);
 
 	menu.ExitButton = false;
 	g_bMenuOpen = true;
@@ -770,6 +782,10 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 	else if (StrEqual(info, "lowgrav"))
 	{
 		AJB_LR_DoLowGravity(client);
+	}
+	else if (StrEqual(info, "hideseek"))
+	{
+		AJB_LR_DoHideSeek(client);
 	}
 
 	return 0;
@@ -988,6 +1004,10 @@ void AJB_LR_ApplyPendingWish()
 			}
 			AJB_OpenCells();
 			AJB_LR_ChatAllQueuedApplied(chooser, "LR Applied LowGravity");
+		}
+		case LRWish_HideSeek:
+		{
+			AJB_LR_ApplyHideSeek(chooser);
 		}
 		default:
 		{
@@ -1541,18 +1561,215 @@ void AJB_LR_DoLowGravity(int prisoner)
 	AJB_LR_QueueWish(prisoner, LRWish_LowGravity, "LR Chose LowGravity");
 }
 
+void AJB_LR_DoHideSeek(int prisoner)
+{
+	// NEXT round Hide and Seek.
+	AJB_LR_QueueWish(prisoner, LRWish_HideSeek, "LR Chose HideSeek");
+}
+
+// =========================================================================================================
+// Hide and Seek
+// =========================================================================================================
+
+// Applied at live-round begin (after prep): gather + freeze BLU seekers at the first
+// spawn, open cells so RED can run and hide, then run the hide window and 5-min clock.
+void AJB_LR_ApplyHideSeek(const char[] chooser)
+{
+	g_bHideSeek = true;
+	AJB_SetRoundState(AJBState_SpecialDay);
+
+	// Doors open so hiders can run.
+	AJB_OpenCells();
+
+	// First spawn point for the guards' team — all seekers stack on it (expected).
+	int spawn = AJB_LR_FindGuardSpawn();
+	float origin[3];
+	float angles[3];
+	bool haveSpawn = (spawn != -1);
+	if (haveSpawn)
+	{
+		GetEntPropVector(spawn, Prop_Data, "m_vecOrigin", origin);
+		GetEntPropVector(spawn, Prop_Data, "m_angRotation", angles);
+	}
+
+	float noVel[3];
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || !AJB_IsGuard(i))
+		{
+			continue;
+		}
+
+		if (haveSpawn)
+		{
+			TeleportEntity(i, origin, angles, noVel);
+		}
+		AJB_LR_SetSeekerFrozen(i, true);
+	}
+
+	// 5-minute HUD clock + authoritative end (hiders win if time runs out).
+	float roundTime = g_cvHSRoundTime.FloatValue;
+	AJB_SetPhaseTimer(roundTime);
+
+	AJB_LR_KillHSTimers();
+	g_hHSEndTimer = CreateTimer(roundTime, Timer_HSEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+	g_hHSHideTimer = CreateTimer(g_cvHSHideTime.FloatValue, Timer_HSRelease, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	AJB_LR_ChatAllQueuedApplied(chooser, "LR Applied HideSeek");
+}
+
+// Freeze/unfreeze a seeker in place (networked hard lock, like the core prep freeze).
+void AJB_LR_SetSeekerFrozen(int client, bool frozen)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	MoveType mt = GetEntityMoveType(client);
+	if (mt == MOVETYPE_NOCLIP || mt == MOVETYPE_OBSERVER)
+	{
+		return;
+	}
+
+	if (frozen)
+	{
+		if (mt != MOVETYPE_NONE)
+		{
+			SetEntityMoveType(client, MOVETYPE_NONE);
+		}
+		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 1.0);
+	}
+	else
+	{
+		if (mt != MOVETYPE_WALK)
+		{
+			SetEntityMoveType(client, MOVETYPE_WALK);
+		}
+		float speed = GetEntPropFloat(client, Prop_Send, "m_flMaxspeed");
+		if (speed < 10.0)
+		{
+			SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 300.0);
+		}
+	}
+}
+
+// First info_player_teamspawn of the guards' team (fallback: first spawn of any team).
+int AJB_LR_FindGuardSpawn()
+{
+	int guardTeam = AJB_LR_GetGuardsTeam();
+	int ent = -1;
+	int first = -1;
+
+	while ((ent = FindEntityByClassname(ent, "info_player_teamspawn")) != -1)
+	{
+		if (!IsValidEntity(ent))
+		{
+			continue;
+		}
+
+		if (first == -1)
+		{
+			first = ent;
+		}
+
+		if (HasEntProp(ent, Prop_Data, "m_iTeamNum")
+			&& GetEntProp(ent, Prop_Data, "m_iTeamNum") == guardTeam)
+		{
+			return ent;
+		}
+	}
+
+	return first;
+}
+
+int AJB_LR_GetGuardsTeam()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && AJB_IsGuard(i))
+		{
+			return GetClientTeam(i);
+		}
+	}
+	return 3; // BLU default
+}
+
+int AJB_LR_GetPrisonersTeam()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && AJB_IsPrisoner(i))
+		{
+			return GetClientTeam(i);
+		}
+	}
+	return 2; // RED default
+}
+
+Action Timer_HSRelease(Handle timer)
+{
+	g_hHSHideTimer = null;
+
+	if (!g_bHideSeek)
+	{
+		return Plugin_Stop;
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && AJB_IsGuard(i))
+		{
+			AJB_LR_SetSeekerFrozen(i, false);
+		}
+	}
+
+	AJB_ChatAll("LR HideSeek Released");
+	return Plugin_Stop;
+}
+
+Action Timer_HSEnd(Handle timer)
+{
+	g_hHSEndTimer = null;
+
+	if (!g_bHideSeek || !g_bHasCore)
+	{
+		return Plugin_Stop;
+	}
+
+	// Time up: the hiders (RED) survived → prisoners win.
+	AJB_ChatAll("LR HideSeek TimeUp");
+	AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+	return Plugin_Stop;
+}
+
+void AJB_LR_KillHSTimers()
+{
+	if (g_hHSHideTimer != null)
+	{
+		delete g_hHSHideTimer;
+		g_hHSHideTimer = null;
+	}
+	if (g_hHSEndTimer != null)
+	{
+		delete g_hHSEndTimer;
+		g_hHSEndTimer = null;
+	}
+}
+
 // =========================================================================================================
 // Cleanup
 // =========================================================================================================
 
 void AJB_LR_Cleanup(bool announce)
 {
-	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity);
+	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek);
 	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
 
 	AJB_LR_KillMenuTimer();
 	AJB_LR_KillSuicideTimer();
 	AJB_LR_KillHotTimer();
+	AJB_LR_KillHSTimers();
 
 	g_iPrisoner = 0;
 	g_bMenuOpen = false;
@@ -1588,6 +1805,19 @@ void AJB_LR_Cleanup(bool announce)
 			cv.SetInt(g_iSavedGravity);
 		}
 		g_iSavedGravity = -1;
+	}
+
+	if (g_bHideSeek)
+	{
+		g_bHideSeek = false;
+		// Unfreeze any seekers still locked from the hide window.
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientInGame(i) && IsPlayerAlive(i) && AJB_IsGuard(i))
+			{
+				AJB_LR_SetSeekerFrozen(i, false);
+			}
+		}
 	}
 
 	if (announce && was)

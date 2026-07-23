@@ -362,8 +362,8 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"{1} Not available during Last Request."
-		"es"		"{1} No disponible durante Last Request."
-		"las"		"{1} No disponible durante Last Request."
+		"es"		"{1} No disponible durante el Deseo."
+		"las"		"{1} No disponible durante el Deseo."
 		"de"		"{1} Während Last Request nicht verfügbar."
 		"fr"		"{1} Indisponible pendant le Last Request."
 		"pt"		"{1} Indisponível durante o Last Request."

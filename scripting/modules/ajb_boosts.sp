@@ -81,7 +81,6 @@ public Plugin myinfo =
 
 ConVar g_cvEnabled;
 ConVar g_cvMaxPoints;
-ConVar g_cvSpendCap;
 ConVar g_cvBluEvery;
 
 bool g_bHasCore;
@@ -140,8 +139,7 @@ public void OnPluginStart()
 {
 	CreateConVar("sm_ajb_boosts_version", PLUGIN_VERSION, "AJB Boosts module version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	g_cvEnabled = CreateConVar("sm_ajb_boosts_enabled", "1", "Enable the boosts system.", _, true, 0.0, true, 1.0);
-	g_cvMaxPoints = CreateConVar("sm_ajb_boosts_max_points", "3", "Max points a player can hold (0 = unlimited).", _, true, 0.0);
-	g_cvSpendCap = CreateConVar("sm_ajb_boosts_spend_cap", "3", "Max points spendable per round (0 = unlimited).", _, true, 0.0);
+	g_cvMaxPoints = CreateConVar("sm_ajb_boosts_max_points", "3", "Max points a player can EARN-hold (0 = unlimited). Admin grants ignore this.", _, true, 0.0);
 	g_cvBluEvery = CreateConVar("sm_ajb_boosts_blu_every", "2", "BLU surviving players get +1 extra every N finished rounds.", _, true, 1.0);
 
 	AutoExecConfig(true, "ajb_boosts");
@@ -363,9 +361,11 @@ void AJB_Boosts_AddPoints(int client, int amount, const char[] reason)
 		return;
 	}
 
+	// Admin grants are intentional and bypass the earn-holdings cap; earned points respect it.
+	bool isAdmin = StrEqual(reason, "admin");
 	int maxPts = g_cvMaxPoints.IntValue;
 	int next = g_iPoints[client] + amount;
-	if (maxPts > 0 && next > maxPts)
+	if (!isAdmin && maxPts > 0 && next > maxPts)
 	{
 		next = maxPts;
 	}
@@ -387,17 +387,8 @@ void AJB_Boosts_AddPoints(int client, int amount, const char[] reason)
 
 bool AJB_Boosts_TrySpend(int client, int cost)
 {
-	if (cost < 1 || cost > 3)
+	if (cost < 1)
 	{
-		return false;
-	}
-
-	int cap = g_cvSpendCap.IntValue;
-	if (cap > 0 && (g_iSpentThisRound[client] + cost) > cap)
-	{
-		char prefix[32];
-		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		CPrintToChat(client, "%T", "Boosts Spend Cap", client, prefix, cap);
 		return false;
 	}
 

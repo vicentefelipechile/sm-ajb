@@ -201,3 +201,44 @@ void AJB_CheckLastPrisoner()
 
 // Win / force-round / map-reset machinery was removed — it fought the engine and made rounds worse.
 // AJB no longer ends rounds or restarts the map. Engine / map logic owns that.
+
+// =========================================================================================================
+// Forced team names
+// =========================================================================================================
+
+void AJB_Teams_ApplyNames()
+{
+	if (!g_bModeActive)
+	{
+		return;
+	}
+
+	char guards[32];
+	char prisoners[32];
+	Format(guards, sizeof(guards), "%T", "Team Guards", LANG_SERVER);
+	Format(prisoners, sizeof(prisoners), "%T", "Team Prisoners", LANG_SERVER);
+
+	int guardsTeam = AJB_GetGuardsTeam();
+	int prisonersTeam = AJB_GetPrisonersTeam();
+
+	int ent = -1;
+	while ((ent = FindEntityByClassname(ent, "tf_team")) != -1)
+	{
+		int team = GetEntProp(ent, Prop_Send, "m_iTeamNum");
+		if (team == guardsTeam)
+		{
+			SetEntPropString(ent, Prop_Send, "m_szTeamname", guards);
+		}
+		else if (team == prisonersTeam)
+		{
+			SetEntPropString(ent, Prop_Send, "m_szTeamname", prisoners);
+		}
+	}
+}
+
+// tf_team entities exist a beat after map spawn; delay so the write sticks.
+Action Timer_ApplyTeamNames(Handle timer)
+{
+	AJB_Teams_ApplyNames();
+	return Plugin_Stop;
+}

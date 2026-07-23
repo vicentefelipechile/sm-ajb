@@ -57,6 +57,9 @@ bool g_bRebelOnHit = true;
 ConVar g_cvStripPrisoners;
 ConVar g_cvBlockBuildings;
 ConVar g_cvBlockPrisonerDamage;
+ConVar g_cvDoorAuto;
+ConVar g_cvDoorAutoRadius;
+ConVar g_cvGenConfig;
 ConVar g_cvPrepTime;
 ConVar g_cvRoundTime;
 
@@ -81,6 +84,9 @@ bool g_bLastPrisonerAnnounced;
 char g_sDoorNames[AJB_MAX_DOOR_NAMES][AJB_MAX_DOOR_NAME_LEN];
 int g_iDoorNameCount;
 
+int g_iDoorHammerIds[AJB_MAX_DOOR_NAMES];
+int g_iDoorHammerCount;
+
 Handle g_hFwdRoundState;
 Handle g_hFwdWarden;
 Handle g_hFwdRebel;
@@ -104,6 +110,8 @@ Handle g_hCellsAutoTimer;
 #include "ajb/core_rounds.sp"
 #include "ajb/core_warden_marker.sp"
 #include "ajb/core_warden_votes.sp"
+#include "ajb/core_collisions.sp"
+#include "ajb/core_friendlyfire.sp"
 #include "ajb/core_warden.sp"
 #include "ajb/core_warden_health.sp"
 #include "ajb/core_rules.sp"
@@ -156,6 +164,9 @@ public void OnPluginStart()
 	g_cvStripPrisoners = CreateConVar("sm_ajb_strip_prisoners", "1", "1 = strip prisoners to melee on spawn.", _, true, 0.0, true, 1.0);
 	g_cvBlockBuildings = CreateConVar("sm_ajb_block_buildings", "0", "1 = block Engineer buildings while AJB is active (see sm_ajb_allow_sentry for sentry exception). Default 0 = allow builds.", _, true, 0.0, true, 1.0);
 	g_cvBlockPrisonerDamage = CreateConVar("sm_ajb_block_prisoner_damage", "1", "1 = block non-rebel prisoner damage to guards (freeday does not bypass this).", _, true, 0.0, true, 1.0);
+	g_cvDoorAuto = CreateConVar("sm_ajb_door_auto", "1", "1 = when no cell doors are found by config/name, auto-detect door-like entities near the RED spawn and cache them by map id.", _, true, 0.0, true, 1.0);
+	g_cvDoorAutoRadius = CreateConVar("sm_ajb_door_auto_radius", "800", "Max distance from a RED spawn for auto-door detection, in units.", _, true, 64.0);
+	g_cvGenConfig = CreateConVar("sm_ajb_gen_config_auto", "1", "1 = auto-generate a per-map config stub (configs/ajb/maps/<map>.cfg) when one does not exist.", _, true, 0.0, true, 1.0);
 	g_cvPrepTime = CreateConVar("sm_ajb_prep_time", "10", "Preparation seconds at round start: BLU can move, RED stay frozen in cells (0 = off).", _, true, 0.0, true, 60.0);
 	g_cvRoundTime = CreateConVar("sm_ajb_round_time", "600", "Main round HUD duration in seconds (0 = no main clock). Does not force engine wins.", _, true, 0.0);
 
@@ -171,6 +182,8 @@ public void OnPluginStart()
 	AJB_Settings_OnPluginStart();
 	AJB_Balance_OnPluginStart();
 	AJB_Freekill_OnPluginStart();
+	AJB_Collisions_OnPluginStart();
+	AJB_FF_OnPluginStart();
 
 	AutoExecConfig(true, "ajb");
 	// Mid-map reload: hook packs already in the world (OnMapStart will not re-run).
@@ -216,6 +229,7 @@ public void OnPluginStart()
 
 	RegAdminCmd("sm_ajb_doors_reload", Command_DoorsReload, ADMFLAG_CONFIG, "Reload per-map doors + teleports (configs/ajb/maps/<map>.cfg).");
 	RegAdminCmd("sm_ajb_doors_list", Command_DoorsList, ADMFLAG_CONFIG, "List configured door targetnames.");
+	RegAdminCmd("sm_ajb_gen_config", Command_GenConfig, ADMFLAG_CONFIG, "(Re)generate the per-map config stub from live entities (overwrites).");
 
 	AJB_RefreshModeActive();
 	if (g_bModeActive)
@@ -286,6 +300,8 @@ public void OnPluginEnd()
 	AJB_ClearWarden(false);
 	AJB_Sentry_OnPluginEnd();
 	AJB_Movement_OnPluginEnd();
+	AJB_Collisions_OnPluginEnd();
+	AJB_FF_OnPluginEnd();
 	// Restore stock engine freeze if fallback changed it.
 	g_bModeActive = false;
 	AJB_ApplyEngineMovementPolicy();
@@ -311,6 +327,8 @@ public void OnMapStart()
 		AJB_LoadMapDoors();
 		AJB_SetRoundState(AJBState_Waiting);
 		AJB_HookAllClients();
+		// tf_team entities are ready a beat after map spawn; name them then.
+		CreateTimer(1.0, Timer_ApplyTeamNames, _, TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else
 	{
@@ -400,6 +418,31 @@ Action Command_DoorsReload(int client, int args)
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
 	ReplyToCommand(client, "%T", "Doors Reloaded", AJB_TransTarget(client), prefix, g_iDoorNameCount);
+	return Plugin_Handled;
+}
+
+Action Command_GenConfig(int client, int args)
+{
+	if (!g_bModeActive)
+	{
+		AJB_Reply(client, "Mode Inactive");
+		return Plugin_Handled;
+	}
+
+	char fileMap[PLATFORM_MAX_PATH];
+	AJB_GetShortMapName(fileMap, sizeof(fileMap));
+
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+
+	if (AJB_GenerateMapConfigStub(fileMap, true))
+	{
+		ReplyToCommand(client, "%s Generated configs/ajb/maps/%s.cfg — prune non-cell doors, then sm_ajb_doors_reload.", prefix, fileMap);
+	}
+	else
+	{
+		ReplyToCommand(client, "%s Failed to generate config for %s (see server log).", prefix, fileMap);
+	}
 	return Plugin_Handled;
 }
 

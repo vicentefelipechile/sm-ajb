@@ -17,6 +17,8 @@ void AJB_SetWarden(int client, bool announce)
 
 	g_iWarden = client;
 	g_iWardenLastRound[client] = g_iWardenRoundSerial;
+	// New wardenship always starts on the first menu page.
+	g_iWardenMenuPage[client] = 0;
 
 	// Strip vision from previous warden; grant native see-enemy-health to the new one.
 	if (old > 0 && IsClientInGame(old))
@@ -190,6 +192,8 @@ Action Command_Warden(int client, int args)
 			return Plugin_Handled;
 		}
 
+		// A fresh /warden always opens on the first page, never a stale section.
+		g_iWardenMenuPage[client] = 0;
 		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 		return Plugin_Handled;
 	}
@@ -252,10 +256,59 @@ void Frame_WardenMenu(int userid)
 // Warden menu
 // =========================================================================================================
 
-// Paged hub. Each page is its own curated section, kept <= 7 items so SourceMod's
-// own pagination never kicks in and the page:N nav items stay in control.
-// The current page lives in g_iWardenMenuPage[client] so reopens (RequestFrame)
-// land back on the same section after an action.
+// Action codes mapped per key. TF2's radio menu drops non-numbered menu items
+// entirely (RAWLINE) and forces disabled items to eat a number — so the paged hub
+// is built as a Panel: DrawText() renders un-numbered headers/separators that cost
+// no slot, DrawItem() renders the numbered actions. Panel handlers receive the raw
+// key pressed (not an info string), so each key is mapped to an action here.
+#define WA_NONE          0
+#define WA_OPEN          1
+#define WA_CLOSE         2
+#define WA_MARKER        3
+#define WA_COLLISIONS    4
+#define WA_RESIGN        5
+#define WA_PAGE_NEXT     6
+#define WA_GIVE_LR       7
+#define WA_VOTE_YESNO    8
+#define WA_VOTE_MULTI    9
+#define WA_MARK_REBEL    10
+#define WA_PARDON_REBEL  11
+#define WA_PAGE_PREV     12
+#define WA_EXIT          13
+#define WA_FRIENDLYFIRE  14
+
+// key (1..10) → action for the panel currently shown to each warden. Rebuilt on
+// every AJB_Warden_ShowMenu so gating cvars can add/remove items without desyncing.
+int g_iWardenKeyAction[MAXPLAYERS + 1][11];
+
+// Section header rendered as "── <name> ──" on its own, un-numbered Panel line.
+void AJB_Warden_PanelHeader(Panel panel, int client, const char[] phrase)
+{
+	char name[48];
+	char line[64];
+	Format(name, sizeof(name), "%T", phrase, client);
+	Format(line, sizeof(line), "── %s ──", name);
+	panel.DrawText(line);
+}
+
+// A plain un-numbered divider line (before the navigation row).
+void AJB_Warden_PanelSeparator(Panel panel)
+{
+	panel.DrawText("──────────────");
+}
+
+// Draw one numbered action; assigns it the next key and records the mapping.
+// Returns the next free key.
+int AJB_Warden_PanelAction(Panel panel, int client, int key, int action, const char[] display)
+{
+	panel.DrawItem(display);
+	g_iWardenKeyAction[client][key] = action;
+	return key + 1;
+}
+
+// Paged hub as a Panel. Headers/separators (DrawText) cost no slot; only the
+// DrawItem actions are numbered. The current page lives in g_iWardenMenuPage[client]
+// so reopens (RequestFrame) land back on the same section after an action.
 void AJB_Warden_ShowMenu(int client)
 {
 	if (!AJB_IsValidClient(client) || !AJB_IsWarden(client))
@@ -270,80 +323,116 @@ void AJB_Warden_ShowMenu(int client)
 		g_iWardenMenuPage[client] = 0;
 	}
 
-	Menu menu = new Menu(MenuHandler_Warden);
+	// Fresh key map for this render.
+	for (int k = 0; k <= 10; k++)
+	{
+		g_iWardenKeyAction[client][k] = WA_NONE;
+	}
 
-	// Format first — SetTitle("%T", ...) is unreliable if the phrase set just reloaded.
-	char title[64];
+	Panel panel = new Panel();
+
+	// No panel title — the section headers carry the structure on their own.
 	char line[64];
+	int key = 1;
 
 	if (page == 0)
 	{
-		Format(title, sizeof(title), "%T", "Warden Menu Title Shortcuts", client);
-		menu.SetTitle(title);
+		AJB_Warden_PanelHeader(panel, client, "Warden Header Cells");
 
 		Format(line, sizeof(line), "%T", "Warden Menu Open Cells", client);
-		menu.AddItem("open", line);
+		key = AJB_Warden_PanelAction(panel, client, key, WA_OPEN, line);
 
 		Format(line, sizeof(line), "%T", "Warden Menu Close Cells", client);
-		menu.AddItem("close", line);
+		key = AJB_Warden_PanelAction(panel, client, key, WA_CLOSE, line);
+
+		bool hasTools = (g_cvMarkerEnabled != null && g_cvMarkerEnabled.BoolValue)
+			|| (g_cvCollisionsControl != null && g_cvCollisionsControl.BoolValue)
+			|| (g_cvFFControl != null && g_cvFFControl.BoolValue);
+		if (hasTools)
+		{
+			AJB_Warden_PanelHeader(panel, client, "Warden Header Tools");
+		}
 
 		if (g_cvMarkerEnabled != null && g_cvMarkerEnabled.BoolValue)
 		{
 			Format(line, sizeof(line), "%T", "Warden Menu Marker", client);
-			menu.AddItem("marker", line);
+			key = AJB_Warden_PanelAction(panel, client, key, WA_MARKER, line);
+		}
+
+		// Toggle teammate push; label reflects the action, not the current state.
+		if (g_cvCollisionsControl != null && g_cvCollisionsControl.BoolValue)
+		{
+			Format(line, sizeof(line), "%T", g_bTeamPush ? "Warden Menu Collisions Disable" : "Warden Menu Collisions Enable", client);
+			key = AJB_Warden_PanelAction(panel, client, key, WA_COLLISIONS, line);
+		}
+
+		// Toggle friendly fire; label reflects the action, not the current state.
+		if (g_cvFFControl != null && g_cvFFControl.BoolValue)
+		{
+			Format(line, sizeof(line), "%T", g_bFriendlyFire ? "Warden Menu FriendlyFire Disable" : "Warden Menu FriendlyFire Enable", client);
+			key = AJB_Warden_PanelAction(panel, client, key, WA_FRIENDLYFIRE, line);
+		}
+
+		AJB_Warden_PanelHeader(panel, client, "Warden Header Manage");
+
+		Format(line, sizeof(line), "%T", "Warden Menu Resign", client);
+		key = AJB_Warden_PanelAction(panel, client, key, WA_RESIGN, line);
+
+		AJB_Warden_PanelSeparator(panel);
+
+		Format(line, sizeof(line), "%T", "Warden Page Next", client);
+		key = AJB_Warden_PanelAction(panel, client, key, WA_PAGE_NEXT, line);
+	}
+	else
+	{
+		AJB_Warden_PanelHeader(panel, client, "Warden Header Events");
+
+		// LR grant is handled by the lastrequest module via AJB_OnWardenGiveLR.
+		Format(line, sizeof(line), "%T", "Warden Menu Give LR", client);
+		key = AJB_Warden_PanelAction(panel, client, key, WA_GIVE_LR, line);
+
+		if (g_cvVoteEnabled != null && g_cvVoteEnabled.BoolValue)
+		{
+			Format(line, sizeof(line), "%T", "Warden Menu Vote YesNo", client);
+			key = AJB_Warden_PanelAction(panel, client, key, WA_VOTE_YESNO, line);
+
+			Format(line, sizeof(line), "%T", "Warden Menu Vote Multi", client);
+			key = AJB_Warden_PanelAction(panel, client, key, WA_VOTE_MULTI, line);
 		}
 
 		// Mark / pardon RED rebels (gated by sm_ajb_warden_rebel_control).
 		if (g_cvWardenRebelControl != null && g_cvWardenRebelControl.BoolValue)
 		{
+			AJB_Warden_PanelHeader(panel, client, "Warden Header Rebels");
+
 			Format(line, sizeof(line), "%T", "Warden Menu Mark Rebel", client);
-			menu.AddItem("mark_rebel", line);
+			key = AJB_Warden_PanelAction(panel, client, key, WA_MARK_REBEL, line);
 
 			Format(line, sizeof(line), "%T", "Warden Menu Pardon Rebel", client);
-			menu.AddItem("pardon_rebel", line);
+			key = AJB_Warden_PanelAction(panel, client, key, WA_PARDON_REBEL, line);
 		}
 
-		Format(line, sizeof(line), "%T", "Warden Menu Resign", client);
-		menu.AddItem("resign", line);
-
-		Format(line, sizeof(line), "%T", "Warden Page Next", client);
-		menu.AddItem("page:1", line);
-	}
-	else
-	{
-		Format(title, sizeof(title), "%T", "Warden Menu Title Events", client);
-		menu.SetTitle(title);
-
-		// LR grant is handled by the lastrequest module via AJB_OnWardenGiveLR.
-		Format(line, sizeof(line), "%T", "Warden Menu Give LR", client);
-		menu.AddItem("give_lr", line);
-
-		if (g_cvVoteEnabled != null && g_cvVoteEnabled.BoolValue)
-		{
-			Format(line, sizeof(line), "%T", "Warden Menu Vote YesNo", client);
-			menu.AddItem("vote_yesno", line);
-
-			Format(line, sizeof(line), "%T", "Warden Menu Vote Multi", client);
-			menu.AddItem("vote_multi", line);
-		}
+		AJB_Warden_PanelSeparator(panel);
 
 		Format(line, sizeof(line), "%T", "Warden Page Prev", client);
-		menu.AddItem("page:0", line);
+		key = AJB_Warden_PanelAction(panel, client, key, WA_PAGE_PREV, line);
 	}
 
-	menu.ExitButton = true;
-	// 0 = stay open until dismissed (MENU_TIME_FOREVER).
-	menu.Display(client, 0);
+	// Exit pinned to key 0 (slot 10), the TF2 convention. Map both 0 and 10 since
+	// the handler may report either for the "0" key.
+	Format(line, sizeof(line), "%T", "Warden Menu Exit", client);
+	panel.CurrentKey = 10;
+	panel.DrawItem(line);
+	g_iWardenKeyAction[client][10] = WA_EXIT;
+	g_iWardenKeyAction[client][0] = WA_EXIT;
+
+	panel.Send(client, AJB_Warden_PanelHandler, MENU_TIME_FOREVER);
+	delete panel;
 }
 
-public int MenuHandler_Warden(Menu menu, MenuAction action, int param1, int param2)
+public int AJB_Warden_PanelHandler(Menu menu, MenuAction action, int param1, int param2)
 {
-	if (action == MenuAction_End)
-	{
-		delete menu;
-		return 0;
-	}
-
+	// Panels are freed right after Send; nothing to delete on End. ESC/timeout → close.
 	if (action != MenuAction_Select)
 	{
 		return 0;
@@ -355,84 +444,108 @@ public int MenuHandler_Warden(Menu menu, MenuAction action, int param1, int para
 		return 0;
 	}
 
-	char info[16];
-	menu.GetItem(param2, info, sizeof(info));
+	int act = (param2 >= 0 && param2 <= 10) ? g_iWardenKeyAction[client][param2] : WA_NONE;
 
-	// Page navigation is allowed regardless of alive state.
-	if (StrEqual(info, "page:0"))
+	// Exit / page navigation are allowed regardless of alive state.
+	if (act == WA_EXIT)
 	{
-		g_iWardenMenuPage[client] = 0;
-		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 		return 0;
 	}
-	else if (StrEqual(info, "page:1"))
+	if (act == WA_PAGE_NEXT)
 	{
 		g_iWardenMenuPage[client] = 1;
 		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 		return 0;
 	}
+	if (act == WA_PAGE_PREV)
+	{
+		g_iWardenMenuPage[client] = 0;
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
 
-	// Resign is allowed while dead; cell control needs a living warden.
-	if (StrEqual(info, "resign"))
+	// Resign + team-push toggle are policy switches — allowed even while dead.
+	if (act == WA_RESIGN)
 	{
 		AJB_Warden_ShowResignConfirm(client);
 		return 0;
 	}
+	if (act == WA_COLLISIONS)
+	{
+		AJB_Collisions_Toggle();
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
+	if (act == WA_FRIENDLYFIRE)
+	{
+		AJB_FF_Toggle();
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
 
+	// Everything below needs a living warden.
 	if (!IsPlayerAlive(client))
 	{
 		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 		return 0;
 	}
 
-	if (StrEqual(info, "open"))
+	switch (act)
 	{
-		AJB_OpenCellsInternal(true);
-		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
-	}
-	else if (StrEqual(info, "close"))
-	{
-		AJB_CloseCellsInternal(true);
-		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
-	}
-	else if (StrEqual(info, "marker"))
-	{
-		AJB_Warden_PlaceMarker(client);
-		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
-	}
-	else if (StrEqual(info, "give_lr"))
-	{
-		Call_StartForward(g_hFwdWardenGiveLR);
-		Call_PushCell(client);
-		Call_Finish();
-	}
-	else if (StrEqual(info, "vote_yesno"))
-	{
-		// Prompt the warden to type the question; the poll shows to living prisoners.
-		AJB_Warden_StartVoteCompose(client, AJB_VOTE_MODE_YESNO);
-	}
-	else if (StrEqual(info, "vote_multi"))
-	{
-		// Prompt for "question | opt1 | opt2 | ..."; the poll shows to living prisoners.
-		AJB_Warden_StartVoteCompose(client, AJB_VOTE_MODE_MULTI);
-	}
-	else if (StrEqual(info, "mark_rebel"))
-	{
-		if (g_cvWardenRebelControl == null || !g_cvWardenRebelControl.BoolValue)
+		case WA_OPEN:
 		{
+			AJB_OpenCellsInternal(true);
 			RequestFrame(Frame_WardenMenu, GetClientUserId(client));
-			return 0;
 		}
-		AJB_Warden_ShowRebelPick(client, true);
-	}
-	else if (StrEqual(info, "pardon_rebel"))
-	{
-		if (g_cvWardenRebelControl == null || !g_cvWardenRebelControl.BoolValue)
+		case WA_CLOSE:
 		{
+			AJB_CloseCellsInternal(true);
 			RequestFrame(Frame_WardenMenu, GetClientUserId(client));
-			return 0;
 		}
-		AJB_Warden_ShowRebelPick(client, false);
+		case WA_MARKER:
+		{
+			AJB_Warden_PlaceMarker(client);
+			RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		}
+		case WA_GIVE_LR:
+		{
+			Call_StartForward(g_hFwdWardenGiveLR);
+			Call_PushCell(client);
+			Call_Finish();
+		}
+		case WA_VOTE_YESNO:
+		{
+			// Prompt the warden to type the question; the poll shows to living prisoners.
+			AJB_Warden_StartVoteCompose(client, AJB_VOTE_MODE_YESNO);
+		}
+		case WA_VOTE_MULTI:
+		{
+			// Prompt for "question | opt1 | opt2 | ..."; the poll shows to living prisoners.
+			AJB_Warden_StartVoteCompose(client, AJB_VOTE_MODE_MULTI);
+		}
+		case WA_MARK_REBEL:
+		{
+			if (g_cvWardenRebelControl == null || !g_cvWardenRebelControl.BoolValue)
+			{
+				RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+				return 0;
+			}
+			AJB_Warden_ShowRebelPick(client, true);
+		}
+		case WA_PARDON_REBEL:
+		{
+			if (g_cvWardenRebelControl == null || !g_cvWardenRebelControl.BoolValue)
+			{
+				RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+				return 0;
+			}
+			AJB_Warden_ShowRebelPick(client, false);
+		}
+		default:
+		{
+			// Header/unmapped key — just refresh.
+			RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		}
 	}
 
 	return 0;
@@ -573,12 +686,17 @@ void AJB_Warden_ShowResignConfirm(int client)
 
 	Menu menu = new Menu(MenuHandler_WardenResign);
 	char title[96];
-	char yes[64];
+	char line[64];
 	Format(title, sizeof(title), "%T", "Warden Resign Confirm Title", client);
-	Format(yes, sizeof(yes), "%T", "Warden Resign Confirm Yes", client);
 	menu.SetTitle(title);
-	menu.AddItem("yes", yes);
-	// ExitBackButton alone returns to main warden menu (no second "Volver" item).
+
+	Format(line, sizeof(line), "%T", "Warden Resign Confirm Yes", client);
+	menu.AddItem("yes", line);
+
+	// Explicit "No" as item 2 so both choices sit next to each other.
+	Format(line, sizeof(line), "%T", "Warden Resign Confirm No", client);
+	menu.AddItem("no", line);
+
 	menu.ExitButton = false;
 	menu.ExitBackButton = true;
 	menu.Display(client, 0);
@@ -623,6 +741,7 @@ public int MenuHandler_WardenResign(Menu menu, MenuAction action, int param1, in
 		return 0;
 	}
 
+	// "no" (or anything else) → reopen the main menu on the page it was left on.
 	RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 	return 0;
 }

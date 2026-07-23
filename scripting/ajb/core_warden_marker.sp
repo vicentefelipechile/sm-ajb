@@ -1,21 +1,21 @@
 // =========================================================================================================
 // Warden "Come here!" marker
 // - A pulsing beam ring on the ground where the warden is aiming.
-// - A native TF2 world annotation (ShowAnnotation user message) with the localized text.
+// - A native TF2 world annotation (the tutorial-style floating callout) via the show_annotation
+//   game event, so it renders in TF2's own marker style.
 // One marker at a time; a new one replaces the old. Cooldown-gated to avoid spam.
 // =========================================================================================================
 
-#define AJB_MARKER_RING_RADIUS   120.0
+#define AJB_MARKER_RING_RADIUS   240.0
 #define AJB_MARKER_RING_INNER     16.0
 #define AJB_MARKER_RING_WIDTH      6.0
 #define AJB_MARKER_REDRAW          0.70   // < ring life so the pulse looks continuous
 #define AJB_MARKER_RING_LIFE       1.00
 #define AJB_MARKER_TRACE_RANGE   8192.0
-#define AJB_MARKER_SOUND         "ambient/machines/teleport1.wav"
+#define AJB_MARKER_SOUND         "items/spawn_item.wav"
 
 ConVar g_cvMarkerEnabled;
 ConVar g_cvMarkerTime;
-ConVar g_cvMarkerCooldown;
 
 int g_iMarkerBeam = -1;
 int g_iMarkerHalo = -1;
@@ -23,7 +23,6 @@ int g_iMarkerHalo = -1;
 Handle g_hMarkerTimer;
 float g_fMarkerPos[3];
 float g_fMarkerExpire;       // GameTime when the ring stops redrawing
-float g_fMarkerNextAllowed;  // GameTime when the warden may place again
 int g_iMarkerAnnId;          // annotation id, bumped per marker so Hide targets the right one
 int g_iMarkerAnnSerial;      // monotonic source for g_iMarkerAnnId so ids never collide
 
@@ -40,12 +39,6 @@ void AJB_Marker_OnPluginStart()
 		"8.0",
 		"How long a warden marker stays visible, in seconds.",
 		_, true, 2.0, true, 30.0);
-
-	g_cvMarkerCooldown = CreateConVar(
-		"sm_ajb_warden_marker_cooldown",
-		"10.0",
-		"Cooldown between warden markers, in seconds (0 = no cooldown).",
-		_, true, 0.0, true, 120.0);
 }
 
 void AJB_Marker_OnMapStart()
@@ -62,7 +55,6 @@ void AJB_Marker_OnMapStart()
 	PrecacheSound(AJB_MARKER_SOUND);
 
 	AJB_Marker_Clear();
-	g_fMarkerNextAllowed = 0.0;
 }
 
 // Full teardown: stop the ring and hide any live annotation.
@@ -97,16 +89,6 @@ void AJB_Warden_PlaceMarker(int client)
 		return;
 	}
 
-	float now = GetGameTime();
-	if (now < g_fMarkerNextAllowed)
-	{
-		int remain = RoundToCeil(g_fMarkerNextAllowed - now);
-		char prefix[32];
-		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		CReplyToCommand(client, "%T", "Warden Marker Cooldown", client, prefix, remain);
-		return;
-	}
-
 	float pos[3];
 	if (!AJB_Marker_TraceAim(client, pos))
 	{
@@ -119,8 +101,7 @@ void AJB_Warden_PlaceMarker(int client)
 
 	float life = g_cvMarkerTime.FloatValue;
 	g_fMarkerPos = pos;
-	g_fMarkerExpire = now + life;
-	g_fMarkerNextAllowed = now + g_cvMarkerCooldown.FloatValue;
+	g_fMarkerExpire = GetGameTime() + life;
 	g_iMarkerAnnId = ++g_iMarkerAnnSerial;
 
 	// Draw the first ring immediately, then keep pulsing until expiry.
@@ -207,58 +188,41 @@ bool TraceFilter_MarkerWorld(int entity, int contentsMask, int client)
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// TF2 native world annotation (ShowAnnotation / HideAnnotation user messages, protobuf on TF2)
+// TF2 native world annotation — the tutorial-style floating callout.
+// The show_annotation / hide_annotation game events drive CTFAnnotationsMgr on every client,
+// so the marker renders in TF2's own marker style. visibilityBitfield 0 = shown to everyone.
 // ---------------------------------------------------------------------------------------------------------
 
 void AJB_Marker_ShowAnnotation(const float pos[3], float life)
 {
-	if (GetUserMessageType() != UM_Protobuf)
+	// A single shared event → one language for all; use the server's default language.
+	char text[64];
+	Format(text, sizeof(text), "%T", "Warden Marker Text", LANG_SERVER);
+
+	Event ev = CreateEvent("show_annotation", true);
+	if (ev == null)
 	{
-		return;  // TF2 is always protobuf; bail cleanly on anything else.
+		return;
 	}
 
-	// Sent per-client so the text is localized to each player's language.
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char text[64];
-		Format(text, sizeof(text), "%T", "Warden Marker Text", i);
-
-		Handle msg = StartMessageOne("ShowAnnotation", i, USERMSG_RELIABLE);
-		if (msg == null)
-		{
-			continue;
-		}
-
-		Protobuf pb = UserMessageToProtobuf(msg);
-		pb.SetInt("id", g_iMarkerAnnId);
-		pb.SetString("text", text);
-		pb.SetFloat("lifetime", life);
-		pb.SetFloat("worldPosX", pos[0]);
-		pb.SetFloat("worldPosY", pos[1]);
-		pb.SetFloat("worldPosZ", pos[2]);
-		EndMessage();
-	}
+	ev.SetFloat("worldPosX", pos[0]);
+	ev.SetFloat("worldPosY", pos[1]);
+	ev.SetFloat("worldPosZ", pos[2]);
+	ev.SetInt("id", g_iMarkerAnnId);
+	ev.SetString("text", text);
+	ev.SetFloat("lifetime", life);
+	ev.SetInt("visibilityBitfield", 0);   // 0 = visible to all players
+	ev.Fire();
 }
 
 void AJB_Marker_HideAnnotation(int id)
 {
-	if (GetUserMessageType() != UM_Protobuf)
+	Event ev = CreateEvent("hide_annotation", true);
+	if (ev == null)
 	{
 		return;
 	}
 
-	Handle msg = StartMessageAll("HideAnnotation", USERMSG_RELIABLE);
-	if (msg == null)
-	{
-		return;
-	}
-
-	Protobuf pb = UserMessageToProtobuf(msg);
-	pb.SetInt("id", id);
-	EndMessage();
+	ev.SetInt("id", id);
+	ev.Fire();
 }
