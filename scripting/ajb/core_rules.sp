@@ -309,7 +309,9 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 
 Action Event_PlayerBuiltObject(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!g_bModeActive || !g_cvBlockBuildings.BoolValue)
+	// Do not gate on sm_ajb_block_buildings here: ShouldBlockBuild still blocks preround/prep builds
+	// (which the engine wipes and taxes the metal for) even when live-round building is allowed.
+	if (!g_bModeActive)
 	{
 		return Plugin_Continue;
 	}
@@ -333,6 +335,6 @@ Action Event_PlayerBuiltObject(Event event, const char[] name, bool dontBroadcas
 	// player_builtobject is AFTER metal is spent — remove building + refund cost so it is not a tax.
 	AJB_Sentry_RemoveBlockedBuilding(ent);
 	AJB_Sentry_RefundBuildMetal(client, objType);
-	AJB_Sentry_ReplyBuildBlocked(client, objType);
+	AJB_Sentry_ReplyBuildBlocked(client);
 	return Plugin_Handled;
 }
