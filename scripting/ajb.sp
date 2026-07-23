@@ -115,6 +115,7 @@ Handle g_hCellsAutoTimer;
 #include "ajb/core_friendlyfire.sp"
 #include "ajb/core_warden.sp"
 #include "ajb/core_warden_health.sp"
+#include "ajb/core_warden_label.sp"
 #include "ajb/core_rules.sp"
 #include "ajb/core_weapons.sp"
 #include "ajb/core_doors.sp"
@@ -174,6 +175,7 @@ public void OnPluginStart()
 
 	AJB_WardenHealth_OnPluginStart();
 	AJB_Marker_OnPluginStart();
+	AJB_Label_OnPluginStart();
 	AJB_Votes_OnPluginStart();
 	// CanPlayerMove detour before mode policy (so policy sees detour active).
 	AJB_Movement_OnPluginStart();

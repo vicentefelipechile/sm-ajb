@@ -335,6 +335,17 @@
 		"ru"		"Сюда!"
 	}
 
+	"Warden Label Text"
+	{
+		"en"		"Warden"
+		"es"		"Warden"
+		"las"		"Warden"
+		"de"		"Warden"
+		"fr"		"Warden"
+		"pt"		"Warden"
+		"ru"		"Warden"
+	}
+
 	"Warden Marker Disabled"
 	{
 		"#format"	"{1:s}"

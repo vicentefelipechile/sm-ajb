@@ -27,6 +27,9 @@ void AJB_SetWarden(int client, bool announce)
 	}
 	AJB_WardenHealth_Apply(client);
 
+	// Overhead "Warden" label follows the new warden; clears with them (see AJB_ClearWarden).
+	AJB_Label_Show(client);
+
 	Call_StartForward(g_hFwdWarden);
 	Call_PushCell(old);
 	Call_PushCell(client);
@@ -75,8 +78,9 @@ void AJB_ClearWarden(bool announce)
 		AJB_WardenHealth_Remove(old);
 	}
 
-	// A warden's marker should not outlive their wardenship.
+	// A warden's marker and overhead label should not outlive their wardenship.
 	AJB_Marker_Clear();
+	AJB_Label_Hide();
 	// Drop any half-composed vote the resigning warden was typing.
 	AJB_Votes_Reset();
 
