@@ -333,7 +333,7 @@ void AJB_Votes_AnnounceStart(int warden, const char[] question)
 			continue;
 		}
 
-		char prefix[64];
+		char prefix[32];
 		AJB_GetPrefix(i, prefix, sizeof(prefix));
 		CPrintToChat(i, "%T", "Warden Vote Started", i, prefix, name, question);
 	}
@@ -348,7 +348,7 @@ void AJB_Votes_AnnounceResult(const char[] winner, int votes, int total)
 			continue;
 		}
 
-		char prefix[64];
+		char prefix[32];
 		AJB_GetPrefix(i, prefix, sizeof(prefix));
 		CPrintToChat(i, "%T", "Warden Vote Result", i, prefix, winner, votes, total);
 	}

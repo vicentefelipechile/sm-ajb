@@ -82,7 +82,7 @@ public int Native_IsRebel(Handle plugin, int numParams)
 	{
 		return false;
 	}
-	return g_bRebel[client];
+	return AJB_FlagGet(client, AJB_PF_REBEL);
 }
 
 public int Native_IsFreeday(Handle plugin, int numParams)
@@ -92,7 +92,7 @@ public int Native_IsFreeday(Handle plugin, int numParams)
 	{
 		return false;
 	}
-	return g_bFreeday[client];
+	return AJB_FlagGet(client, AJB_PF_FREEDAY);
 }
 
 public int Native_SetRebel(Handle plugin, int numParams)
@@ -126,7 +126,7 @@ public int Native_IsFreedayPending(Handle plugin, int numParams)
 	{
 		return false;
 	}
-	return g_bFreedayPending[client];
+	return AJB_FlagGet(client, AJB_PF_FREEDAY_PENDING);
 }
 
 public int Native_OpenCells(Handle plugin, int numParams)

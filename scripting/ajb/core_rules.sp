@@ -4,7 +4,7 @@
 
 void AJB_HookClient(int client)
 {
-	if (!IsClientInGame(client) || g_bSDKHooked[client])
+	if (!IsClientInGame(client) || AJB_FlagGet(client, AJB_PF_SDKHOOKED))
 	{
 		return;
 	}
@@ -13,12 +13,12 @@ void AJB_HookClient(int client)
 	// (If we skip when mode is off, a late-enable can leave clients unhooked.)
 	SDKHook(client, SDKHook_OnTakeDamage, AJB_OnTakeDamage);
 	SDKHook(client, SDKHook_TraceAttack, AJB_OnTraceAttack);
-	g_bSDKHooked[client] = true;
+	AJB_FlagSet(client, AJB_PF_SDKHOOKED, true);
 }
 
 void AJB_UnhookClient(int client)
 {
-	if (!g_bSDKHooked[client])
+	if (!AJB_FlagGet(client, AJB_PF_SDKHOOKED))
 	{
 		return;
 	}
@@ -29,7 +29,7 @@ void AJB_UnhookClient(int client)
 		SDKUnhook(client, SDKHook_TraceAttack, AJB_OnTraceAttack);
 	}
 
-	g_bSDKHooked[client] = false;
+	AJB_FlagSet(client, AJB_PF_SDKHOOKED, false);
 }
 
 void AJB_HookAllClients()
@@ -59,17 +59,17 @@ void AJB_SetRebelInternal(int client, bool rebel, bool announce, int source = 0)
 		return;
 	}
 
-	if (g_bRebel[client] == rebel)
+	if (AJB_FlagGet(client, AJB_PF_REBEL) == rebel)
 	{
 		return;
 	}
 
-	g_bRebel[client] = rebel;
+	AJB_FlagSet(client, AJB_PF_REBEL, rebel);
 
 	// Rebel and personal freeday are mutually exclusive.
-	if (rebel && g_bFreeday[client])
+	if (rebel && AJB_FlagGet(client, AJB_PF_FREEDAY))
 	{
-		g_bFreeday[client] = false;
+		AJB_FlagSet(client, AJB_PF_FREEDAY, false);
 		AJB_Freeday_OnApplied(client, false);
 	}
 
@@ -119,12 +119,12 @@ void AJB_QueueFreeday(int client, bool freeday)
 		return;
 	}
 
-	g_bFreedayPending[client] = freeday;
+	AJB_FlagSet(client, AJB_PF_FREEDAY_PENDING, freeday);
 
 	// Cancel also drops a stale current-round flag.
 	if (!freeday)
 	{
-		g_bFreeday[client] = false;
+		AJB_FlagSet(client, AJB_PF_FREEDAY, false);
 	}
 }
 
@@ -136,11 +136,11 @@ void AJB_ApplyFreedayNow(int client, bool freeday)
 		return;
 	}
 
-	g_bFreeday[client] = freeday;
+	AJB_FlagSet(client, AJB_PF_FREEDAY, freeday);
 
 	if (freeday)
 	{
-		g_bRebel[client] = false;
+		AJB_FlagSet(client, AJB_PF_REBEL, false);
 		AJB_Freeday_OnApplied(client, true);
 	}
 	else
@@ -174,7 +174,7 @@ void AJB_TryRebelFromAttack(int attacker, int victim)
 		return;
 	}
 
-	if (g_bRebel[attacker])
+	if (AJB_FlagGet(attacker, AJB_PF_REBEL))
 	{
 		return;
 	}
@@ -255,7 +255,7 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 	}
 
 	// Personal freeday: only the warden (or world/non-player) may damage them.
-	if (victimPrisoner && g_bFreeday[victim] && !g_bRebel[victim]
+	if (victimPrisoner && AJB_FlagGet(victim, AJB_PF_FREEDAY) && !AJB_FlagGet(victim, AJB_PF_REBEL)
 		&& g_bFreedayWardenOnlyDamage
 		&& !AJB_IsCombatDay())
 	{
@@ -281,7 +281,7 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 
 		// Non-rebels cannot hurt guards. Rebel mark already attempted above, so a
 		// successful auto-rebel allows this same hit to deal damage.
-		if (g_cvBlockPrisonerDamage.BoolValue && !g_bRebel[attacker])
+		if (g_cvBlockPrisonerDamage.BoolValue && !AJB_FlagGet(attacker, AJB_PF_REBEL))
 		{
 			damage = 0.0;
 			return Plugin_Changed;

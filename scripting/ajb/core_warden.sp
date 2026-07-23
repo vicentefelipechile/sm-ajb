@@ -50,7 +50,7 @@ void AJB_SetWarden(int client, bool announce)
 				continue;
 			}
 
-			char prefix[64];
+			char prefix[32];
 			AJB_GetPrefix(i, prefix, sizeof(prefix));
 			CPrintToChat(i, "%T", "Warden Claimed", i, prefix, nameTagged);
 		}
@@ -585,7 +585,7 @@ void AJB_Warden_ShowRebelPick(int client, bool markMode)
 		}
 
 		// Mark: only non-rebels. Pardon: only rebels.
-		if (markMode == g_bRebel[i])
+		if (markMode == AJB_FlagGet(i, AJB_PF_REBEL))
 		{
 			continue;
 		}
@@ -668,7 +668,7 @@ public int MenuHandler_WardenRebel(Menu menu, MenuAction action, int param1, int
 		|| !IsClientInGame(target)
 		|| !IsPlayerAlive(target)
 		|| !AJB_ClientIsPrisoner(target)
-		|| (markMode == g_bRebel[target]))
+		|| (markMode == AJB_FlagGet(target, AJB_PF_REBEL)))
 	{
 		// Invalid / already in desired state — refresh the same pick list.
 		AJB_Warden_ShowRebelPick(client, markMode);

@@ -104,20 +104,20 @@ void AJB_ResetPlayerFlags()
 
 void AJB_ResetClientFlags(int client)
 {
-	g_bRebel[client] = false;
-	g_bFreeday[client] = false;
+	AJB_FlagSet(client, AJB_PF_REBEL, false);
+	AJB_FlagSet(client, AJB_PF_FREEDAY, false);
 }
 
 void AJB_ApplyPendingFreedays()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!g_bFreedayPending[i])
+		if (!AJB_FlagGet(i, AJB_PF_FREEDAY_PENDING))
 		{
 			continue;
 		}
 
-		g_bFreedayPending[i] = false;
+		AJB_FlagSet(i, AJB_PF_FREEDAY_PENDING, false);
 
 		if (!IsClientInGame(i))
 		{
@@ -281,7 +281,7 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 
 	if (AJB_IsValidClient(victim))
 	{
-		g_bRebel[victim] = false;
+		AJB_FlagSet(victim, AJB_PF_REBEL, false);
 	}
 
 	// Last-prisoner announce only (no forced round end).
@@ -312,7 +312,7 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 	// Only clear rebel on a real team switch (not re-fires with the same team).
 	if (team != oldTeam)
 	{
-		g_bRebel[client] = false;
+		AJB_FlagSet(client, AJB_PF_REBEL, false);
 	}
 
 	// Enforce the JB guard ratio: bounce excess guards back to the prisoners.

@@ -55,7 +55,7 @@ void AJB_Balance_Notify(int client, int maxGuards)
 		return;
 	}
 
-	char prefix[64];
+	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
 	CPrintToChat(client, "%T", "Balance Guards Full", client, prefix, maxGuards);
 }
@@ -194,7 +194,7 @@ Action Command_AjbBalance(int client, int args)
 
 	int moved = AJB_Balance_ReconcileGuards();
 
-	char prefix[64];
+	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
 	ReplyToCommand(client, "%T", "Balance Forced", AJB_TransTarget(client), prefix, moved, AJB_MaxGuards());
 	return Plugin_Handled;

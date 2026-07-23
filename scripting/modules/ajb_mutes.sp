@@ -61,6 +61,10 @@ bool g_bAjbMuted[MAXPLAYERS + 1];
 // re-runs the voice matrix. Updated by the watchdog timer.
 bool g_bWasAlive[MAXPLAYERS + 1];
 
+// A voice-matrix rebuild is queued for next frame; coalesces bursts of life/team
+// events (mass slay, round end) into a single O(n^2) rebuild instead of one each.
+bool g_bVoiceRefreshQueued;
+
 // =========================================================================================================
 // Lifecycle
 // =========================================================================================================
@@ -119,6 +123,7 @@ public void OnPluginEnd()
 
 public void OnMapEnd()
 {
+	g_bVoiceRefreshQueued = false;
 	AJB_Mutes_ClearAll(true);
 	AJB_Voice_ClearAll();
 }
@@ -447,7 +452,27 @@ bool AJB_Voice_Enabled()
 	return true;
 }
 
+// Coalesce: many life/team events can fire in the same frame (mass slay, round end,
+// mass freekill). Collapse them to a single rebuild on the next frame instead of one
+// full O(n^2) SetListenOverride sweep per event.
 void AJB_Voice_RefreshAll()
+{
+	if (g_bVoiceRefreshQueued)
+	{
+		return;
+	}
+
+	g_bVoiceRefreshQueued = true;
+	RequestFrame(Frame_VoiceRefresh);
+}
+
+void Frame_VoiceRefresh(any data)
+{
+	g_bVoiceRefreshQueued = false;
+	AJB_Voice_DoRefreshAll();
+}
+
+void AJB_Voice_DoRefreshAll()
 {
 	if (!AJB_Voice_Enabled())
 	{
@@ -457,11 +482,14 @@ void AJB_Voice_RefreshAll()
 
 	bool crossTeam = g_cvDeadTalkCrossTeam.BoolValue;
 
-	// Precompute bypass so we don't re-parse flags in the inner loop.
+	// Parse the bypass flag string once for the whole matrix, not once per client.
+	int need = AJB_Voice_BypassBits();
+
+	// Precompute bypass so we don't re-check it in the inner loop.
 	bool bypass[MAXPLAYERS + 1];
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		bypass[i] = AJB_Voice_HasBypass(i);
+		bypass[i] = AJB_Voice_FlagsMatch(i, need);
 	}
 
 	for (int recv = 1; recv <= MaxClients; recv++)
@@ -507,29 +535,36 @@ void AJB_Voice_RefreshAll()
 	}
 }
 
-// True if the client holds any of the configured bypass flags (root always qualifies).
-bool AJB_Voice_HasBypass(int client)
+// Bits for the configured bypass flags (0 = none / empty). Parse once, then reuse
+// across the voice matrix instead of re-reading the cvar string per client.
+int AJB_Voice_BypassBits()
 {
-	if (client < 1 || client > MaxClients || !IsClientInGame(client) || IsFakeClient(client))
-	{
-		return false;
-	}
-
 	char flags[32];
 	g_cvBypassFlags.GetString(flags, sizeof(flags));
 	if (flags[0] == '\0')
 	{
-		return false;
+		return 0;
 	}
 
-	int need = ReadFlagString(flags);
-	if (need == 0)
+	return ReadFlagString(flags);
+}
+
+// True if the client holds any of the given bypass bits (root always qualifies).
+bool AJB_Voice_FlagsMatch(int client, int need)
+{
+	if (need == 0 || client < 1 || client > MaxClients || !IsClientInGame(client) || IsFakeClient(client))
 	{
 		return false;
 	}
 
 	int have = GetUserFlagBits(client);
 	return (have & ADMFLAG_ROOT) != 0 || (have & need) != 0;
+}
+
+// True if the client holds any of the configured bypass flags (root always qualifies).
+bool AJB_Voice_HasBypass(int client)
+{
+	return AJB_Voice_FlagsMatch(client, AJB_Voice_BypassBits());
 }
 
 void AJB_Voice_ClearAll()

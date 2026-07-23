@@ -331,7 +331,7 @@ Action AJB_Weapons_OnAmmoTouch(int entity, int other)
 	}
 
 	// Grabbing map ammo / arming = freerun with guns → rebel (ends personal freeday).
-	if (!g_bRebel[other])
+	if (!AJB_FlagGet(other, AJB_PF_REBEL))
 	{
 		AJB_SetRebelInternal(other, true, true, 0);
 	}

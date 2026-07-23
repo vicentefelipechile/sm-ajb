@@ -235,7 +235,7 @@ void AJB_Freekill_Announce(int attacker, int victims)
 			continue;
 		}
 
-		char prefix[64];
+		char prefix[32];
 		AJB_GetPrefix(i, prefix, sizeof(prefix));
 		CPrintToChat(i, "%T", "Freekill Detected", i, prefix, name, victims);
 	}
@@ -354,7 +354,7 @@ void AJB_Freekill_Resolve(int judge, bool punish)
 			continue;
 		}
 
-		char prefix[64];
+		char prefix[32];
 		AJB_GetPrefix(i, prefix, sizeof(prefix));
 		CPrintToChat(i, "%T", punish ? "Freekill Punished" : "Freekill Dismissed", i, prefix, culpritName, judgeName);
 	}

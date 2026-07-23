@@ -95,7 +95,7 @@ bool AJB_Sentry_IsValidRebelTarget(int client)
 	}
 
 	// Must be on prisoners team and flagged rebel this round.
-	if (!AJB_ClientIsPrisoner(client) || !g_bRebel[client])
+	if (!AJB_ClientIsPrisoner(client) || !AJB_FlagGet(client, AJB_PF_REBEL))
 	{
 		return false;
 	}
@@ -265,18 +265,18 @@ bool TraceFilter_SentryLos(int entity, int contentsMask, int sentry)
 	return true;
 }
 
-bool AJB_Sentry_CanSee(int sentry, int client)
+// eye + rangeSqr are constant across a single FindTarget scan, so the caller computes
+// them once and passes them in rather than recomputing per candidate.
+bool AJB_Sentry_CanSee(int sentry, int client, const float eye[3], float rangeSqr)
 {
-	float eye[3];
 	float target[3];
-	AJB_Sentry_GetEye(sentry, eye);
 	GetClientEyePosition(client, target);
 
 	float dx = target[0] - eye[0];
 	float dy = target[1] - eye[1];
 	float dz = target[2] - eye[2];
 	float d2 = dx * dx + dy * dy + dz * dz;
-	if (d2 > AJB_Sentry_GetRangeSqr(sentry))
+	if (d2 > rangeSqr)
 	{
 		return false;
 	}
@@ -301,10 +301,13 @@ bool AJB_Sentry_CanSee(int sentry, int client)
 int AJB_Sentry_FindNearestRebel(int sentry)
 {
 	int sentryTeam = GetEntProp(sentry, Prop_Send, "m_iTeamNum");
+
+	// Sentry eye + range are fixed for this scan — compute once, not per candidate.
 	float eye[3];
 	AJB_Sentry_GetEye(sentry, eye);
+	float rangeSqr = AJB_Sentry_GetRangeSqr(sentry);
 
-	float bestDist = AJB_Sentry_GetRangeSqr(sentry);
+	float bestDist = rangeSqr;
 	int best = -1;
 
 	for (int client = 1; client <= MaxClients; client++)
@@ -317,7 +320,7 @@ int AJB_Sentry_FindNearestRebel(int sentry)
 		{
 			continue;
 		}
-		if (!AJB_Sentry_CanSee(sentry, client))
+		if (!AJB_Sentry_CanSee(sentry, client, eye, rangeSqr))
 		{
 			continue;
 		}
@@ -428,7 +431,7 @@ Action AJB_Sentry_FilterDamage(int victim, int inflictor, float &damage)
 	}
 
 	// Rebels take full sentry damage.
-	if (g_bRebel[victim])
+	if (AJB_FlagGet(victim, AJB_PF_REBEL))
 	{
 		return Plugin_Continue;
 	}

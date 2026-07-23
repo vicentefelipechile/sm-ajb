@@ -62,6 +62,10 @@
 #define BOOST_REGEN_TICK         1.0
 #define BOOST_JAR_THROW_SPEED    1200.0
 
+// Per-player boolean state packed into one bitfield cell (see BoostPlayer.flags).
+#define BF_MELEE_CRIT    (1 << 0)   // RED: next melee hit is a full crit
+#define BF_DAMAGE_HOOKED (1 << 1)   // OnTakeDamage hooked for this client
+
 // =========================================================================================================
 // Plugin info
 // =========================================================================================================
@@ -85,21 +89,39 @@ ConVar g_cvBluEvery;
 
 bool g_bHasCore;
 
-int g_iPoints[MAXPLAYERS + 1];
-int g_iSpentThisRound[MAXPLAYERS + 1];
-int g_iBackstabCharges[MAXPLAYERS + 1];
+// All per-player boost data in one contiguous struct (cache locality; bools packed into flags).
+enum struct BoostPlayer
+{
+	int points;
+	int spentThisRound;
+	int backstabCharges;   // BLU iron-neck backstab saves left
+	float regenEnd;        // RED passive regen deadline (GetGameTime)
+	Handle regenTimer;
+	int flags;             // BF_* bitfield
+}
 
-// RED: next melee hit from this player is a full crit (consumes on use).
-bool g_bMeleeCritReady[MAXPLAYERS + 1];
-
-// RED: passive regen timer (Vitality).
-Handle g_hRegenTimer[MAXPLAYERS + 1];
-float g_flRegenEnd[MAXPLAYERS + 1];
+BoostPlayer g_Boost[MAXPLAYERS + 1];
 
 // Counts finished jail rounds for BLU passive points (every N rounds).
 int g_iFinishedRoundCount;
 
-bool g_bDamageHooked[MAXPLAYERS + 1];
+// Flag accessors — the compiler inlines these to the same and/or/andnot it would emit inline.
+bool Boost_HasFlag(int client, int flag)
+{
+	return (g_Boost[client].flags & flag) != 0;
+}
+
+void Boost_SetFlag(int client, int flag, bool on)
+{
+	if (on)
+	{
+		g_Boost[client].flags |= flag;
+	}
+	else
+	{
+		g_Boost[client].flags &= ~flag;
+	}
+}
 
 // =========================================================================================================
 // Lifecycle
@@ -120,7 +142,7 @@ public int Native_Boosts_GetPoints(Handle plugin, int numParams)
 	{
 		return 0;
 	}
-	return g_iPoints[client];
+	return g_Boost[client].points;
 }
 
 public int Native_Boosts_AddPointsEx(Handle plugin, int numParams)
@@ -132,7 +154,7 @@ public int Native_Boosts_AddPointsEx(Handle plugin, int numParams)
 	{
 		return 0;
 	}
-	return g_iPoints[client];
+	return g_Boost[client].points;
 }
 
 public void OnPluginStart()
@@ -182,22 +204,24 @@ public void OnMapStart()
 
 public void OnClientPutInServer(int client)
 {
-	g_iPoints[client] = 0;
-	g_iSpentThisRound[client] = 0;
-	g_iBackstabCharges[client] = 0;
-	g_bMeleeCritReady[client] = false;
-	AJB_Boosts_StopRegen(client);
+	AJB_Boosts_ResetClient(client);
 	AJB_Boosts_HookClient(client);
 }
 
 public void OnClientDisconnect(int client)
 {
-	g_iPoints[client] = 0;
-	g_iSpentThisRound[client] = 0;
-	g_iBackstabCharges[client] = 0;
-	g_bMeleeCritReady[client] = false;
+	AJB_Boosts_ResetClient(client);
+	Boost_SetFlag(client, BF_DAMAGE_HOOKED, false);
+}
+
+// Full per-player wipe (points included) — connect/disconnect boundary.
+void AJB_Boosts_ResetClient(int client)
+{
 	AJB_Boosts_StopRegen(client);
-	g_bDamageHooked[client] = false;
+	g_Boost[client].points = 0;
+	g_Boost[client].spentThisRound = 0;
+	g_Boost[client].backstabCharges = 0;
+	Boost_SetFlag(client, BF_MELEE_CRIT, false);
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -226,15 +250,15 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		g_iSpentThisRound[i] = 0;
-		g_iBackstabCharges[i] = 0;
-		g_bMeleeCritReady[i] = false;
+		g_Boost[i].spentThisRound = 0;
+		g_Boost[i].backstabCharges = 0;
+		Boost_SetFlag(i, BF_MELEE_CRIT, false);
 		AJB_Boosts_StopRegen(i);
 
 		// Cap holdings to max (e.g. after cvar change or leftover from older builds).
-		if (maxPts > 0 && g_iPoints[i] > maxPts)
+		if (maxPts > 0 && g_Boost[i].points > maxPts)
 		{
-			g_iPoints[i] = maxPts;
+			g_Boost[i].points = maxPts;
 		}
 	}
 }
@@ -267,8 +291,8 @@ void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		g_iBackstabCharges[i] = 0;
-		g_bMeleeCritReady[i] = false;
+		g_Boost[i].backstabCharges = 0;
+		Boost_SetFlag(i, BF_MELEE_CRIT, false);
 		AJB_Boosts_StopRegen(i);
 	}
 }
@@ -287,7 +311,7 @@ Action Command_Points(int client, int args)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	ReplyToCommand(client, "%T", "Boosts Points", client, prefix, g_iPoints[client]);
+	ReplyToCommand(client, "%T", "Boosts Points", client, prefix, g_Boost[client].points);
 	return Plugin_Handled;
 }
 
@@ -364,7 +388,7 @@ void AJB_Boosts_AddPoints(int client, int amount, const char[] reason)
 	// Admin grants are intentional and bypass the earn-holdings cap; earned points respect it.
 	bool isAdmin = StrEqual(reason, "admin");
 	int maxPts = g_cvMaxPoints.IntValue;
-	int next = g_iPoints[client] + amount;
+	int next = g_Boost[client].points + amount;
 	if (!isAdmin && maxPts > 0 && next > maxPts)
 	{
 		next = maxPts;
@@ -374,14 +398,14 @@ void AJB_Boosts_AddPoints(int client, int amount, const char[] reason)
 		next = 0;
 	}
 
-	int gained = next - g_iPoints[client];
-	g_iPoints[client] = next;
+	int gained = next - g_Boost[client].points;
+	g_Boost[client].points = next;
 
 	if (gained > 0 && !StrEqual(reason, "admin"))
 	{
 		char prefix[32];
 		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		CPrintToChat(client, "%T", "Boosts Points Gained", client, prefix, gained, g_iPoints[client]);
+		CPrintToChat(client, "%T", "Boosts Points Gained", client, prefix, gained, g_Boost[client].points);
 	}
 }
 
@@ -392,16 +416,16 @@ bool AJB_Boosts_TrySpend(int client, int cost)
 		return false;
 	}
 
-	if (g_iPoints[client] < cost)
+	if (g_Boost[client].points < cost)
 	{
 		char prefix[32];
 		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		CPrintToChat(client, "%T", "Boosts Not Enough", client, prefix, cost, g_iPoints[client]);
+		CPrintToChat(client, "%T", "Boosts Not Enough", client, prefix, cost, g_Boost[client].points);
 		return false;
 	}
 
-	g_iPoints[client] -= cost;
-	g_iSpentThisRound[client] += cost;
+	g_Boost[client].points -= cost;
+	g_Boost[client].spentThisRound += cost;
 	return true;
 }
 
@@ -420,7 +444,7 @@ void AJB_Boosts_ShowMenu(int client)
 	//   Spent: N
 	//   ------
 	char title[192];
-	Format(title, sizeof(title), "%T", "Boosts Menu Title", client, g_iPoints[client], g_iSpentThisRound[client]);
+	Format(title, sizeof(title), "%T", "Boosts Menu Title", client, g_Boost[client].points, g_Boost[client].spentThisRound);
 	menu.SetTitle(title);
 
 	// Dead players may open the panel to plan, but purchases stay locked.
@@ -553,18 +577,18 @@ void AJB_Boosts_BuyIronNeck(int client, int charges, int cost)
 		return;
 	}
 
-	if (charges > g_iBackstabCharges[client])
+	if (charges > g_Boost[client].backstabCharges)
 	{
-		g_iBackstabCharges[client] = charges;
+		g_Boost[client].backstabCharges = charges;
 	}
 	else
 	{
-		g_iBackstabCharges[client] += charges;
+		g_Boost[client].backstabCharges += charges;
 	}
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CPrintToChat(client, "%T", "Boosts Purchased Iron Neck", client, prefix, g_iBackstabCharges[client], g_iPoints[client]);
+	CPrintToChat(client, "%T", "Boosts Purchased Iron Neck", client, prefix, g_Boost[client].backstabCharges, g_Boost[client].points);
 	AJB_Boosts_ShowMenu(client);
 }
 
@@ -710,7 +734,7 @@ public int MenuHandler_Revive(Menu menu, MenuAction action, int param1, int para
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CPrintToChat(client, "%T", "Boosts Points Left", client, prefix, g_iPoints[client]);
+	CPrintToChat(client, "%T", "Boosts Points Left", client, prefix, g_Boost[client].points);
 	return 0;
 }
 
@@ -745,7 +769,7 @@ void AJB_Boosts_BuySecondWind(int client)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CPrintToChat(client, "%T", "Boosts Purchased Second Wind", client, prefix, BOOST_SECOND_WIND_HP, g_iPoints[client]);
+	CPrintToChat(client, "%T", "Boosts Purchased Second Wind", client, prefix, BOOST_SECOND_WIND_HP, g_Boost[client].points);
 	AJB_Boosts_ShowMenu(client);
 }
 
@@ -767,11 +791,11 @@ void AJB_Boosts_BuyJarThrow(int client, bool milk)
 	if (!AJB_Boosts_ThrowJar(client, milk))
 	{
 		// Refund if the projectile failed to spawn.
-		g_iPoints[client] += cost;
-		g_iSpentThisRound[client] -= cost;
-		if (g_iSpentThisRound[client] < 0)
+		g_Boost[client].points += cost;
+		g_Boost[client].spentThisRound -= cost;
+		if (g_Boost[client].spentThisRound < 0)
 		{
-			g_iSpentThisRound[client] = 0;
+			g_Boost[client].spentThisRound = 0;
 		}
 		AJB_Chat(client, "Boosts Throw Failed");
 		AJB_Boosts_ShowMenu(client);
@@ -780,7 +804,7 @@ void AJB_Boosts_BuyJarThrow(int client, bool milk)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CPrintToChat(client, "%T", milk ? "Boosts Purchased Mad Milk" : "Boosts Purchased Jarate", client, prefix, g_iPoints[client]);
+	CPrintToChat(client, "%T", milk ? "Boosts Purchased Mad Milk" : "Boosts Purchased Jarate", client, prefix, g_Boost[client].points);
 	AJB_Boosts_ShowMenu(client);
 }
 
@@ -791,7 +815,7 @@ void AJB_Boosts_BuyMeleeCrit(int client)
 		return;
 	}
 
-	if (g_bMeleeCritReady[client])
+	if (Boost_HasFlag(client, BF_MELEE_CRIT))
 	{
 		AJB_Chat(client, "Boosts Melee Crit Already");
 		AJB_Boosts_ShowMenu(client);
@@ -804,11 +828,11 @@ void AJB_Boosts_BuyMeleeCrit(int client)
 		return;
 	}
 
-	g_bMeleeCritReady[client] = true;
+	Boost_SetFlag(client, BF_MELEE_CRIT, true);
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CPrintToChat(client, "%T", "Boosts Purchased Melee Crit", client, prefix, g_iPoints[client]);
+	CPrintToChat(client, "%T", "Boosts Purchased Melee Crit", client, prefix, g_Boost[client].points);
 	AJB_Boosts_ShowMenu(client);
 }
 
@@ -830,7 +854,7 @@ void AJB_Boosts_BuyRegen(int client)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CPrintToChat(client, "%T", "Boosts Purchased Regen", client, prefix, BOOST_REGEN_INSTANT_HP, RoundToNearest(BOOST_REGEN_DURATION), g_iPoints[client]);
+	CPrintToChat(client, "%T", "Boosts Purchased Regen", client, prefix, BOOST_REGEN_INSTANT_HP, RoundToNearest(BOOST_REGEN_DURATION), g_Boost[client].points);
 	AJB_Boosts_ShowMenu(client);
 }
 
@@ -858,30 +882,30 @@ void AJB_Boosts_StopRegen(int client)
 		return;
 	}
 
-	if (g_hRegenTimer[client] != null)
+	if (g_Boost[client].regenTimer != null)
 	{
-		delete g_hRegenTimer[client];
-		g_hRegenTimer[client] = null;
+		delete g_Boost[client].regenTimer;
+		g_Boost[client].regenTimer = null;
 	}
-	g_flRegenEnd[client] = 0.0;
+	g_Boost[client].regenEnd = 0.0;
 }
 
 void AJB_Boosts_StartRegen(int client, float duration)
 {
 	AJB_Boosts_StopRegen(client);
-	g_flRegenEnd[client] = GetGameTime() + duration;
-	g_hRegenTimer[client] = CreateTimer(BOOST_REGEN_TICK, Timer_BoostRegen, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+	g_Boost[client].regenEnd = GetGameTime() + duration;
+	g_Boost[client].regenTimer = CreateTimer(BOOST_REGEN_TICK, Timer_BoostRegen, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
 Action Timer_BoostRegen(Handle timer, int userid)
 {
 	int client = GetClientOfUserId(userid);
-	if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client) || GetGameTime() >= g_flRegenEnd[client])
+	if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client) || GetGameTime() >= g_Boost[client].regenEnd)
 	{
-		if (client >= 1 && client <= MaxClients && g_hRegenTimer[client] == timer)
+		if (client >= 1 && client <= MaxClients && g_Boost[client].regenTimer == timer)
 		{
-			g_hRegenTimer[client] = null;
-			g_flRegenEnd[client] = 0.0;
+			g_Boost[client].regenTimer = null;
+			g_Boost[client].regenEnd = 0.0;
 		}
 		return Plugin_Stop;
 	}
@@ -934,13 +958,13 @@ bool AJB_Boosts_ThrowJar(int client, bool milk)
 
 void AJB_Boosts_HookClient(int client)
 {
-	if (g_bDamageHooked[client] || !IsClientInGame(client))
+	if (Boost_HasFlag(client, BF_DAMAGE_HOOKED) || !IsClientInGame(client))
 	{
 		return;
 	}
 
 	SDKHook(client, SDKHook_OnTakeDamage, AJB_Boosts_OnTakeDamage);
-	g_bDamageHooked[client] = true;
+	Boost_SetFlag(client, BF_DAMAGE_HOOKED, true);
 }
 
 Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
@@ -954,7 +978,7 @@ Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
 
 	// RED boost: first melee hit is a full crit.
 	if (attacker >= 1 && attacker <= MaxClients
-		&& g_bMeleeCritReady[attacker]
+		&& Boost_HasFlag(attacker, BF_MELEE_CRIT)
 		&& attacker != victim
 		&& IsClientInGame(attacker)
 		&& IsPlayerAlive(attacker))
@@ -973,7 +997,7 @@ Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
 		if (isMelee)
 		{
 			damagetype |= DMG_CRIT;
-			g_bMeleeCritReady[attacker] = false;
+			Boost_SetFlag(attacker, BF_MELEE_CRIT, false);
 			changed = true;
 
 			char prefix[32];
@@ -983,12 +1007,12 @@ Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
 	}
 
 	// BLU boost: iron neck survives one backstab.
-	if (g_iBackstabCharges[victim] > 0
+	if (g_Boost[victim].backstabCharges > 0
 		&& IsClientInGame(victim)
 		&& IsPlayerAlive(victim)
 		&& damagecustom == TF_CUSTOM_BACKSTAB)
 	{
-		g_iBackstabCharges[victim]--;
+		g_Boost[victim].backstabCharges--;
 
 		int health = GetClientHealth(victim);
 		if (damage >= float(health))
@@ -1001,7 +1025,7 @@ Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
 
 			char prefix[32];
 			AJB_GetPrefix(victim, prefix, sizeof(prefix));
-			CPrintToChat(victim, "%T", "Boosts Backstab Saved", victim, prefix, g_iBackstabCharges[victim]);
+			CPrintToChat(victim, "%T", "Boosts Backstab Saved", victim, prefix, g_Boost[victim].backstabCharges);
 			if (attacker > 0 && attacker <= MaxClients && IsClientInGame(attacker))
 			{
 				AJB_GetPrefix(attacker, prefix, sizeof(prefix));

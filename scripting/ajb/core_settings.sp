@@ -317,8 +317,8 @@ void AJB_CombatDay_ArmAndTeleport()
 
 		// Full unrestricted loadout.
 		TF2_RegeneratePlayer(i);
-		g_bRebel[i] = false;
-		g_bFreeday[i] = false;
+		AJB_FlagSet(i, AJB_PF_REBEL, false);
+		AJB_FlagSet(i, AJB_PF_FREEDAY, false);
 
 		if (AJB_ClientIsPrisoner(i) && g_bTpCombatRed)
 		{
@@ -485,7 +485,7 @@ Action Timer_FreedayTrail(Handle timer)
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || !IsPlayerAlive(i) || !g_bFreeday[i] || g_bRebel[i])
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || !AJB_FlagGet(i, AJB_PF_FREEDAY) || AJB_FlagGet(i, AJB_PF_REBEL))
 		{
 			AJB_Freeday_KillTrailFx(i);
 			continue;

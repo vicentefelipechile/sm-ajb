@@ -1488,6 +1488,26 @@ Action Timer_HotReds(Handle timer)
 		dmg = LR_HOT_DPS;
 	}
 
+	// Snapshot living guards + origins once (O(n)) so the red×guard proximity test below is not
+	// re-fetching positions and re-testing team membership for every pair each 0.5s tick.
+	int guards[MAXPLAYERS];
+	float guardPos[MAXPLAYERS][3];
+	int guardCount = 0;
+	for (int b = 1; b <= MaxClients; b++)
+	{
+		if (IsClientInGame(b) && IsPlayerAlive(b) && AJB_IsGuard(b))
+		{
+			guards[guardCount] = b;
+			GetClientAbsOrigin(b, guardPos[guardCount]);
+			guardCount++;
+		}
+	}
+
+	if (guardCount == 0)
+	{
+		return Plugin_Continue;
+	}
+
 	for (int r = 1; r <= MaxClients; r++)
 	{
 		if (!IsClientInGame(r) || !IsPlayerAlive(r) || !AJB_IsPrisoner(r))
@@ -1498,21 +1518,12 @@ Action Timer_HotReds(Handle timer)
 		float rPos[3];
 		GetClientAbsOrigin(r, rPos);
 
-		for (int b = 1; b <= MaxClients; b++)
+		for (int g = 0; g < guardCount; g++)
 		{
-			if (!IsClientInGame(b) || !IsPlayerAlive(b) || !AJB_IsGuard(b))
+			if (GetVectorDistance(rPos, guardPos[g]) <= 80.0)
 			{
-				continue;
+				SDKHooks_TakeDamage(guards[g], r, 0, dmg, DMG_BURN);
 			}
-
-			float bPos[3];
-			GetClientAbsOrigin(b, bPos);
-			if (GetVectorDistance(rPos, bPos) > 80.0)
-			{
-				continue;
-			}
-
-			SDKHooks_TakeDamage(b, r, 0, dmg, DMG_BURN);
 		}
 	}
 

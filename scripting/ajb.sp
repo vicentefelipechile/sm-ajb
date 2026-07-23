@@ -75,10 +75,13 @@ int g_iWarden;
 int g_iWardenLastRound[MAXPLAYERS + 1];
 int g_iWardenRoundSerial;
 int g_iWardenMenuPage[MAXPLAYERS + 1];   // current page of the paged warden menu
-bool g_bRebel[MAXPLAYERS + 1];
-bool g_bFreeday[MAXPLAYERS + 1];
-bool g_bFreedayPending[MAXPLAYERS + 1];
-bool g_bSDKHooked[MAXPLAYERS + 1];
+// Per-player boolean state packed into one bitfield cell (was 4 separate bool arrays).
+// Access only through AJB_FlagGet / AJB_FlagSet below.
+#define AJB_PF_REBEL            (1 << 0)   // prisoner is a rebel
+#define AJB_PF_FREEDAY          (1 << 1)   // prisoner has an active freeday this round
+#define AJB_PF_FREEDAY_PENDING  (1 << 2)   // freeday queued for next round
+#define AJB_PF_SDKHOOKED        (1 << 3)   // OnTakeDamage/TraceAttack hooked for this client
+int g_iPlayerFlags[MAXPLAYERS + 1];
 
 bool g_bLastPrisonerAnnounced;
 
@@ -99,6 +102,25 @@ Handle g_hFwdWardenGiveLR;
 Handle g_hFwdLiveRoundBegin;
 
 Handle g_hCellsAutoTimer;
+
+// Packed per-player flag accessors (g_iPlayerFlags). The compiler inlines these to a plain
+// bitwise test / or / and-not — same cost as a bool array read, a quarter of the memory.
+bool AJB_FlagGet(int client, int flag)
+{
+	return (g_iPlayerFlags[client] & flag) != 0;
+}
+
+void AJB_FlagSet(int client, int flag, bool on)
+{
+	if (on)
+	{
+		g_iPlayerFlags[client] |= flag;
+	}
+	else
+	{
+		g_iPlayerFlags[client] &= ~flag;
+	}
+}
 
 // =========================================================================================================
 // Core fragments
@@ -356,7 +378,7 @@ public void OnMapEnd()
 public void OnClientPutInServer(int client)
 {
 	AJB_ResetClientFlags(client);
-	g_bFreedayPending[client] = false;
+	AJB_FlagSet(client, AJB_PF_FREEDAY_PENDING, false);
 	g_iWardenLastRound[client] = 0;
 	g_iWardenMenuPage[client] = 0;
 	AJB_HookClient(client);
@@ -372,7 +394,7 @@ public void OnClientDisconnect(int client)
 	AJB_Freekill_OnClientDisconnect(client);
 
 	AJB_ResetClientFlags(client);
-	g_bFreedayPending[client] = false;
+	AJB_FlagSet(client, AJB_PF_FREEDAY_PENDING, false);
 	AJB_UnhookClient(client);
 
 	// Disconnect can decide last-prisoner / round end without a death event.
