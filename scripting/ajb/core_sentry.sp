@@ -503,6 +503,12 @@ bool AJB_Sentry_ShouldBlockBuild(int builder, int building, int eventObjectType 
 		return false;
 	}
 
+	// Engine PREROUND: anything built now is wiped when the round goes live, taxing the metal for nothing. Block all.
+	if (GameRules_GetProp("m_iRoundState") == 3) // GR_STATE_PREROUND
+	{
+		return true;
+	}
+
 	int objType = AJB_Sentry_ResolveObjectType(building, eventObjectType);
 
 	if (objType == AJB_OBJ_SENTRYGUN
@@ -528,6 +534,13 @@ bool AJB_Sentry_ShouldBlockBuild(int builder, int building, int eventObjectType 
 // Phrase key for a blocked sentry (prep / waiting / round end).
 void AJB_Sentry_ReplyBuildBlocked(int client, int objType)
 {
+	// Engine PREROUND: same "wait for the round" advice for any building, since it would be wiped anyway.
+	if (GameRules_GetProp("m_iRoundState") == 3) // GR_STATE_PREROUND
+	{
+		AJB_Chat(client, "Sentry Wait Round");
+		return;
+	}
+
 	if (objType == AJB_OBJ_SENTRYGUN && AJB_ClientIsGuard(client))
 	{
 		// Prep or not live yet — same user-facing advice.
