@@ -89,6 +89,10 @@ ConVar g_cvBluEvery;
 
 bool g_bHasCore;
 
+// Cached mirror of g_cvEnabled: OnTakeDamage is hooked on every client and fires for all
+// server-wide damage, so its early-out reads a bool instead of the ConVar accessor per hit.
+bool g_bBoostsEnabled;
+
 // All per-player boost data in one contiguous struct (cache locality; bools packed into flags).
 enum struct BoostPlayer
 {
@@ -161,6 +165,8 @@ public void OnPluginStart()
 {
 	CreateConVar("sm_ajb_boosts_version", PLUGIN_VERSION, "AJB Boosts module version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	g_cvEnabled = CreateConVar("sm_ajb_boosts_enabled", "1", "Enable the boosts system.", _, true, 0.0, true, 1.0);
+	g_bBoostsEnabled = g_cvEnabled.BoolValue;
+	g_cvEnabled.AddChangeHook(OnBoostsEnabledChanged);
 	g_cvMaxPoints = CreateConVar("sm_ajb_boosts_max_points", "3", "Max points a player can EARN-hold (0 = unlimited). Admin grants ignore this.", _, true, 0.0);
 	g_cvBluEvery = CreateConVar("sm_ajb_boosts_blu_every", "2", "BLU surviving players get +1 extra every N finished rounds.", _, true, 1.0);
 
@@ -222,6 +228,11 @@ void AJB_Boosts_ResetClient(int client)
 	g_Boost[client].spentThisRound = 0;
 	g_Boost[client].backstabCharges = 0;
 	Boost_SetFlag(client, BF_MELEE_CRIT, false);
+}
+
+public void OnBoostsEnabledChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bBoostsEnabled = convar.BoolValue;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -969,7 +980,7 @@ void AJB_Boosts_HookClient(int client)
 
 Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
 {
-	if (!g_cvEnabled.BoolValue)
+	if (!g_bBoostsEnabled)
 	{
 		return Plugin_Continue;
 	}

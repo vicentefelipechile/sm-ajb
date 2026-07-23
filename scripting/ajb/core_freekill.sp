@@ -15,6 +15,12 @@ static ConVar g_cvFKMinVictims;
 static ConVar g_cvFKRadius;
 static ConVar g_cvFKDecideTime;
 
+// Cached mirrors of the cvars read on the damage path, refreshed only when the cvar changes,
+// so OnTakeDamage never pays the ConVar accessor per hit.
+static bool g_bFKDetect;
+static int g_iFKMinVictims;
+static float g_fFKRadius;
+
 // One verdict is cached per inflictor per tick so every victim of the same rocket reuses it instead of
 // re-scanning the blast area on each OnTakeDamage call.
 static int g_iFKJudgeInflictor = INVALID_ENT_REFERENCE;
@@ -36,6 +42,23 @@ void AJB_Freekill_OnPluginStart()
 	g_cvFKMinVictims = CreateConVar("sm_ajb_freekill_min_victims", "3", "Prisoners inside the blast that flag a crit splash hit as a mass-freekill attempt.", _, true, 2.0, true, 32.0);
 	g_cvFKRadius = CreateConVar("sm_ajb_freekill_radius", "160.0", "Radius (HU) scanned around the victim to count endangered prisoners.", _, true, 32.0);
 	g_cvFKDecideTime = CreateConVar("sm_ajb_freekill_decide_time", "25", "Seconds the warden/admins have to punish a flagged event before it auto-dismisses (0 = until round end).", _, true, 0.0, true, 120.0);
+
+	AJB_Freekill_CacheCvars();
+	g_cvFKDetect.AddChangeHook(OnFreekillCvarChanged);
+	g_cvFKMinVictims.AddChangeHook(OnFreekillCvarChanged);
+	g_cvFKRadius.AddChangeHook(OnFreekillCvarChanged);
+}
+
+void AJB_Freekill_CacheCvars()
+{
+	g_bFKDetect = g_cvFKDetect.BoolValue;
+	g_iFKMinVictims = g_cvFKMinVictims.IntValue;
+	g_fFKRadius = g_cvFKRadius.FloatValue;
+}
+
+public void OnFreekillCvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	AJB_Freekill_CacheCvars();
 }
 
 void AJB_Freekill_RegisterCommands()
@@ -51,7 +74,7 @@ void AJB_Freekill_RegisterCommands()
 
 Action AJB_Freekill_FilterDamage(int victim, int attacker, int inflictor, int damagetype)
 {
-	if (!g_cvFKDetect.BoolValue)
+	if (!g_bFKDetect)
 	{
 		return Plugin_Continue;
 	}
@@ -77,7 +100,7 @@ Action AJB_Freekill_FilterDamage(int victim, int attacker, int inflictor, int da
 	}
 
 	int endangered = AJB_Freekill_CountPrisonersNear(victim);
-	bool block = (endangered >= g_cvFKMinVictims.IntValue);
+	bool block = (endangered >= g_iFKMinVictims);
 
 	g_iFKJudgeTick = tick;
 	g_iFKJudgeInflictor = infRef;
@@ -115,7 +138,7 @@ int AJB_Freekill_CountPrisonersNear(int centerClient)
 	GetClientAbsOrigin(centerClient, origin);
 
 	int prisonersTeam = AJB_GetPrisonersTeam();
-	float radius = g_cvFKRadius.FloatValue;
+	float radiusSqr = g_fFKRadius * g_fFKRadius;
 	int count = 0;
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -127,7 +150,11 @@ int AJB_Freekill_CountPrisonersNear(int centerClient)
 
 		float pos[3];
 		GetClientAbsOrigin(i, pos);
-		if (GetVectorDistance(origin, pos) <= radius)
+		float dx = pos[0] - origin[0];
+		float dy = pos[1] - origin[1];
+		float dz = pos[2] - origin[2];
+		// Compare squared distances so the per-client sqrt in GetVectorDistance is avoided.
+		if (dx * dx + dy * dy + dz * dz <= radiusSqr)
 		{
 			count++;
 		}
@@ -190,8 +217,7 @@ void AJB_Freekill_Trigger(int attacker, int victims)
 	g_iFKPendingVictims = victims;
 	LogMessage("[AJB-Freekill] blocked crit splash by %L endangering %d prisoners.", attacker, victims);
 
-	AJB_Freekill_Announce(attacker, victims);
-	AJB_Freekill_OpenDecision();
+	AJB_Freekill_NotifyJudges(attacker, victims);
 
 	AJB_Freekill_KillDecideTimer();
 	float decide = g_cvFKDecideTime.FloatValue;
@@ -223,7 +249,9 @@ bool AJB_Freekill_CanJudge(int client)
 	return CheckCommandAccess(client, AJB_FK_JUDGE_ACCESS, ADMFLAG_GENERIC);
 }
 
-void AJB_Freekill_Announce(int attacker, int victims)
+// Single pass over the eligible judges: chat alert + decision menu together, so CanJudge (which
+// can hit CheckCommandAccess) runs once per client instead of once for the announce and again to open.
+void AJB_Freekill_NotifyJudges(int attacker, int victims)
 {
 	char name[MAX_NAME_LENGTH];
 	GetClientName(attacker, name, sizeof(name));
@@ -238,17 +266,7 @@ void AJB_Freekill_Announce(int attacker, int victims)
 		char prefix[32];
 		AJB_GetPrefix(i, prefix, sizeof(prefix));
 		CPrintToChat(i, "%T", "Freekill Detected", i, prefix, name, victims);
-	}
-}
-
-void AJB_Freekill_OpenDecision()
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && !IsFakeClient(i) && AJB_Freekill_CanJudge(i))
-		{
-			AJB_Freekill_ShowMenu(i);
-		}
+		AJB_Freekill_ShowMenu(i);
 	}
 }
 

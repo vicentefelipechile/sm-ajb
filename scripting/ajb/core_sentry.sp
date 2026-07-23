@@ -141,6 +141,8 @@ void AJB_Sentry_OnRebelChanged(int client, bool rebel)
 		return;
 	}
 
+	int guardsTeam = AJB_GetGuardsTeam();
+
 	int sentry = -1;
 	while ((sentry = FindEntityByClassname(sentry, "obj_sentrygun")) != -1)
 	{
@@ -148,7 +150,7 @@ void AJB_Sentry_OnRebelChanged(int client, bool rebel)
 		{
 			continue;
 		}
-		if (GetEntProp(sentry, Prop_Send, "m_iTeamNum") != AJB_GetGuardsTeam())
+		if (GetEntProp(sentry, Prop_Send, "m_iTeamNum") != guardsTeam)
 		{
 			continue;
 		}
@@ -266,8 +268,9 @@ bool TraceFilter_SentryLos(int entity, int contentsMask, int sentry)
 }
 
 // eye + rangeSqr are constant across a single FindTarget scan, so the caller computes
-// them once and passes them in rather than recomputing per candidate.
-bool AJB_Sentry_CanSee(int sentry, int client, const float eye[3], float rangeSqr)
+// them once and passes them in rather than recomputing per candidate. The squared eye-distance
+// is handed back so the caller can rank "nearest" without a second GetClientAbsOrigin.
+bool AJB_Sentry_CanSee(int sentry, int client, const float eye[3], float rangeSqr, float &distSqr)
 {
 	float target[3];
 	GetClientEyePosition(client, target);
@@ -276,6 +279,7 @@ bool AJB_Sentry_CanSee(int sentry, int client, const float eye[3], float rangeSq
 	float dy = target[1] - eye[1];
 	float dz = target[2] - eye[2];
 	float d2 = dx * dx + dy * dy + dz * dz;
+	distSqr = d2;
 	if (d2 > rangeSqr)
 	{
 		return false;
@@ -320,20 +324,18 @@ int AJB_Sentry_FindNearestRebel(int sentry)
 		{
 			continue;
 		}
-		if (!AJB_Sentry_CanSee(sentry, client, eye, rangeSqr))
+
+		// CanSee already measured the squared eye-distance for its range gate — reuse it for
+		// ranking instead of fetching the origin again.
+		float distSqr;
+		if (!AJB_Sentry_CanSee(sentry, client, eye, rangeSqr, distSqr))
 		{
 			continue;
 		}
 
-		float pos[3];
-		GetClientAbsOrigin(client, pos);
-		float dx = pos[0] - eye[0];
-		float dy = pos[1] - eye[1];
-		float dz = pos[2] - eye[2];
-		float d2 = dx * dx + dy * dy + dz * dz;
-		if (d2 < bestDist)
+		if (distSqr < bestDist)
 		{
-			bestDist = d2;
+			bestDist = distSqr;
 			best = client;
 		}
 	}

@@ -32,9 +32,22 @@ bool g_bTpCombatBlu;
 
 int g_iFreedayBeamSprite = -1;
 Handle g_hFreedayTrailTimer;
-// World-space mid-body anchors (NOT parented) so the owner also sees trail/glow in 3rd person.
-int g_iFreedayTrailAnchor[MAXPLAYERS + 1];
-int g_iFreedayGlowEnt[MAXPLAYERS + 1];
+
+// World-space mid-body FX per player (NOT parented) so the owner sees trail/glow in 3rd person.
+// One contiguous struct per client (cache locality) that also caches the last anchored position,
+// so a still player skips the two per-tick TeleportEntity calls.
+enum struct FreedayFx
+{
+	int anchor;       // info_target the beam-follow rides
+	int glow;         // env_sprite marker
+	float lastMid[3]; // last position both were teleported to
+	bool hasMid;      // lastMid is valid (entities have been placed at least once)
+}
+
+FreedayFx g_FreedayFx[MAXPLAYERS + 1];
+
+// Squared move threshold: below this the anchor/glow are already close enough, skip the teleports.
+#define AJB_FREEDAY_MOVE_SQR  4.0
 
 void AJB_Settings_OnPluginStart()
 {
@@ -380,19 +393,21 @@ void AJB_Freeday_KillTrailFx(int client)
 		return;
 	}
 
-	int ent = g_iFreedayTrailAnchor[client];
-	g_iFreedayTrailAnchor[client] = 0;
+	int ent = g_FreedayFx[client].anchor;
+	g_FreedayFx[client].anchor = 0;
 	if (ent > MaxClients && IsValidEntity(ent))
 	{
 		AcceptEntityInput(ent, "Kill");
 	}
 
-	ent = g_iFreedayGlowEnt[client];
-	g_iFreedayGlowEnt[client] = 0;
+	ent = g_FreedayFx[client].glow;
+	g_FreedayFx[client].glow = 0;
 	if (ent > MaxClients && IsValidEntity(ent))
 	{
 		AcceptEntityInput(ent, "Kill");
 	}
+
+	g_FreedayFx[client].hasMid = false;
 }
 
 // World-space FX (no SetParent). Parented beams often do not render for the local player.
@@ -407,23 +422,21 @@ void AJB_Freeday_EnsureTrailFx(int client)
 	AJB_Freeday_GetMidBody(client, mid);
 
 	// BeamFollow anchor
-	int anchor = g_iFreedayTrailAnchor[client];
+	bool created = false;
+	int anchor = g_FreedayFx[client].anchor;
 	if (anchor <= MaxClients || !IsValidEntity(anchor))
 	{
 		anchor = CreateEntityByName("info_target");
 		if (anchor != -1)
 		{
 			DispatchSpawn(anchor);
-			g_iFreedayTrailAnchor[client] = anchor;
+			g_FreedayFx[client].anchor = anchor;
+			created = true;
 		}
-	}
-	if (anchor > MaxClients && IsValidEntity(anchor))
-	{
-		TeleportEntity(anchor, mid, NULL_VECTOR, NULL_VECTOR);
 	}
 
 	// Constant green glow sprite (easy self-marker in 3rd person)
-	int glow = g_iFreedayGlowEnt[client];
+	int glow = g_FreedayFx[client].glow;
 	if (glow <= MaxClients || !IsValidEntity(glow))
 	{
 		glow = CreateEntityByName("env_sprite");
@@ -439,13 +452,35 @@ void AJB_Freeday_EnsureTrailFx(int client)
 			DispatchKeyValue(glow, "GlowProxySize", "12.0");
 			DispatchSpawn(glow);
 			AcceptEntityInput(glow, "ShowSprite");
-			g_iFreedayGlowEnt[client] = glow;
+			g_FreedayFx[client].glow = glow;
+			created = true;
 		}
+	}
+
+	// Skip the teleports when the player has barely moved since the last placement. Freshly
+	// created entities spawn at the world origin, so they must always be placed once.
+	if (!created && g_FreedayFx[client].hasMid)
+	{
+		float dx = mid[0] - g_FreedayFx[client].lastMid[0];
+		float dy = mid[1] - g_FreedayFx[client].lastMid[1];
+		float dz = mid[2] - g_FreedayFx[client].lastMid[2];
+		if (dx * dx + dy * dy + dz * dz < AJB_FREEDAY_MOVE_SQR)
+		{
+			return;
+		}
+	}
+
+	if (anchor > MaxClients && IsValidEntity(anchor))
+	{
+		TeleportEntity(anchor, mid, NULL_VECTOR, NULL_VECTOR);
 	}
 	if (glow > MaxClients && IsValidEntity(glow))
 	{
 		TeleportEntity(glow, mid, NULL_VECTOR, NULL_VECTOR);
 	}
+
+	g_FreedayFx[client].lastMid = mid;
+	g_FreedayFx[client].hasMid = true;
 }
 
 void AJB_Freeday_EnsureTrailTimer()
@@ -481,7 +516,7 @@ Action Timer_FreedayTrail(Handle timer)
 	}
 
 	bool any = false;
-	int color[4] = { 50, 255, 50, 255 };
+	static const int color[4] = { 50, 255, 50, 255 };
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -494,7 +529,7 @@ Action Timer_FreedayTrail(Handle timer)
 		any = true;
 		AJB_Freeday_EnsureTrailFx(i);
 
-		int anchor = g_iFreedayTrailAnchor[i];
+		int anchor = g_FreedayFx[i].anchor;
 		if (g_iFreedayBeamSprite != -1 && anchor > MaxClients && IsValidEntity(anchor))
 		{
 			// Long thick trail; world anchor so owner sees it too (not parented to eyes).

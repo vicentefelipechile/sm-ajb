@@ -165,6 +165,9 @@ void AJB_Hud_PaintAll()
 	char line[256];
 	AJB_Hud_BuildLine(line, sizeof(line));
 
+	// HUD params are global draw state for the following ShowSyncHudText calls, not per-client — set once.
+	SetHudTextParams(-1.0, 0.08, HUD_REFRESH + 0.15, 255, 220, 100, 255, 0, 0.0, 0.0, 0.0);
+
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || IsFakeClient(i))
@@ -172,7 +175,6 @@ void AJB_Hud_PaintAll()
 			continue;
 		}
 
-		SetHudTextParams(-1.0, 0.08, HUD_REFRESH + 0.15, 255, 220, 100, 255, 0, 0.0, 0.0, 0.0);
 		ShowSyncHudText(i, g_hHudSync, "%s", line);
 	}
 }
