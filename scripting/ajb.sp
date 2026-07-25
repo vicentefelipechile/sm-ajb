@@ -226,6 +226,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ajb_wm", Command_WardenMenu, "Open warden menu.");
 	RegConsoleCmd("sm_ajb_uw", Command_UnWarden, "Resign warden.");
 	RegConsoleCmd("sm_ajb_unwarden", Command_UnWarden, "Resign warden.");
+	RegConsoleCmd("sm_uw", Command_UnWardenInstant, "Resign warden instantly (no confirmation).");
+	RegConsoleCmd("sm_ajb_uw_instant", Command_UnWardenInstant, "Resign warden instantly (no confirmation).");
 	RegConsoleCmd("sm_ajb_open", Command_OpenCells, "Open cell doors (warden or admin).");
 	RegConsoleCmd("sm_ajb_close", Command_CloseCells, "Close cell doors (warden or admin).");
 

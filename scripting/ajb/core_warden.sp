@@ -305,6 +305,7 @@ void AJB_Warden_PanelSeparator(Panel panel)
 // Returns the next free key.
 int AJB_Warden_PanelAction(Panel panel, int client, int key, int action, const char[] display)
 {
+	panel.CurrentKey = key;
 	panel.DrawItem(display);
 	g_iWardenKeyAction[client][key] = action;
 	return key + 1;
@@ -385,7 +386,7 @@ void AJB_Warden_ShowMenu(int client)
 		AJB_Warden_PanelSeparator(panel);
 
 		Format(line, sizeof(line), "%T", "Warden Page Next", client);
-		key = AJB_Warden_PanelAction(panel, client, key, WA_PAGE_NEXT, line);
+		AJB_Warden_PanelAction(panel, client, 9, WA_PAGE_NEXT, line);
 	}
 	else
 	{
@@ -419,7 +420,7 @@ void AJB_Warden_ShowMenu(int client)
 		AJB_Warden_PanelSeparator(panel);
 
 		Format(line, sizeof(line), "%T", "Warden Page Prev", client);
-		key = AJB_Warden_PanelAction(panel, client, key, WA_PAGE_PREV, line);
+		AJB_Warden_PanelAction(panel, client, 9, WA_PAGE_PREV, line);
 	}
 
 	// Exit pinned to key 0 (slot 10), the TF2 convention. Map both 0 and 10 since
@@ -772,6 +773,31 @@ Action Command_UnWarden(int client, int args)
 
 	// Chat command also requires confirmation.
 	AJB_Warden_ShowResignConfirm(client);
+	return Plugin_Handled;
+}
+
+Action Command_UnWardenInstant(int client, int args)
+{
+	if (!g_bModeActive)
+	{
+		AJB_Reply(client, "Mode Inactive");
+		return Plugin_Handled;
+	}
+
+	if (client == 0)
+	{
+		AJB_Reply(client, "Ingame Only");
+		return Plugin_Handled;
+	}
+
+	if (!AJB_IsWarden(client))
+	{
+		AJB_Reply(client, "Warden Not You");
+		return Plugin_Handled;
+	}
+
+	// Resign warden instantly with no confirmation panel
+	AJB_ClearWarden(true);
 	return Plugin_Handled;
 }
 

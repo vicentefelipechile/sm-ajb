@@ -1053,16 +1053,6 @@ void AJB_LR_ApplyPendingWish()
 		case LRWish_HotReds:
 		{
 			g_bHotReds = true;
-			AJB_SetRebelOnHit(false);
-			AJB_OpenCells();
-			AJB_SetRoundState(AJBState_SpecialDay);
-			for (int i = 1; i <= MaxClients; i++)
-			{
-				if (IsClientInGame(i) && AJB_IsPrisoner(i))
-				{
-					AJB_SetRebel(i, false);
-				}
-			}
 			AJB_LR_KillHotTimer();
 			g_hHotTimer = CreateTimer(LR_HOT_TICK, Timer_HotReds, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 			AJB_LR_ChatAllQueuedApplied(chooser, "LR Applied HotReds");
@@ -1522,7 +1512,7 @@ Action Timer_HotReds(Handle timer)
 		{
 			if (GetVectorDistance(rPos, guardPos[g]) <= 80.0)
 			{
-				SDKHooks_TakeDamage(guards[g], r, 0, dmg, DMG_BURN);
+				SDKHooks_TakeDamage(guards[g], 0, 0, dmg, DMG_BURN);
 			}
 		}
 	}
@@ -1548,16 +1538,13 @@ Action AJB_LR_OnStartTouch(int entity, int other)
 	}
 
 	// Prisoner touches guard → burn guard (no auto-rebel; damage as world to skip rebel + block).
-	int red = 0;
 	int blu = 0;
 	if (AJB_IsPrisoner(entity) && AJB_IsGuard(other))
 	{
-		red = entity;
 		blu = other;
 	}
 	else if (AJB_IsPrisoner(other) && AJB_IsGuard(entity))
 	{
-		red = other;
 		blu = entity;
 	}
 	else
@@ -1572,7 +1559,7 @@ Action AJB_LR_OnStartTouch(int entity, int other)
 	}
 
 	// attacker=0 so core does not mark rebel / block non-rebel prisoner damage.
-	SDKHooks_TakeDamage(blu, red, 0, dmg, DMG_BURN);
+	SDKHooks_TakeDamage(blu, 0, 0, dmg, DMG_BURN);
 	return Plugin_Continue;
 }
 
@@ -1879,10 +1866,6 @@ void AJB_LR_Cleanup(bool announce)
 	if (g_bHotReds)
 	{
 		g_bHotReds = false;
-		if (g_bHasCore)
-		{
-			AJB_SetRebelOnHit(true);
-		}
 	}
 
 	if (g_bLowGravity)
