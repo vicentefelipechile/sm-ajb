@@ -125,6 +125,7 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_uw`, `sm_ajb_unwarden` | console | Resign warden |
 | `sm_ajb_open` | console | Open cell doors (warden or admin) |
 | `sm_ajb_close` | console | Close cell doors (warden or admin) |
+| `sm_markrebel`, `sm_ajb_markrebel` | console | Guard: Mark a prisoner as rebel (with cooldown) |
 | `sm_ajb_balance` | GENERIC | Force JB team balance now (move excess guards to prisoners) |
 | `sm_ajb_setwarden <#userid\|name>` | GENERIC | Set warden |
 | `sm_ajb_rebel <#userid\|name> [0\|1]` | GENERIC | Mark/pardon rebel |
@@ -193,6 +194,8 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_rebel_on_damage` | `1` | 1 = mark prisoner as rebel when they damage a BLU guard |
 | `sm_ajb_rebel_on_warden_damage` | `1` | 1 = mark prisoner as rebel when they damage the warden (set this `1` + `sm_ajb_rebel_on_damage 0` to allow hitting BLU except the warden) |
 | `sm_ajb_warden_rebel_control` | `1` | 1 = warden can mark/pardon RED rebels from menu |
+| `sm_ajb_guard_mark_rebel_enabled` | `1` | 1 = allow guards to use /markrebel command to mark RED rebels |
+| `sm_ajb_guard_mark_rebel_cooldown` | `30` | Cooldown in seconds between guard /markrebel uses |
 | `sm_ajb_strip_prisoners` | `1` | 1 = strip prisoners to melee on spawn |
 | `sm_ajb_block_buildings` | `0` | 1 = block Engineer buildings (see `sm_ajb_allow_sentry`) |
 | `sm_ajb_block_prisoner_damage` | `1` | 1 = block non-rebel prisoner damage to guards |

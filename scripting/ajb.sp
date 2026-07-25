@@ -53,8 +53,11 @@ ConVar g_cvWardenAutoMode;
 ConVar g_cvRebelOnDamage;
 ConVar g_cvRebelOnWardenDamage;
 ConVar g_cvWardenRebelControl;
-// When false, prisoner→guard hits never auto-rebel (used by LR “Hot Reds”).
 bool g_bRebelOnHit = true;
+ConVar g_cvGuardMarkRebelEnabled;
+ConVar g_cvGuardMarkRebelCooldown;
+float g_fGuardMarkRebelLastTime[MAXPLAYERS + 1];
+
 ConVar g_cvStripPrisoners;
 ConVar g_cvBlockBuildings;
 ConVar g_cvBlockPrisonerDamage;
@@ -186,6 +189,8 @@ public void OnPluginStart()
 	g_cvRebelOnDamage = CreateConVar("sm_ajb_rebel_on_damage", "1", "1 = mark prisoner as rebel when they damage a BLU guard (see sm_ajb_rebel_on_warden_damage for the warden).", _, true, 0.0, true, 1.0);
 	g_cvRebelOnWardenDamage = CreateConVar("sm_ajb_rebel_on_warden_damage", "1", "1 = mark prisoner as rebel when they damage the warden. Set this 1 and sm_ajb_rebel_on_damage 0 to let prisoners hit BLU freely except the warden.", _, true, 0.0, true, 1.0);
 	g_cvWardenRebelControl = CreateConVar("sm_ajb_warden_rebel_control", "1", "1 = warden can mark/pardon RED rebels from the warden menu.", _, true, 0.0, true, 1.0);
+	g_cvGuardMarkRebelEnabled = CreateConVar("sm_ajb_guard_mark_rebel_enabled", "1", "1 = allow guards to use /markrebel command to mark RED rebels.", _, true, 0.0, true, 1.0);
+	g_cvGuardMarkRebelCooldown = CreateConVar("sm_ajb_guard_mark_rebel_cooldown", "30", "Cooldown in seconds between guard /markrebel uses.", _, true, 0.0);
 	g_cvStripPrisoners = CreateConVar("sm_ajb_strip_prisoners", "1", "1 = strip prisoners to melee on spawn.", _, true, 0.0, true, 1.0);
 	g_cvBlockBuildings = CreateConVar("sm_ajb_block_buildings", "0", "1 = block Engineer buildings while AJB is active (see sm_ajb_allow_sentry for sentry exception). Default 0 = allow builds.", _, true, 0.0, true, 1.0);
 	g_cvBlockPrisonerDamage = CreateConVar("sm_ajb_block_prisoner_damage", "1", "1 = block non-rebel prisoner damage to guards (freeday does not bypass this).", _, true, 0.0, true, 1.0);
@@ -230,6 +235,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ajb_uw_instant", Command_UnWardenInstant, "Resign warden instantly (no confirmation).");
 	RegConsoleCmd("sm_ajb_open", Command_OpenCells, "Open cell doors (warden or admin).");
 	RegConsoleCmd("sm_ajb_close", Command_CloseCells, "Close cell doors (warden or admin).");
+	RegConsoleCmd("sm_markrebel", Command_GuardMarkRebel, "Guard: Mark a prisoner as rebel.");
+	RegConsoleCmd("sm_ajb_markrebel", Command_GuardMarkRebel, "Guard: Mark a prisoner as rebel.");
 
 	AJB_Freekill_RegisterCommands();
 

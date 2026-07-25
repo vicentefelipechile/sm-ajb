@@ -928,3 +928,166 @@ Action Command_AdminRebel(int client, int args)
 
 	return Plugin_Handled;
 }
+
+// =========================================================================================================
+// Guard /markrebel command + menu
+// =========================================================================================================
+
+Action Command_GuardMarkRebel(int client, int args)
+{
+	if (!g_bModeActive)
+	{
+		AJB_Reply(client, "Mode Inactive");
+		return Plugin_Handled;
+	}
+
+	if (client == 0)
+	{
+		AJB_Reply(client, "Ingame Only");
+		return Plugin_Handled;
+	}
+
+	if (g_cvGuardMarkRebelEnabled == null || !g_cvGuardMarkRebelEnabled.BoolValue)
+	{
+		AJB_Reply(client, "Guard Mark Rebel Disabled");
+		return Plugin_Handled;
+	}
+
+	if (!AJB_ClientIsGuard(client))
+	{
+		AJB_Reply(client, "Guard Mark Rebel Guards Only");
+		return Plugin_Handled;
+	}
+
+	if (!IsPlayerAlive(client))
+	{
+		AJB_Reply(client, "Guard Mark Rebel Alive Only");
+		return Plugin_Handled;
+	}
+
+	float cooldown = g_cvGuardMarkRebelCooldown.FloatValue;
+	if (cooldown > 0.0)
+	{
+		float now = GetEngineTime();
+		float elapsed = now - g_fGuardMarkRebelLastTime[client];
+		if (elapsed < cooldown)
+		{
+			int remaining = RoundToCeil(cooldown - elapsed);
+			char prefix[32];
+			AJB_GetPrefix(client, prefix, sizeof(prefix));
+			CReplyToCommand(client, "%T", "Guard Mark Rebel Cooldown", client, prefix, remaining);
+			return Plugin_Handled;
+		}
+	}
+
+	AJB_Guard_ShowRebelPick(client);
+	return Plugin_Handled;
+}
+
+void AJB_Guard_ShowRebelPick(int client)
+{
+	if (!AJB_IsValidClient(client) || !AJB_ClientIsGuard(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	if (g_cvGuardMarkRebelEnabled == null || !g_cvGuardMarkRebelEnabled.BoolValue)
+	{
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_GuardRebel);
+	char title[96];
+	char line[64];
+	Format(title, sizeof(title), "%T", "Guard Mark Rebel Title", client);
+	menu.SetTitle(title);
+
+	int count = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || !AJB_ClientIsPrisoner(i))
+		{
+			continue;
+		}
+
+		if (AJB_FlagGet(i, AJB_PF_REBEL))
+		{
+			continue;
+		}
+
+		char id[12];
+		Format(id, sizeof(id), "%d", GetClientUserId(i));
+		GetClientName(i, line, sizeof(line));
+		menu.AddItem(id, line);
+		count++;
+	}
+
+	if (count < 1)
+	{
+		delete menu;
+		AJB_Chat(client, "Guard Mark Rebel None");
+		return;
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, 0);
+}
+
+public int MenuHandler_GuardRebel(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	int client = param1;
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	if (!g_bModeActive || !AJB_ClientIsGuard(client) || !IsPlayerAlive(client))
+	{
+		return 0;
+	}
+
+	if (g_cvGuardMarkRebelEnabled == null || !g_cvGuardMarkRebelEnabled.BoolValue)
+	{
+		return 0;
+	}
+
+	float cooldown = g_cvGuardMarkRebelCooldown.FloatValue;
+	float now = GetEngineTime();
+	if (cooldown > 0.0)
+	{
+		float elapsed = now - g_fGuardMarkRebelLastTime[client];
+		if (elapsed < cooldown)
+		{
+			int remaining = RoundToCeil(cooldown - elapsed);
+			char prefix[32];
+			AJB_GetPrefix(client, prefix, sizeof(prefix));
+			CPrintToChat(client, "%T", "Guard Mark Rebel Cooldown", client, prefix, remaining);
+			return 0;
+		}
+	}
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+
+	int target = GetClientOfUserId(StringToInt(info));
+	if (target < 1
+		|| !IsClientInGame(target)
+		|| !IsPlayerAlive(target)
+		|| !AJB_ClientIsPrisoner(target)
+		|| AJB_FlagGet(target, AJB_PF_REBEL))
+	{
+		AJB_Guard_ShowRebelPick(client);
+		return 0;
+	}
+
+	g_fGuardMarkRebelLastTime[client] = now;
+	AJB_SetRebelInternal(target, true, true, client);
+	return 0;
+}
+

@@ -1105,4 +1105,76 @@
 		"pt"		"{1} Apenas o warden ou um admin pode decidir isto."
 		"ru"		"{1} Решить это может только варден или админ."
 	}
+
+	"Guard Mark Rebel Title"
+	{
+		"en"		"── Mark Rebel ──"
+		"es"		"── Marcar Rebelde ──"
+		"las"		"── Marcar Rebelde ──"
+		"de"		"── Rebell markieren ──"
+		"fr"		"── Marquer comme rebelle ──"
+		"pt"		"── Marcar Rebelde ──"
+		"ru"		"── Пометить бунтовщика ──"
+	}
+
+	"Guard Mark Rebel Disabled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Guard rebel marking is disabled."
+		"es"		"{1} La marca de rebeldes para guardias está desactivada."
+		"las"		"{1} La marca de rebeldes para guardias está desactivada."
+		"de"		"{1} Rebell-Markierung für Wachen ist deaktiviert."
+		"fr"		"{1} Le marquage des rebelles par les gardes est désactivé."
+		"pt"		"{1} A marcação de rebeldes para guardas está desativada."
+		"ru"		"{1} Отметка бунтовщиков охранниками отключена."
+	}
+
+	"Guard Mark Rebel Guards Only"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Only living guards can mark rebels."
+		"es"		"{1} Solo los guardias vivos pueden marcar rebeldes."
+		"las"		"{1} Solo los guardias vivos pueden marcar rebeldes."
+		"de"		"{1} Nur lebende Wachen können Rebellen markieren."
+		"fr"		"{1} Seuls les gardes vivants peuvent marquer des rebelles."
+		"pt"		"{1} Apenas guardas vivos podem marcar rebeldes."
+		"ru"		"{1} Только живые охранники могут помечать бунтовщиков."
+	}
+
+	"Guard Mark Rebel Alive Only"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} You must be alive to mark rebels."
+		"es"		"{1} Debes estar vivo para marcar rebeldes."
+		"las"		"{1} Debes estar vivo para marcar rebeldes."
+		"de"		"{1} Du musst am Leben sein, um Rebellen zu markieren."
+		"fr"		"{1} Vous devez être vivant pour marquer des rebelles."
+		"pt"		"{1} Você deve estar vivo para marcar rebeldes."
+		"ru"		"{1} Вы должны быть живы, чтобы помечать бунтовщиков."
+	}
+
+	"Guard Mark Rebel Cooldown"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} You must wait {2} seconds before marking another rebel."
+		"es"		"{1} Debes esperar {2} segundos para volver a marcar a un rebelde."
+		"las"		"{1} Debes esperar {2} segundos para volver a marcar a un rebelde."
+		"de"		"{1} Du musst {2} Sekunden warten, bevor du einen weiteren Rebellen markierst."
+		"fr"		"{1} Vous devez attendre {2} secondes avant de marquer un autre rebelle."
+		"pt"		"{1} Você deve esperar {2} segundos antes de marcar outro rebelde."
+		"ru"		"{1} Подождите {2} сек. перед повторной отметкой бунтовщика."
+	}
+
+	"Guard Mark Rebel None"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} No non-rebel prisoners available to mark."
+		"es"		"{1} No hay prisioneros no-rebeldes para marcar."
+		"las"		"{1} No hay prisioneros no-rebeldes para marcar."
+		"de"		"{1} Keine Nicht-Rebellen-Gefangenen zum Markieren verfügbar."
+		"fr"		"{1} Aucun prisonnier non-rebelle disponible à marquer."
+		"pt"		"{1} Nenhum prisioneiro não-rebelde disponível para marcar."
+		"ru"		"{1} Нет не-бунтующих заключенных для отметки."
+	}
 }
+

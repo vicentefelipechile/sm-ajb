@@ -106,6 +106,7 @@ void AJB_ResetClientFlags(int client)
 {
 	AJB_FlagSet(client, AJB_PF_REBEL, false);
 	AJB_FlagSet(client, AJB_PF_FREEDAY, false);
+	g_fGuardMarkRebelLastTime[client] = 0.0;
 }
 
 void AJB_ApplyPendingFreedays()
