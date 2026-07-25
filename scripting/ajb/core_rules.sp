@@ -271,7 +271,7 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 
 	if (attackerPrisoner && victimGuard)
 	{
-		// Combat day / hot reds special handling above rebel; war day allows free fire.
+		// Combat day handling above rebel; war day allows free fire.
 		if (AJB_IsCombatDay())
 		{
 			return Plugin_Continue;
