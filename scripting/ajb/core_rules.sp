@@ -76,6 +76,9 @@ void AJB_SetRebelInternal(int client, bool rebel, bool announce, int source = 0)
 	// Sentry AI: clear residual cloak + drop non-rebel locks so they re-acquire this frame.
 	AJB_Sentry_OnRebelChanged(client, rebel);
 
+	// Update rebel visual FX (orange glow)
+	AJB_Rebel_OnChanged(client, rebel);
+
 	Call_StartForward(g_hFwdRebel);
 	Call_PushCell(client);
 	Call_PushCell(rebel);

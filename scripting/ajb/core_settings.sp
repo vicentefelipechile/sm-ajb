@@ -31,22 +31,25 @@ float g_flTpCombatBluAngles[3];
 bool g_bTpCombatBlu;
 
 int g_iFreedayBeamSprite = -1;
-Handle g_hFreedayTrailTimer;
+Handle g_hPlayerFxTimer;
 
-// World-space mid-body FX per player (NOT parented) so the owner sees trail/glow in 3rd person.
+// Per-player visual FX: freeday trail + glow (green) and rebel glow (orange).
+// Trail anchor is world-space (NOT parented) so the owner sees it in 3rd person.
+// Glow sprites are parented to the player so Source moves them every frame (no timer jitter).
 // One contiguous struct per client (cache locality) that also caches the last anchored position,
-// so a still player skips the two per-tick TeleportEntity calls.
-enum struct FreedayFx
+// so a still player skips the per-tick TeleportEntity call on the trail anchor.
+enum struct PlayerFx
 {
-	int anchor;       // info_target the beam-follow rides
-	int glow;         // env_sprite marker
-	float lastMid[3]; // last position both were teleported to
+	int anchor;       // info_target the beam-follow rides (freeday trail)
+	int glow;         // env_sprite freeday marker (green)
+	int rebelGlow;    // env_sprite rebel marker (orange)
+	float lastMid[3]; // last position the anchor was teleported to
 	bool hasMid;      // lastMid is valid (entities have been placed at least once)
 }
 
-FreedayFx g_FreedayFx[MAXPLAYERS + 1];
+PlayerFx g_PlayerFx[MAXPLAYERS + 1];
 
-// Squared move threshold: below this the anchor/glow are already close enough, skip the teleports.
+// Squared move threshold: below this the anchor is already close enough, skip the teleport.
 #define AJB_FREEDAY_MOVE_SQR  4.0
 
 void AJB_Settings_OnPluginStart()
@@ -67,10 +70,11 @@ void AJB_Settings_ClearRoundModes()
 {
 	g_bCombatDay = false;
 	g_bFreedayAllCosmetic = false;
-	AJB_Freeday_StopTrailTimer();
+	AJB_PlayerFx_StopTimer();
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		AJB_Freeday_KillTrailFx(i);
+		AJB_Rebel_KillGlow(i);
 	}
 }
 
@@ -393,24 +397,25 @@ void AJB_Freeday_KillTrailFx(int client)
 		return;
 	}
 
-	int ent = g_FreedayFx[client].anchor;
-	g_FreedayFx[client].anchor = 0;
+	int ent = g_PlayerFx[client].anchor;
+	g_PlayerFx[client].anchor = 0;
 	if (ent > MaxClients && IsValidEntity(ent))
 	{
 		AcceptEntityInput(ent, "Kill");
 	}
 
-	ent = g_FreedayFx[client].glow;
-	g_FreedayFx[client].glow = 0;
+	ent = g_PlayerFx[client].glow;
+	g_PlayerFx[client].glow = 0;
 	if (ent > MaxClients && IsValidEntity(ent))
 	{
 		AcceptEntityInput(ent, "Kill");
 	}
 
-	g_FreedayFx[client].hasMid = false;
+	g_PlayerFx[client].hasMid = false;
 }
 
-// World-space FX (no SetParent). Parented beams often do not render for the local player.
+// Parented beams often do not render for the local player, so the trail anchor stays world-space.
+// The glow sprite IS parented to the player so Source moves it every rendered frame (no jitter).
 void AJB_Freeday_EnsureTrailFx(int client)
 {
 	if (!AJB_IsValidClient(client, true))
@@ -421,49 +426,37 @@ void AJB_Freeday_EnsureTrailFx(int client)
 	float mid[3];
 	AJB_Freeday_GetMidBody(client, mid);
 
-	// BeamFollow anchor
-	bool created = false;
-	int anchor = g_FreedayFx[client].anchor;
+	// BeamFollow anchor (world-space, repositioned by the timer)
+	bool anchorCreated = false;
+	int anchor = g_PlayerFx[client].anchor;
 	if (anchor <= MaxClients || !IsValidEntity(anchor))
 	{
 		anchor = CreateEntityByName("info_target");
 		if (anchor != -1)
 		{
 			DispatchSpawn(anchor);
-			g_FreedayFx[client].anchor = anchor;
-			created = true;
+			g_PlayerFx[client].anchor = anchor;
+			anchorCreated = true;
 		}
 	}
 
-	// Constant green glow sprite (easy self-marker in 3rd person)
-	int glow = g_FreedayFx[client].glow;
+	// Constant green glow sprite — parented to the player for per-frame smooth movement.
+	int glow = g_PlayerFx[client].glow;
 	if (glow <= MaxClients || !IsValidEntity(glow))
 	{
-		glow = CreateEntityByName("env_sprite");
+		glow = AJB_CreateParentedGlow(client, "50 255 50", "ajb_fd");
 		if (glow != -1)
 		{
-			DispatchKeyValue(glow, "model", "materials/sprites/glow01.vmt");
-			DispatchKeyValue(glow, "classname", "env_sprite");
-			DispatchKeyValue(glow, "spawnflags", "1");
-			DispatchKeyValue(glow, "scale", "0.85");
-			DispatchKeyValue(glow, "rendermode", "5");
-			DispatchKeyValue(glow, "renderamt", "255");
-			DispatchKeyValue(glow, "rendercolor", "50 255 50");
-			DispatchKeyValue(glow, "GlowProxySize", "12.0");
-			DispatchSpawn(glow);
-			AcceptEntityInput(glow, "ShowSprite");
-			g_FreedayFx[client].glow = glow;
-			created = true;
+			g_PlayerFx[client].glow = glow;
 		}
 	}
 
-	// Skip the teleports when the player has barely moved since the last placement. Freshly
-	// created entities spawn at the world origin, so they must always be placed once.
-	if (!created && g_FreedayFx[client].hasMid)
+	// Only the anchor needs timer-based teleports; skip when barely moved.
+	if (!anchorCreated && g_PlayerFx[client].hasMid)
 	{
-		float dx = mid[0] - g_FreedayFx[client].lastMid[0];
-		float dy = mid[1] - g_FreedayFx[client].lastMid[1];
-		float dz = mid[2] - g_FreedayFx[client].lastMid[2];
+		float dx = mid[0] - g_PlayerFx[client].lastMid[0];
+		float dy = mid[1] - g_PlayerFx[client].lastMid[1];
+		float dz = mid[2] - g_PlayerFx[client].lastMid[2];
 		if (dx * dx + dy * dy + dz * dz < AJB_FREEDAY_MOVE_SQR)
 		{
 			return;
@@ -474,73 +467,193 @@ void AJB_Freeday_EnsureTrailFx(int client)
 	{
 		TeleportEntity(anchor, mid, NULL_VECTOR, NULL_VECTOR);
 	}
-	if (glow > MaxClients && IsValidEntity(glow))
+
+	g_PlayerFx[client].lastMid = mid;
+	g_PlayerFx[client].hasMid = true;
+}
+
+// =========================================================================================================
+// Rebel glow (orange, parented to player — same pattern as freeday glow)
+// =========================================================================================================
+
+void AJB_Rebel_OnChanged(int client, bool rebel)
+{
+	if (rebel)
 	{
-		TeleportEntity(glow, mid, NULL_VECTOR, NULL_VECTOR);
+		AJB_Rebel_EnsureGlow(client);
+		AJB_PlayerFx_EnsureTimer();
+	}
+	else
+	{
+		AJB_Rebel_KillGlow(client);
+	}
+}
+
+void AJB_Rebel_EnsureGlow(int client)
+{
+	if (!AJB_IsValidClient(client, true))
+	{
+		return;
 	}
 
-	g_FreedayFx[client].lastMid = mid;
-	g_FreedayFx[client].hasMid = true;
+	int glow = g_PlayerFx[client].rebelGlow;
+	if (glow > MaxClients && IsValidEntity(glow))
+	{
+		return; // already alive
+	}
+
+	glow = AJB_CreateParentedGlow(client, "255 150 0", "ajb_rb");
+	if (glow != -1)
+	{
+		g_PlayerFx[client].rebelGlow = glow;
+	}
+}
+
+void AJB_Rebel_KillGlow(int client)
+{
+	if (client < 1 || client > MaxClients)
+	{
+		return;
+	}
+
+	int ent = g_PlayerFx[client].rebelGlow;
+	g_PlayerFx[client].rebelGlow = 0;
+	if (ent > MaxClients && IsValidEntity(ent))
+	{
+		AcceptEntityInput(ent, "Kill");
+	}
+}
+
+// =========================================================================================================
+// Shared: create a parented env_sprite glow at mid-body height
+// =========================================================================================================
+
+int AJB_CreateParentedGlow(int client, const char[] color, const char[] prefix)
+{
+	int glow = CreateEntityByName("env_sprite");
+	if (glow == -1)
+	{
+		return -1;
+	}
+
+	DispatchKeyValue(glow, "model", "materials/sprites/glow01.vmt");
+	DispatchKeyValue(glow, "classname", "env_sprite");
+	DispatchKeyValue(glow, "spawnflags", "1");
+	DispatchKeyValue(glow, "scale", "0.85");
+	DispatchKeyValue(glow, "rendermode", "5");
+	DispatchKeyValue(glow, "renderamt", "255");
+	DispatchKeyValue(glow, "rendercolor", color);
+	DispatchKeyValue(glow, "GlowProxySize", "12.0");
+	DispatchSpawn(glow);
+	AcceptEntityInput(glow, "ShowSprite");
+
+	// Parent to the player so Source moves it every rendered frame.
+	float origin[3];
+	float eyes[3];
+	GetClientAbsOrigin(client, origin);
+	GetClientEyePosition(client, eyes);
+	float offset[3];
+	offset[0] = 0.0;
+	offset[1] = 0.0;
+	offset[2] = (eyes[2] - origin[2]) * 0.5;
+	TeleportEntity(glow, offset, NULL_VECTOR, NULL_VECTOR);
+
+	char targetName[32];
+	Format(targetName, sizeof(targetName), "%s_%d", prefix, client);
+	DispatchKeyValue(client, "targetname", targetName);
+	SetVariantString(targetName);
+	AcceptEntityInput(glow, "SetParent");
+
+	return glow;
+}
+
+// =========================================================================================================
+// Shared FX timer (freeday trails + rebel/freeday glow lifecycle)
+// =========================================================================================================
+
+void AJB_PlayerFx_EnsureTimer()
+{
+	if (g_hPlayerFxTimer == null)
+	{
+		g_hPlayerFxTimer = CreateTimer(0.15, Timer_PlayerFx, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 void AJB_Freeday_EnsureTrailTimer()
 {
 	if (!g_bFreedayTrail)
 	{
-		AJB_Freeday_StopTrailTimer();
 		return;
 	}
 
-	if (g_hFreedayTrailTimer == null)
+	AJB_PlayerFx_EnsureTimer();
+}
+
+void AJB_PlayerFx_StopTimer()
+{
+	if (g_hPlayerFxTimer != null)
 	{
-		// Fast tick: keep glow/trail glued to mid-body and continuous.
-		g_hFreedayTrailTimer = CreateTimer(0.15, Timer_FreedayTrail, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+		delete g_hPlayerFxTimer;
+		g_hPlayerFxTimer = null;
 	}
 }
 
-void AJB_Freeday_StopTrailTimer()
+Action Timer_PlayerFx(Handle timer)
 {
-	if (g_hFreedayTrailTimer != null)
+	if (!g_bModeActive)
 	{
-		delete g_hFreedayTrailTimer;
-		g_hFreedayTrailTimer = null;
-	}
-}
-
-Action Timer_FreedayTrail(Handle timer)
-{
-	if (!g_bModeActive || !g_bFreedayTrail)
-	{
-		g_hFreedayTrailTimer = null;
+		g_hPlayerFxTimer = null;
 		return Plugin_Stop;
 	}
 
 	bool any = false;
-	static const int color[4] = { 50, 255, 50, 255 };
+	static const int trailColor[4] = { 50, 255, 50, 255 };
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || !IsPlayerAlive(i) || !AJB_FlagGet(i, AJB_PF_FREEDAY) || AJB_FlagGet(i, AJB_PF_REBEL))
+		if (!IsClientInGame(i) || !IsPlayerAlive(i))
 		{
 			AJB_Freeday_KillTrailFx(i);
+			AJB_Rebel_KillGlow(i);
 			continue;
 		}
 
-		any = true;
-		AJB_Freeday_EnsureTrailFx(i);
+		bool isRebel = AJB_FlagGet(i, AJB_PF_REBEL);
+		bool isFreeday = AJB_FlagGet(i, AJB_PF_FREEDAY) && !isRebel;
 
-		int anchor = g_FreedayFx[i].anchor;
-		if (g_iFreedayBeamSprite != -1 && anchor > MaxClients && IsValidEntity(anchor))
+		// Freeday trail + glow
+		if (isFreeday && g_bFreedayTrail)
 		{
-			// Long thick trail; world anchor so owner sees it too (not parented to eyes).
-			TE_SetupBeamFollow(anchor, g_iFreedayBeamSprite, 0, 3.5, 18.0, 12.0, 8, color);
-			TE_SendToAll();
+			AJB_Freeday_EnsureTrailFx(i);
+
+			int anchor = g_PlayerFx[i].anchor;
+			if (g_iFreedayBeamSprite != -1 && anchor > MaxClients && IsValidEntity(anchor))
+			{
+				TE_SetupBeamFollow(anchor, g_iFreedayBeamSprite, 0, 3.5, 18.0, 12.0, 8, trailColor);
+				TE_SendToAll();
+			}
+			any = true;
+		}
+		else
+		{
+			AJB_Freeday_KillTrailFx(i);
+		}
+
+		// Rebel glow
+		if (isRebel)
+		{
+			AJB_Rebel_EnsureGlow(i);
+			any = true;
+		}
+		else
+		{
+			AJB_Rebel_KillGlow(i);
 		}
 	}
 
 	if (!any)
 	{
-		g_hFreedayTrailTimer = null;
+		g_hPlayerFxTimer = null;
 		return Plugin_Stop;
 	}
 

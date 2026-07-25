@@ -64,7 +64,7 @@
 
 // Per-player boolean state packed into one bitfield cell (see BoostPlayer.flags).
 #define BF_MELEE_CRIT    (1 << 0)   // RED: next melee hit is a full crit
-#define BF_DAMAGE_HOOKED (1 << 1)   // OnTakeDamage hooked for this client
+#define BF_DAMAGE_HOOKED (1 << 1)   // OnTakeDamage + OnTakeDamageAlive hooked for this client
 
 // =========================================================================================================
 // Plugin info
@@ -975,6 +975,8 @@ void AJB_Boosts_HookClient(int client)
 	}
 
 	SDKHook(client, SDKHook_OnTakeDamage, AJB_Boosts_OnTakeDamage);
+	// Iron neck runs here: final damage about to hit health (post multipliers).
+	SDKHook(client, SDKHook_OnTakeDamageAlive, AJB_Boosts_OnTakeDamageAlive);
 	Boost_SetFlag(client, BF_DAMAGE_HOOKED, true);
 }
 
@@ -984,8 +986,6 @@ Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
 	{
 		return Plugin_Continue;
 	}
-
-	bool changed = false;
 
 	// RED boost: first melee hit is a full crit.
 	if (attacker >= 1 && attacker <= MaxClients
@@ -1009,43 +1009,61 @@ Action AJB_Boosts_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
 		{
 			damagetype |= DMG_CRIT;
 			Boost_SetFlag(attacker, BF_MELEE_CRIT, false);
-			changed = true;
 
 			char prefix[32];
 			AJB_GetPrefix(attacker, prefix, sizeof(prefix));
 			CPrintToChat(attacker, "%T", "Boosts Melee Crit Used", attacker, prefix);
-		}
-	}
-
-	// BLU boost: iron neck survives one backstab.
-	if (g_Boost[victim].backstabCharges > 0
-		&& IsClientInGame(victim)
-		&& IsPlayerAlive(victim)
-		&& damagecustom == TF_CUSTOM_BACKSTAB)
-	{
-		g_Boost[victim].backstabCharges--;
-
-		int health = GetClientHealth(victim);
-		if (damage >= float(health))
-		{
-			damage = float(health - 1);
-			if (damage < 0.0)
-			{
-				damage = 0.0;
-			}
-
-			char prefix[32];
-			AJB_GetPrefix(victim, prefix, sizeof(prefix));
-			CPrintToChat(victim, "%T", "Boosts Backstab Saved", victim, prefix, g_Boost[victim].backstabCharges);
-			if (attacker > 0 && attacker <= MaxClients && IsClientInGame(attacker))
-			{
-				AJB_GetPrefix(attacker, prefix, sizeof(prefix));
-				CPrintToChat(attacker, "%T", "Boosts Backstab Blocked", attacker, prefix, victim);
-			}
-
 			return Plugin_Changed;
 		}
 	}
 
-	return changed ? Plugin_Changed : Plugin_Continue;
+	return Plugin_Continue;
+}
+
+// Iron neck must run on OnTakeDamageAlive: OnTakeDamage often sees pre-multiplier knife
+// damage for backstabs. The old code gated on damage >= health, consumed a charge, then
+// let the real backstab kill land. Alive is the last chance before health is subtracted.
+Action AJB_Boosts_OnTakeDamageAlive(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
+{
+	if (!g_bBoostsEnabled)
+	{
+		return Plugin_Continue;
+	}
+
+	if (g_Boost[victim].backstabCharges <= 0
+		|| !IsClientInGame(victim)
+		|| !IsPlayerAlive(victim)
+		|| damagecustom != TF_CUSTOM_BACKSTAB)
+	{
+		return Plugin_Continue;
+	}
+
+	g_Boost[victim].backstabCharges--;
+
+	// Leave the victim at half current HP (min 1). SDK backstabs deal GetHealth()*2
+	// pre-crit (~6x after crit); we replace that lethal amount with a half-health hit.
+	int health = GetClientHealth(victim);
+	int keep = health / 2;
+	if (keep < 1)
+	{
+		keep = 1;
+	}
+	damage = float(health - keep);
+
+	// Backstabs carry DMG_CRIT; leave it set and the reduced amount can still be scaled.
+	damagetype &= ~DMG_CRIT;
+	damageForce[0] = 0.0;
+	damageForce[1] = 0.0;
+	damageForce[2] = 0.0;
+
+	char prefix[32];
+	AJB_GetPrefix(victim, prefix, sizeof(prefix));
+	CPrintToChat(victim, "%T", "Boosts Backstab Saved", victim, prefix, g_Boost[victim].backstabCharges);
+	if (attacker > 0 && attacker <= MaxClients && IsClientInGame(attacker))
+	{
+		AJB_GetPrefix(attacker, prefix, sizeof(prefix));
+		CPrintToChat(attacker, "%T", "Boosts Backstab Blocked", attacker, prefix, victim);
+	}
+
+	return Plugin_Changed;
 }

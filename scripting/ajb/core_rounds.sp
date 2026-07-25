@@ -284,6 +284,27 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		AJB_FlagSet(victim, AJB_PF_REBEL, false);
 	}
 
+	// Eternal Reward (YER / Wanga Prick) automatic disguise logic for RED spies killing BLUs
+	int attacker = GetClientOfUserId(event.GetInt("attacker"));
+	if (AJB_IsValidClient(attacker) && AJB_IsValidClient(victim) && attacker != victim)
+	{
+		if (GetClientTeam(attacker) == AJB_TEAM_RED && GetClientTeam(victim) == AJB_TEAM_BLU)
+		{
+			if (TF2_GetPlayerClass(attacker) == TFClass_Spy)
+			{
+				int weapon = GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon");
+				if (weapon > MaxClients && IsValidEntity(weapon))
+				{
+					int defIndex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+					if (defIndex == 225 || defIndex == 574) // Your Eternal Reward or Wanga Prick
+					{
+						TF2_DisguisePlayer(attacker, TFTeam_Blue, TF2_GetPlayerClass(victim), victim);
+					}
+				}
+			}
+		}
+	}
+
 	// Last-prisoner announce only (no forced round end).
 	CreateTimer(0.15, Timer_PostDeathChecks, _, TIMER_FLAG_NO_MAPCHANGE);
 }
