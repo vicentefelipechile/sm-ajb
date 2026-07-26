@@ -286,7 +286,7 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	}
 
 	// Dead Ringer / feign death fires player_death but the spy is not really dead.
-	if (event.GetInt("deathflags") & TF_DEATHFLAG_DEADRINGER)
+	if (event.GetInt("death_flags") & TF_DEATHFLAG_DEADRINGER)
 	{
 		return;
 	}

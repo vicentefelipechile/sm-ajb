@@ -81,6 +81,8 @@ void AJB_LoadMapDoors()
 		AJB_AutoDetectCellDoors(fileMap);
 	}
 
+	AJB_HookCellEntities();
+
 	LogMessage("[AJB] Found %d doors (+%d auto by map id).", g_iDoorNameCount, g_iDoorHammerCount);
 }
 
@@ -308,19 +310,18 @@ void AJB_FireAllCellLikeDoors(const char[] input)
 
 bool AJB_OpenCellsInternal(bool announce)
 {
-	// Locked doors ignore Open — Unlock first. A delayed Open covers engines that
-	// only process Open on the next tick after Unlock (avoids needing two menu presses).
+	if (g_RoundState == AJBState_CellsOpen)
+	{
+		return true;
+	}
+
 	AJB_FireDoorInput("Unlock");
 	AJB_FireDoorInput("Open");
 	CreateTimer(0.05, Timer_CellsOpenRetry, _, TIMER_FLAG_NO_MAPCHANGE);
 
-	if (g_RoundState == AJBState_CellsLocked || g_RoundState == AJBState_Waiting)
-	{
-		AJB_SetRoundState(AJBState_CellsOpen);
-	}
+	AJB_SetRoundState(AJBState_CellsOpen);
 
 	AJB_KillCellsAutoTimer();
-	// Keep the round HUD clock running — do not hide/reset it when cells open.
 
 	Call_StartForward(g_hFwdCellsOpened);
 	Call_Finish();
@@ -335,7 +336,7 @@ bool AJB_OpenCellsInternal(bool announce)
 
 Action Timer_CellsOpenRetry(Handle timer)
 {
-	if (!g_bModeActive)
+	if (!g_bModeActive || g_RoundState != AJBState_CellsOpen)
 	{
 		return Plugin_Stop;
 	}
@@ -347,15 +348,16 @@ Action Timer_CellsOpenRetry(Handle timer)
 
 bool AJB_CloseCellsInternal(bool announce)
 {
-	// Close first, then Lock so a re-open path always needs Unlock (handled in Open).
+	if (g_RoundState == AJBState_CellsLocked)
+	{
+		return true;
+	}
+
 	AJB_FireDoorInput("Close");
 	AJB_FireDoorInput("Lock");
 	CreateTimer(0.05, Timer_CellsCloseRetry, _, TIMER_FLAG_NO_MAPCHANGE);
 
-	if (g_RoundState == AJBState_CellsOpen)
-	{
-		AJB_SetRoundState(AJBState_CellsLocked);
-	}
+	AJB_SetRoundState(AJBState_CellsLocked);
 
 	Call_StartForward(g_hFwdCellsClosed);
 	Call_Finish();
@@ -370,7 +372,7 @@ bool AJB_CloseCellsInternal(bool announce)
 
 Action Timer_CellsCloseRetry(Handle timer)
 {
-	if (!g_bModeActive)
+	if (!g_bModeActive || g_RoundState != AJBState_CellsLocked)
 	{
 		return Plugin_Stop;
 	}
@@ -378,6 +380,140 @@ Action Timer_CellsCloseRetry(Handle timer)
 	AJB_FireDoorInput("Close");
 	AJB_FireDoorInput("Lock");
 	return Plugin_Stop;
+}
+
+void AJB_SendEntityDoorInput(int ent, const char[] input)
+{
+	if (!IsValidEntity(ent))
+	{
+		return;
+	}
+
+	char classname[64];
+	GetEntityClassname(ent, classname, sizeof(classname));
+
+	AcceptEntityInput(ent, input);
+
+	if (StrContains(classname, "button", false) != -1)
+	{
+		if (StrEqual(input, "Open", false) || StrEqual(input, "Unlock", false))
+		{
+			AcceptEntityInput(ent, "Unlock");
+			AcceptEntityInput(ent, "Press");
+			AcceptEntityInput(ent, "Use");
+		}
+		else if (StrEqual(input, "Close", false) || StrEqual(input, "Lock", false))
+		{
+			AcceptEntityInput(ent, "Lock");
+		}
+	}
+	else if (StrEqual(classname, "logic_relay", false))
+	{
+		if (StrEqual(input, "Open", false) || StrEqual(input, "Unlock", false))
+		{
+			AcceptEntityInput(ent, "Enable");
+			AcceptEntityInput(ent, "Trigger");
+		}
+		else if (StrEqual(input, "Close", false) || StrEqual(input, "Lock", false))
+		{
+			AcceptEntityInput(ent, "Disable");
+		}
+	}
+}
+
+public void EntityOutput_OnCellDoorOpened(const char[] output, int caller, int activator, float delay)
+{
+	if (!g_bModeActive)
+	{
+		return;
+	}
+
+	if (g_RoundState != AJBState_CellsOpen)
+	{
+		g_RoundState = AJBState_CellsOpen;
+		AJB_KillCellsAutoTimer();
+		Call_StartForward(g_hFwdCellsOpened);
+		Call_Finish();
+	}
+}
+
+public void EntityOutput_OnCellDoorClosed(const char[] output, int caller, int activator, float delay)
+{
+	if (!g_bModeActive)
+	{
+		return;
+	}
+
+	if (g_RoundState == AJBState_CellsOpen)
+	{
+		g_RoundState = AJBState_CellsLocked;
+		Call_StartForward(g_hFwdCellsClosed);
+		Call_Finish();
+	}
+}
+
+void AJB_HookCellEntities()
+{
+	int maxEdicts = GetMaxEntities();
+	char classname[64];
+	char name[128];
+
+	for (int ent = MaxClients + 1; ent < maxEdicts; ent++)
+	{
+		if (!IsValidEntity(ent))
+		{
+			continue;
+		}
+
+		GetEntityClassname(ent, classname, sizeof(classname));
+		if (!AJB_IsDoorLikeClass(classname))
+		{
+			continue;
+		}
+
+		bool match = false;
+
+		if (HasEntProp(ent, Prop_Data, "m_iName"))
+		{
+			GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
+			if (name[0] != '\0')
+			{
+				for (int i = 0; i < g_iDoorNameCount; i++)
+				{
+					if (StrEqual(name, g_sDoorNames[i], false))
+					{
+						match = true;
+						break;
+					}
+				}
+
+				if (!match && AJB_NameLooksCellish(name))
+				{
+					match = true;
+				}
+			}
+		}
+
+		if (!match && HasEntProp(ent, Prop_Data, "m_iHammerID"))
+		{
+			if (AJB_DoorHammerKnown(GetEntProp(ent, Prop_Data, "m_iHammerID")))
+			{
+				match = true;
+			}
+		}
+
+		if (match)
+		{
+			HookSingleEntityOutput(ent, "OnPressed", EntityOutput_OnCellDoorOpened);
+			HookSingleEntityOutput(ent, "OnUse", EntityOutput_OnCellDoorOpened);
+			HookSingleEntityOutput(ent, "OnOpen", EntityOutput_OnCellDoorOpened);
+			HookSingleEntityOutput(ent, "OnFullyOpen", EntityOutput_OnCellDoorOpened);
+			HookSingleEntityOutput(ent, "OnTrigger", EntityOutput_OnCellDoorOpened);
+
+			HookSingleEntityOutput(ent, "OnClose", EntityOutput_OnCellDoorClosed);
+			HookSingleEntityOutput(ent, "OnFullyClosed", EntityOutput_OnCellDoorClosed);
+		}
+	}
 }
 
 int AJB_FireDoorInput(const char[] input)
@@ -389,7 +525,7 @@ int AJB_FireDoorInput(const char[] input)
 		int ent = -1;
 		while ((ent = AJB_FindEntityByTargetname(ent, g_sDoorNames[i])) != -1)
 		{
-			AcceptEntityInput(ent, input);
+			AJB_SendEntityDoorInput(ent, input);
 			touched++;
 		}
 	}
@@ -621,7 +757,7 @@ int AJB_FireDoorHammerInput(const char[] input)
 
 		if (AJB_DoorHammerKnown(GetEntProp(ent, Prop_Data, "m_iHammerID")))
 		{
-			AcceptEntityInput(ent, input);
+			AJB_SendEntityDoorInput(ent, input);
 			touched++;
 		}
 	}

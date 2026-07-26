@@ -51,7 +51,16 @@ enum AJB_LRWish
 	LRWish_LowGravity,
 	LRWish_HideSeek,
 	LRWish_HungerGames,
-	LRWish_Sniper
+	LRWish_Sniper,
+	LRWish_SetAllClass,
+	LRWish_GuardMelee
+};
+
+enum AJB_SetAllClassTarget
+{
+	SetAllClass_All = 0,
+	SetAllClass_RedOnly,
+	SetAllClass_BluOnly
 };
 
 public Plugin myinfo =
@@ -83,7 +92,6 @@ bool g_bHasCore;
 
 int g_iPrisoner;
 bool g_bMenuOpen;
-bool g_bMenuInterrupted;   // an external menu/vote hijacked the panel; reopen once it frees up
 bool g_bAwaitingCustom;
 bool g_bHotReds;
 bool g_bLowGravity;
@@ -103,6 +111,15 @@ bool g_bHGMeleeOnly;
 bool g_bHGClassLock;       // forced class for everyone
 TFClassType g_HGClass;
 bool g_bHGEnding;          // true while we force the round end (ignore extra death checks)
+bool g_bHGOriginalBlu[MAXPLAYERS + 1];
+
+// Guard Melee: guards are stripped to melee only next round
+bool g_bGuardMeleeActive;
+
+// Set All Class: forced class for target team(s) next round
+bool g_bSetAllClassActive;
+AJB_SetAllClassTarget g_SetAllClassTarget;
+TFClassType g_SetAllClassType;
 
 Handle g_hMenuTimer;
 Handle g_hMenuWarnTimer;
@@ -112,9 +129,6 @@ Handle g_hHSHideTimer;   // fires when the hide window ends → release seekers
 Handle g_hHSEndTimer;    // authoritative 5-minute round end (hiders win on timeout)
 Handle g_hHGGraceTimer;
 Handle g_hHGEndTimer;
-
-// Seconds remaining when the hurry warning fires (half of menu time).
-int g_iMenuWarnLeft;
 
 // Freeday multi-pick (panel; chooser listed first, then other living prisoners)
 bool g_bPickedFreeday[MAXPLAYERS + 1];
@@ -135,19 +149,357 @@ bool g_PendingHGMeleeOnly;
 bool g_PendingHGClassRandom;
 TFClassType g_PendingHGClass; // Unknown = any (keep each player's class)
 
-// Draft options while the chooser is still in the HG config menu.
+// Set All Class options chosen with the wish
+AJB_SetAllClassTarget g_PendingSetAllClassTarget;
+TFClassType g_PendingSetAllClassType;
+
+// Draft options while the chooser is still in the HG / SetAllClass config menus.
 bool g_bHGDraftMelee;
 bool g_bHGDraftClassRandom;
 TFClassType g_HGDraftClass;
+
+AJB_SetAllClassTarget g_DraftSetAllClassTarget;
+TFClassType g_DraftSetAllClassType;
 
 // Active Class Warfare lock (this live round).
 bool g_bClassWarfareActive;
 TFClassType g_ActiveClassRed;
 TFClassType g_ActiveClassBlu;
 
-// =========================================================================================================
-// Lifecycle
-// =========================================================================================================
+
+
+bool AJB_LR_IsGrantBlocked()
+{
+	if (!g_bHasCore)
+	{
+		return false;
+	}
+	return (g_PendingWish != LRWish_None || g_bMenuOpen || g_bAwaitingCustom || g_iPrisoner > 0);
+}
+
+void AJB_LR_CloseMenuState()
+{
+	g_bMenuOpen = false;
+	g_bAwaitingCustom = false;
+	g_iPrisoner = 0;
+	AJB_LR_KillMenuTimer();
+}
+
+void AJB_LR_MarkWishChosen()
+{
+	if (g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing)
+	{
+		AJB_SetRoundState(AJBState_CellsOpen);
+	}
+}
+
+void AJB_LR_KillMenuTimer()
+{
+	if (g_hMenuTimer != null)
+	{
+		delete g_hMenuTimer;
+		g_hMenuTimer = null;
+	}
+	if (g_hMenuWarnTimer != null)
+	{
+		delete g_hMenuWarnTimer;
+		g_hMenuWarnTimer = null;
+	}
+}
+
+Action Timer_MenuWarn(Handle timer, int userid)
+{
+	g_hMenuWarnTimer = null;
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && IsClientInGame(client) && (g_bMenuOpen || g_bAwaitingCustom) && client == g_iPrisoner)
+	{
+		AJB_Chat(client, "LR Menu Warn");
+	}
+	return Plugin_Stop;
+}
+
+Action Timer_MenuTimeout(Handle timer, int userid)
+{
+	g_hMenuTimer = null;
+	if (!g_bMenuOpen)
+	{
+		return Plugin_Stop;
+	}
+
+	g_bMenuOpen = false;
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && IsClientInGame(client))
+	{
+		AJB_LR_ChatAll1N("LR Timeout", client);
+	}
+
+	AJB_LR_Cleanup(false);
+	return Plugin_Stop;
+}
+
+void AJB_LR_StartMenuTimers(int prisoner)
+{
+	AJB_LR_KillMenuTimer();
+	float time = g_cvMenuTime.FloatValue;
+	if (time < 5.0)
+	{
+		time = 30.0;
+	}
+	int userid = GetClientUserId(prisoner);
+	g_hMenuTimer = CreateTimer(time, Timer_MenuTimeout, userid, TIMER_FLAG_NO_MAPCHANGE);
+	if (time > 15.0)
+	{
+		g_hMenuWarnTimer = CreateTimer(time - 15.0, Timer_MenuWarn, userid, TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+void AJB_LR_ShowGrantMenu(int warden)
+{
+	if (warden < 1 || !IsClientInGame(warden) || !IsPlayerAlive(warden))
+	{
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_Grant);
+	char title[64];
+	Format(title, sizeof(title), "%T", "LR Grant Menu Title", warden);
+	menu.SetTitle(title);
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && AJB_IsPrisoner(i))
+		{
+			char useridStr[16], name[64];
+			IntToString(GetClientUserId(i), useridStr, sizeof(useridStr));
+			GetClientName(i, name, sizeof(name));
+			menu.AddItem(useridStr, name);
+		}
+	}
+
+	menu.ExitButton = true;
+	menu.Display(warden, 20);
+}
+
+public int MenuHandler_Grant(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int warden = param1;
+	if (AJB_GetWarden() != warden)
+	{
+		return 0;
+	}
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+	int target = GetClientOfUserId(StringToInt(info));
+
+	if (target > 0 && IsClientInGame(target) && IsPlayerAlive(target) && AJB_IsPrisoner(target))
+	{
+		AJB_LR_OpenForPrisoner(target);
+		AJB_LR_ChatAll2N("LR Granted By Warden", warden, target);
+	}
+	return 0;
+}
+
+void AJB_LR_OpenForPrisoner(int prisoner)
+{
+	if (prisoner < 1 || !IsClientInGame(prisoner) || !IsPlayerAlive(prisoner))
+	{
+		return;
+	}
+
+	g_iPrisoner = prisoner;
+	g_bMenuOpen = true;
+	g_bAwaitingCustom = false;
+
+	if (g_bHasCore)
+	{
+		AJB_SetRoundState(AJBState_LRChoosing);
+	}
+
+	AJB_LR_ShowWishMenu(prisoner);
+	AJB_LR_StartMenuTimers(prisoner);
+}
+
+void AJB_LR_ShowWishMenu(int prisoner)
+{
+	if (prisoner < 1 || !IsClientInGame(prisoner) || !IsPlayerAlive(prisoner))
+	{
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_Wish);
+	char title[64], line[96];
+	Format(title, sizeof(title), "%T", "LR Wish Menu Title", prisoner);
+	menu.SetTitle(title);
+
+	Format(line, sizeof(line), "%T", "LR Wish FreedayMe", prisoner);
+	menu.AddItem("freeday_me", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish FreedayOthers", prisoner);
+	menu.AddItem("freeday_others", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish FreedayAll", prisoner);
+	menu.AddItem("freeday_all", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish WarDay", prisoner);
+	menu.AddItem("warday", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish ClassWarfare", prisoner);
+	menu.AddItem("classwarfare", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish SetAllClass", prisoner);
+	menu.AddItem("setallclass", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish GuardMelee", prisoner);
+	menu.AddItem("guardmelee", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish Custom", prisoner);
+	menu.AddItem("custom", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish HotReds", prisoner);
+	menu.AddItem("hotreds", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish LowGravity", prisoner);
+	menu.AddItem("lowgravity", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish HideSeek", prisoner);
+	menu.AddItem("hideseek", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish HungerGames", prisoner);
+	menu.AddItem("hungergames", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish Sniper", prisoner);
+	menu.AddItem("sniper", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish Suicide", prisoner);
+	menu.AddItem("suicide", line);
+
+	menu.ExitButton = false;
+	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return 0;
+	}
+
+	char info[32];
+	menu.GetItem(param2, info, sizeof(info));
+
+	if (StrEqual(info, "freeday_me"))
+	{
+		AJB_LR_DoFreedayMe(client);
+	}
+	else if (StrEqual(info, "freeday_others"))
+	{
+		g_iFreedayMenuPage = 0;
+		g_iFreedayPickCount = 0;
+		for (int i = 1; i <= MaxClients; i++) g_bPickedFreeday[i] = false;
+		AJB_LR_ShowFreedayOthersMenu(client);
+	}
+	else if (StrEqual(info, "freeday_all"))
+	{
+		AJB_LR_DoFreedayAll(client);
+	}
+	else if (StrEqual(info, "warday"))
+	{
+		AJB_LR_DoWarDay(client);
+	}
+	else if (StrEqual(info, "classwarfare"))
+	{
+		AJB_LR_DoClassWarfare(client);
+	}
+	else if (StrEqual(info, "setallclass"))
+	{
+		AJB_LR_StartSetAllClassConfig(client);
+	}
+	else if (StrEqual(info, "guardmelee"))
+	{
+		AJB_LR_DoGuardMelee(client);
+	}
+	else if (StrEqual(info, "custom"))
+	{
+		AJB_LR_StartCustom(client);
+	}
+	else if (StrEqual(info, "hotreds"))
+	{
+		AJB_LR_DoHotReds(client);
+	}
+	else if (StrEqual(info, "lowgravity"))
+	{
+		AJB_LR_DoLowGravity(client);
+	}
+	else if (StrEqual(info, "hideseek"))
+	{
+		AJB_LR_DoHideSeek(client);
+	}
+	else if (StrEqual(info, "hungergames"))
+	{
+		AJB_LR_StartHungerGamesConfig(client);
+	}
+	else if (StrEqual(info, "sniper"))
+	{
+		AJB_LR_DoSniper(client);
+	}
+	else if (StrEqual(info, "suicide"))
+	{
+		AJB_LR_DoSuicide(client);
+	}
+
+	return 0;
+}
+
+void AJB_LR_HG_OnPlayerDeath(int victim)
+{
+	if (!g_bHungerGames || g_bHGEnding)
+	{
+		return;
+	}
+
+	if (victim > 0 && victim <= MaxClients && g_bHGOriginalBlu[victim])
+	{
+		g_bHGOriginalBlu[victim] = false;
+		if (IsClientInGame(victim))
+		{
+			TF2_ChangeClientTeam(victim, view_as<TFTeam>(AJB_LR_GetGuardsTeam()));
+		}
+	}
+
+	RequestFrame(Frame_HGCheckWinner);
+}
+
+
+
+
+
+
+
+
 
 public void OnMapStart()
 {
@@ -213,6 +565,7 @@ public void OnPluginStart()
 	AutoExecConfig(true, "ajb_lastrequest");
 
 	LoadTranslations("ajb_lastrequest.phrases");
+	LoadTranslations("ajb_admin.phrases");
 	LoadTranslations("ajb.phrases");
 	LoadTranslations("common.phrases");
 
@@ -289,6 +642,7 @@ public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, flo
 public void OnClientDisconnect(int client)
 {
 	g_bPickedFreeday[client] = false;
+	g_bHGOriginalBlu[client] = false;
 
 	if (client == g_iPrisoner)
 	{
@@ -368,6 +722,11 @@ public void AJB_OnWardenGiveLR(int warden)
 	AJB_LR_ShowGrantMenu(warden);
 }
 
+public void AJB_OnLiveRoundBegin()
+{
+	AJB_LR_ApplyPendingWish();
+}
+
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	// Clear active mid-round effects only. Pending wish waits for AJB_OnLiveRoundBegin
@@ -418,641 +777,65 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 	{
 		AJB_LR_ForceClassWarfareClass(client);
 	}
+
+	if (g_bSetAllClassActive)
+	{
+		AJB_LR_ForceSetAllClass(client);
+	}
+
+	if (g_bGuardMeleeActive && g_bHasCore && AJB_IsGuard(client))
+	{
+		RequestFrame(Frame_StripGuardToMelee, GetClientUserId(client));
+	}
 }
 
-// Core fires this when prep ends, or right after round start if prep time is 0.
-public void AJB_OnLiveRoundBegin()
+void Frame_StripGuardToMelee(int userid)
 {
-	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	if (!g_bGuardMeleeActive)
 	{
 		return;
-	}
-
-	AJB_LR_ApplyPendingWish();
-}
-
-void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
-{
-	if (event.GetInt("deathflags") & TF_DEATHFLAG_DEADRINGER)
-	{
-		return;
-	}
-
-	int victim = GetClientOfUserId(event.GetInt("userid"));
-	if (victim == g_iPrisoner && (g_bMenuOpen || g_bAwaitingCustom))
-	{
-		AJB_LR_Cleanup(true);
-	}
-
-	if (g_bHungerGames && !g_bHGEnding)
-	{
-		// Next frame: victim is fully dead in engine state for the alive count.
-		RequestFrame(Frame_HGCheckWinner);
-	}
-}
-
-// =========================================================================================================
-// Commands
-// =========================================================================================================
-
-Action Command_LR(int client, int args)
-{
-	if (!g_bHasCore || !AJB_IsEnabled())
-	{
-		AJB_Reply(client, "LR Mode Inactive");
-		return Plugin_Handled;
-	}
-
-	if (client == 0)
-	{
-		AJB_Reply(client, "LR Ingame Only");
-		return Plugin_Handled;
-	}
-
-	if (!g_cvEnabled.BoolValue)
-	{
-		AJB_Reply(client, "LR Mode Inactive");
-		return Plugin_Handled;
-	}
-
-	if (AJB_LR_IsGrantBlocked())
-	{
-		AJB_Reply(client, "LR Already Active");
-		return Plugin_Handled;
-	}
-
-	if (AJB_GetWarden() != client || !IsPlayerAlive(client))
-	{
-		AJB_Reply(client, "LR Warden Only");
-		return Plugin_Handled;
-	}
-
-	AJB_LR_ShowGrantMenu(client);
-	return Plugin_Handled;
-}
-
-Action Command_ForceLR(int client, int args)
-{
-	if (!g_bHasCore || !AJB_IsEnabled())
-	{
-		AJB_Reply(client, "LR Mode Inactive");
-		return Plugin_Handled;
-	}
-
-	int target = 0;
-	if (args >= 1)
-	{
-		char arg[64];
-		GetCmdArg(1, arg, sizeof(arg));
-		target = FindTarget(client, arg, false, false);
-		if (target <= 0 || !IsPlayerAlive(target) || !AJB_IsPrisoner(target))
-		{
-			AJB_Reply(client, "LR No Prisoner");
-			return Plugin_Handled;
-		}
-	}
-	else
-	{
-		int count = 0;
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if (IsClientInGame(i) && IsPlayerAlive(i) && AJB_IsPrisoner(i))
-			{
-				target = i;
-				count++;
-				if (count > 1)
-				{
-					AJB_Reply(client, "LR Force Need Target");
-					return Plugin_Handled;
-				}
-			}
-		}
-		if (count < 1)
-		{
-			AJB_Reply(client, "LR No Prisoner");
-			return Plugin_Handled;
-		}
-	}
-
-	// Admin override: drop any open menu / queued wish, then offer.
-	AJB_LR_Cleanup(false);
-	AJB_LR_ClearPendingWish();
-	AJB_LR_Offer(target);
-	return Plugin_Handled;
-}
-
-// Re-pull the wish menu for the prisoner who currently holds the offer. Handy when a forced
-// map vote (or any external menu) hijacked the panel and left the LR menu closed on screen.
-Action Command_ReopenLR(int client, int args)
-{
-	if (client < 1)
-	{
-		return Plugin_Handled;
-	}
-
-	if (!g_bHasCore || !AJB_IsEnabled() || !g_cvEnabled.BoolValue)
-	{
-		AJB_Reply(client, "LR Mode Inactive");
-		return Plugin_Handled;
-	}
-
-	// Only the prisoner with an open (not yet chosen) offer can reopen it.
-	if (client != g_iPrisoner || !(g_bMenuOpen || g_bAwaitingCustom) || !IsPlayerAlive(client))
-	{
-		AJB_Reply(client, "LR Reopen None");
-		return Plugin_Handled;
-	}
-
-	// Custom is a chat prompt, not a panel — remind them what to type instead of drawing a menu.
-	if (g_bAwaitingCustom)
-	{
-		AJB_Chat(client, "LR Custom Prompt");
-		return Plugin_Handled;
-	}
-
-	AJB_LR_ShowWishMenu(client);
-	return Plugin_Handled;
-}
-
-// True while a forced menu-vote or another plugin's menu currently owns the client's panel slot.
-bool AJB_LR_IsExternalMenuBlocking(int client)
-{
-	if (client < 1 || !IsClientInGame(client))
-	{
-		return false;
-	}
-
-	if (IsVoteInProgress())
-	{
-		return true;
-	}
-
-	return GetClientMenu(client) == MenuSource_External;
-}
-
-// =========================================================================================================
-// Warden grant menu (nearby / others)
-// =========================================================================================================
-
-void AJB_LR_ShowGrantMenu(int warden)
-{
-	int clients[MAXPLAYERS];
-	float dists[MAXPLAYERS];
-	int count = 0;
-
-	float wPos[3];
-	GetClientAbsOrigin(warden, wPos);
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || !IsPlayerAlive(i) || !AJB_IsPrisoner(i))
-		{
-			continue;
-		}
-
-		float pPos[3];
-		GetClientAbsOrigin(i, pPos);
-		clients[count] = i;
-		dists[count] = GetVectorDistance(wPos, pPos);
-		count++;
-	}
-
-	if (count < 1)
-	{
-		AJB_Reply(warden, "LR No Prisoner");
-		AJB_ShowWardenMenu(warden);
-		return;
-	}
-
-	for (int i = 1; i < count; i++)
-	{
-		int cKey = clients[i];
-		float dKey = dists[i];
-		int j = i - 1;
-		while (j >= 0 && dists[j] > dKey)
-		{
-			clients[j + 1] = clients[j];
-			dists[j + 1] = dists[j];
-			j--;
-		}
-		clients[j + 1] = cKey;
-		dists[j + 1] = dKey;
-	}
-
-	int nearIdx[LR_NEAR_MAX];
-	int nearCount = 0;
-	bool used[MAXPLAYERS + 1];
-
-	for (int i = 0; i < count && nearCount < LR_NEAR_MAX; i++)
-	{
-		if (dists[i] <= LR_NEAR_RADIUS)
-		{
-			nearIdx[nearCount++] = i;
-			used[clients[i]] = true;
-		}
-	}
-
-	Menu menu = new Menu(MenuHandler_Grant);
-	char title[64];
-	char header[64];
-	char line[72];
-	Format(title, sizeof(title), "%T", "LR Grant Title", warden);
-	menu.SetTitle(title);
-
-	if (nearCount > 0)
-	{
-		Format(header, sizeof(header), "%T", "LR Grant Nearby Header", warden);
-		menu.AddItem("hdr_near", header, ITEMDRAW_DISABLED);
-
-		for (int n = 0; n < nearCount; n++)
-		{
-			int ply = clients[nearIdx[n]];
-			char id[8];
-			IntToString(GetClientUserId(ply), id, sizeof(id));
-			GetClientName(ply, line, sizeof(line));
-			menu.AddItem(id, line);
-		}
-	}
-
-	bool hasOther = false;
-	for (int i = 0; i < count; i++)
-	{
-		if (!used[clients[i]])
-		{
-			hasOther = true;
-			break;
-		}
-	}
-
-	if (hasOther)
-	{
-		Format(header, sizeof(header), "%T", "LR Grant Others Header", warden);
-		menu.AddItem("hdr_other", header, ITEMDRAW_DISABLED);
-
-		for (int i = 0; i < count; i++)
-		{
-			int ply = clients[i];
-			if (used[ply])
-			{
-				continue;
-			}
-
-			char id[8];
-			IntToString(GetClientUserId(ply), id, sizeof(id));
-			GetClientName(ply, line, sizeof(line));
-			menu.AddItem(id, line);
-		}
-	}
-
-	menu.ExitButton = false;
-	menu.ExitBackButton = true;
-	menu.Display(warden, 0);
-}
-
-public int MenuHandler_Grant(Menu menu, MenuAction action, int param1, int param2)
-{
-	if (action == MenuAction_End)
-	{
-		delete menu;
-		return 0;
-	}
-
-	int warden = param1;
-
-	if (action == MenuAction_Cancel)
-	{
-		if (g_bHasCore && AJB_IsEnabled() && AJB_GetWarden() == warden)
-		{
-			AJB_ShowWardenMenu(warden);
-		}
-		return 0;
-	}
-
-	if (action != MenuAction_Select)
-	{
-		return 0;
-	}
-
-	if (!g_bHasCore || !AJB_IsEnabled() || AJB_GetWarden() != warden || !IsPlayerAlive(warden))
-	{
-		return 0;
-	}
-
-	char id[8];
-	menu.GetItem(param2, id, sizeof(id));
-
-	if (StrContains(id, "hdr_") == 0)
-	{
-		AJB_LR_ShowGrantMenu(warden);
-		return 0;
-	}
-
-	if (AJB_LR_IsGrantBlocked())
-	{
-		AJB_Reply(warden, "LR Already Active");
-		AJB_ShowWardenMenu(warden);
-		return 0;
-	}
-
-	int prisoner = GetClientOfUserId(StringToInt(id));
-	if (prisoner < 1 || !IsClientInGame(prisoner) || !IsPlayerAlive(prisoner) || !AJB_IsPrisoner(prisoner))
-	{
-		AJB_Reply(warden, "LR Prisoner Invalid");
-		AJB_LR_ShowGrantMenu(warden);
-		return 0;
-	}
-
-	AJB_LR_Offer(prisoner);
-	AJB_ShowWardenMenu(warden);
-	return 0;
-}
-
-// =========================================================================================================
-// Prisoner wish menu
-// =========================================================================================================
-
-void AJB_LR_Offer(int prisoner)
-{
-	if (!IsClientInGame(prisoner) || !IsPlayerAlive(prisoner))
-	{
-		return;
-	}
-
-	g_iPrisoner = prisoner;
-	g_bMenuOpen = true;
-	g_bAwaitingCustom = false;
-	g_iFreedayPickCount = 0;
-	g_iFreedayMenuPage = 0;
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		g_bPickedFreeday[i] = false;
-	}
-
-	if (g_bHasCore)
-	{
-		AJB_SetRoundState(AJBState_LRChoosing);
-	}
-
-	AJB_LR_ChatAll1N("LR Offered", prisoner);
-	AJB_LR_ShowWishMenu(prisoner);
-}
-
-void AJB_LR_ShowWishMenu(int prisoner)
-{
-	Menu menu = new Menu(MenuHandler_Wish);
-	char title[64];
-	char line[96];
-	Format(title, sizeof(title), "%T", "LR Menu Title", prisoner);
-	menu.SetTitle(title);
-
-	Format(line, sizeof(line), "%T", "LR Wish Freeday Me", prisoner);
-	menu.AddItem("fd_me", line);
-	Format(line, sizeof(line), "%T", "LR Wish Freeday Others", prisoner);
-	menu.AddItem("fd_others", line);
-	Format(line, sizeof(line), "%T", "LR Wish Freeday All", prisoner);
-	menu.AddItem("fd_all", line);
-	Format(line, sizeof(line), "%T", "LR Wish WarDay", prisoner);
-	menu.AddItem("warday", line);
-	Format(line, sizeof(line), "%T", "LR Wish ClassWarfare", prisoner);
-	menu.AddItem("classwar", line);
-	Format(line, sizeof(line), "%T", "LR Wish Custom", prisoner);
-	menu.AddItem("custom", line);
-	Format(line, sizeof(line), "%T", "LR Wish HotReds", prisoner);
-	menu.AddItem("hot", line);
-	Format(line, sizeof(line), "%T", "LR Wish Suicide", prisoner);
-	menu.AddItem("suicide", line);
-	Format(line, sizeof(line), "%T", "LR Wish LowGravity", prisoner);
-	menu.AddItem("lowgrav", line);
-	Format(line, sizeof(line), "%T", "LR Wish HideAndSeek", prisoner);
-	menu.AddItem("hideseek", line);
-	Format(line, sizeof(line), "%T", "LR Wish HungerGames", prisoner);
-	menu.AddItem("hunger", line);
-	Format(line, sizeof(line), "%T", "LR Wish Sniper", prisoner);
-	menu.AddItem("sniper", line);
-
-	menu.ExitButton = false;
-	g_bMenuOpen = true;
-	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
-
-	AJB_LR_StartMenuTimers(prisoner);
-}
-
-void AJB_LR_StartMenuTimers(int prisoner)
-{
-	AJB_LR_KillMenuTimer();
-
-	float total = g_cvMenuTime.FloatValue;
-	if (total < 5.0)
-	{
-		total = 5.0;
-	}
-
-	int userid = GetClientUserId(prisoner);
-
-	g_hMenuTimer = CreateTimer(total + 0.5, Timer_MenuTimeout, userid, TIMER_FLAG_NO_MAPCHANGE);
-
-	// Warn at the halfway point. Truncate (floor) so the chat number is always an int
-	// e.g. menu_time 30 → 15; 31 → 15; 20 → 10. Timer fires after the same truncated half.
-	int halfSec = RoundToFloor(total * 0.5);
-	if (halfSec < 1)
-	{
-		halfSec = 1;
-	}
-	g_iMenuWarnLeft = halfSec;
-
-	// Only schedule if there is a meaningful wait before the warn.
-	if (total > 2.0 && float(halfSec) < total)
-	{
-		g_hMenuWarnTimer = CreateTimer(float(halfSec), Timer_MenuWarnHalfway, userid, TIMER_FLAG_NO_MAPCHANGE);
-	}
-}
-
-Action Timer_MenuWarnHalfway(Handle timer, int userid)
-{
-	g_hMenuWarnTimer = null;
-
-	if (!g_bMenuOpen && !g_bAwaitingCustom)
-	{
-		return Plugin_Stop;
 	}
 
 	int client = GetClientOfUserId(userid);
-	if (client > 0 && IsClientInGame(client) && client == g_iPrisoner)
+	if (client > 0 && IsClientInGame(client) && IsPlayerAlive(client) && AJB_IsGuard(client))
 	{
-		char prefix[32];
-		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		CPrintToChat(client, "%T", "LR Menu Hurry", client, prefix, g_iMenuWarnLeft);
-	}
-
-	return Plugin_Stop;
-}
-
-Action Timer_MenuTimeout(Handle timer, int userid)
-{
-	g_hMenuTimer = null;
-	if (!g_bMenuOpen && !g_bAwaitingCustom)
-	{
-		return Plugin_Stop;
-	}
-
-	int client = GetClientOfUserId(userid);
-
-	// A forced map vote / external menu can outlast the LR timer and would silently drop the
-	// offer. Hold it open and retry until the panel is free again (or the prisoner /reopenlr).
-	if (client > 0 && AJB_LR_IsExternalMenuBlocking(client))
-	{
-		g_bMenuInterrupted = true;
-		g_hMenuTimer = CreateTimer(LR_REOPEN_RETRY, Timer_MenuTimeout, userid, TIMER_FLAG_NO_MAPCHANGE);
-		return Plugin_Stop;
-	}
-
-	// Panel is free again after an interruption: re-show the wish menu with a fresh window
-	// rather than dropping an LR the prisoner never actually got to see.
-	if (g_bMenuInterrupted && !g_bAwaitingCustom
-		&& client > 0 && client == g_iPrisoner
-		&& IsClientInGame(client) && IsPlayerAlive(client))
-	{
-		g_bMenuInterrupted = false;
-		AJB_LR_ShowWishMenu(client);
-		return Plugin_Stop;
-	}
-
-	g_bMenuInterrupted = false;
-	g_bMenuOpen = false;
-	g_bAwaitingCustom = false;
-	if (client > 0)
-	{
-		AJB_LR_ChatAll1N("LR Timeout", client);
-	}
-	g_iPrisoner = 0;
-	return Plugin_Stop;
-}
-
-void AJB_LR_KillMenuTimer()
-{
-	if (g_hMenuTimer != null)
-	{
-		delete g_hMenuTimer;
-		g_hMenuTimer = null;
-	}
-	if (g_hMenuWarnTimer != null)
-	{
-		delete g_hMenuWarnTimer;
-		g_hMenuWarnTimer = null;
+		AJB_LR_StripGuardToMelee(client);
 	}
 }
 
-public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2)
+void AJB_LR_StripGuardToMelee(int client)
 {
-	if (action == MenuAction_End)
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
 	{
-		delete menu;
-		return 0;
+		return;
 	}
 
-	if (action != MenuAction_Select)
+	// Remove all weapon slots except Melee (slot 2)
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Primary);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Secondary);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Grenade);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Building);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_PDA);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Item1);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Item2);
+
+	if (TF2_GetPlayerClass(client) == TFClass_Spy)
 	{
-		return 0;
+		if (TF2_IsPlayerInCondition(client, TFCond_Stealthed))
+		{
+			TF2_RemoveCondition(client, TFCond_Stealthed);
+		}
+		if (TF2_IsPlayerInCondition(client, TFCond_Disguised))
+		{
+			TF2_RemoveCondition(client, TFCond_Disguised);
+		}
 	}
 
-	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	int melee = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
+	if (melee != -1 && IsValidEntity(melee))
 	{
-		return 0;
+		SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", melee);
 	}
-
-	AJB_LR_KillMenuTimer();
-	g_bMenuOpen = false;
-
-	char info[16];
-	menu.GetItem(param2, info, sizeof(info));
-
-	if (StrEqual(info, "fd_me"))
-	{
-		AJB_LR_DoFreedayMe(client);
-	}
-	else if (StrEqual(info, "fd_others"))
-	{
-		g_iFreedayMenuPage = 0;
-		AJB_LR_ShowFreedayOthersMenu(client);
-		AJB_LR_StartMenuTimers(client);
-	}
-	else if (StrEqual(info, "fd_all"))
-	{
-		AJB_LR_DoFreedayAll(client);
-	}
-	else if (StrEqual(info, "warday"))
-	{
-		AJB_LR_DoWarDay(client);
-	}
-	else if (StrEqual(info, "classwar"))
-	{
-		AJB_LR_DoClassWarfare(client);
-	}
-	else if (StrEqual(info, "custom"))
-	{
-		AJB_LR_StartCustom(client);
-	}
-	else if (StrEqual(info, "hot"))
-	{
-		AJB_LR_DoHotReds(client);
-	}
-	else if (StrEqual(info, "suicide"))
-	{
-		AJB_LR_DoSuicide(client);
-	}
-	else if (StrEqual(info, "lowgrav"))
-	{
-		AJB_LR_DoLowGravity(client);
-	}
-	else if (StrEqual(info, "hideseek"))
-	{
-		AJB_LR_DoHideSeek(client);
-	}
-	else if (StrEqual(info, "hunger"))
-	{
-		AJB_LR_StartHungerGamesConfig(client);
-	}
-	else if (StrEqual(info, "sniper"))
-	{
-		AJB_LR_DoSniper(client);
-	}
-
-	return 0;
-}
-
-// =========================================================================================================
-// Wish implementations
-// =========================================================================================================
-
-// Close the LR menu after a wish is locked in (queued or instant).
-void AJB_LR_CloseMenuState()
-{
-	g_iPrisoner = 0;
-	g_bMenuOpen = false;
-	g_bMenuInterrupted = false;
-	g_bAwaitingCustom = false;
-	AJB_LR_KillMenuTimer();
-}
-
-// Wish locked → HUD "LR Chosen" (still LR phase for rules).
-void AJB_LR_MarkWishChosen()
-{
-	if (g_bHasCore)
-	{
-		AJB_SetRoundState(AJBState_LRChosen);
-	}
-}
-
-// Warden cannot grant another LR while one is open, being typed, queued, or suicide countdown.
-// Admin force clears this and re-offers.
-bool AJB_LR_IsGrantBlocked()
-{
-	return g_iPrisoner > 0
-		|| g_bMenuOpen
-		|| g_bAwaitingCustom
-		|| g_PendingWish != LRWish_None
-		|| g_hSuicideTimer != null;
 }
 
 void AJB_LR_ClearPendingWish()
@@ -1065,6 +848,8 @@ void AJB_LR_ClearPendingWish()
 	g_PendingHGMeleeOnly = false;
 	g_PendingHGClassRandom = false;
 	g_PendingHGClass = TFClass_Unknown;
+	g_PendingSetAllClassTarget = SetAllClass_All;
+	g_PendingSetAllClassType = TFClass_Scout;
 }
 
 void AJB_LR_ClearClassWarfareActive()
@@ -1152,6 +937,8 @@ void AJB_LR_ApplyPendingWish()
 	bool meleeOnly = g_PendingHGMeleeOnly;
 	bool classRandom = g_PendingHGClassRandom;
 	TFClassType hgClass = g_PendingHGClass;
+	AJB_SetAllClassTarget setAllTarget = g_PendingSetAllClassTarget;
+	TFClassType setAllClass = g_PendingSetAllClassType;
 	char chooser[64];
 	strcopy(chooser, sizeof(chooser), g_sPendingChooserName);
 
@@ -1204,6 +991,14 @@ void AJB_LR_ApplyPendingWish()
 			// Combat day regenerates loadouts after class is set.
 			AJB_BeginCombatDay();
 			AJB_LR_ChatAllClassApplied(chooser, clsRed, clsBlu);
+		}
+		case LRWish_SetAllClass:
+		{
+			AJB_LR_ApplySetAllClass(chooser, setAllTarget, setAllClass);
+		}
+		case LRWish_GuardMelee:
+		{
+			AJB_LR_ApplyGuardMelee(chooser);
 		}
 		case LRWish_Custom:
 		{
@@ -2085,17 +1880,24 @@ void AJB_LR_ApplyHungerGames(const char[] chooser, bool meleeOnly, bool classRan
 
 	// Cells must be open so RED and BLU can reach each other.
 	AJB_OpenCells();
+	if (g_bHasCore)
+	{
+		AJB_SetRoundState(AJBState_SpecialDay);
+	}
 
 	// Force everyone onto the RED team and respawn dead prisoners.
 	int redTeam = AJB_LR_GetPrisonersTeam();
+	int blueTeam = AJB_LR_GetGuardsTeam();
 	for (int i = 1; i <= MaxClients; i++)
 	{
+		g_bHGOriginalBlu[i] = false;
 		if (IsClientInGame(i) && !IsFakeClient(i))
 		{
 			// Move Guards to RED team
-			if (GetClientTeam(i) != redTeam && GetClientTeam(i) >= 2)
+			if (GetClientTeam(i) == blueTeam)
 			{
-				ChangeClientTeam(i, redTeam);
+				g_bHGOriginalBlu[i] = true;
+				TF2_ChangeClientTeam(i, view_as<TFTeam>(redTeam));
 			}
 
 			// Respawn if they are dead (so everyone participates)
@@ -2724,7 +2526,6 @@ void AJB_LR_Cleanup(bool announce)
 
 	g_iPrisoner = 0;
 	g_bMenuOpen = false;
-	g_bMenuInterrupted = false;
 	g_bAwaitingCustom = false;
 	g_iFreedayPickCount = 0;
 	g_bHGDraftMelee = false;
@@ -2789,7 +2590,25 @@ void AJB_LR_Cleanup(bool announce)
 		{
 			AJB_SetRebelOnHit(true);
 		}
+
+		int blueTeam = AJB_LR_GetGuardsTeam();
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (g_bHGOriginalBlu[i])
+			{
+				g_bHGOriginalBlu[i] = false;
+				if (IsClientInGame(i) && GetClientTeam(i) != blueTeam)
+				{
+					TF2_ChangeClientTeam(i, view_as<TFTeam>(blueTeam));
+				}
+			}
+		}
 	}
+
+	g_bGuardMeleeActive = false;
+	g_bSetAllClassActive = false;
+	g_SetAllClassTarget = SetAllClass_All;
+	g_SetAllClassType = TFClass_Unknown;
 
 	if (announce && was)
 	{
@@ -2936,5 +2755,479 @@ void AJB_LR_ClassName(TFClassType cls, char[] buffer, int maxlen)
 		case TFClass_Spy:      strcopy(buffer, maxlen, "Spy");
 		case TFClass_Engineer: strcopy(buffer, maxlen, "Engineer");
 		default:               strcopy(buffer, maxlen, "Class");
+	}
+}
+
+// =========================================================================================================
+// Guard Melee Only
+// =========================================================================================================
+
+void AJB_LR_DoGuardMelee(int prisoner)
+{
+	AJB_LR_QueueWish(prisoner, LRWish_GuardMelee, "LR Chose GuardMelee");
+}
+
+void AJB_LR_ApplyGuardMelee(const char[] chooserName)
+{
+	g_bGuardMeleeActive = true;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i))
+		{
+			continue;
+		}
+		if (g_bHasCore && AJB_IsGuard(i))
+		{
+			AJB_LR_StripGuardToMelee(i);
+		}
+	}
+
+	AJB_OpenCells();
+	AJB_LR_ChatAllQueuedApplied(chooserName, "LR Applied GuardMelee");
+}
+
+// =========================================================================================================
+// Set All Class
+// =========================================================================================================
+
+void AJB_LR_StartSetAllClassConfig(int prisoner)
+{
+	g_DraftSetAllClassTarget = SetAllClass_All;
+	g_DraftSetAllClassType = TFClass_Scout;
+	g_bMenuOpen = true;
+	AJB_LR_ShowSetAllClassMenu(prisoner);
+	AJB_LR_StartMenuTimers(prisoner);
+}
+
+void AJB_LR_ShowSetAllClassMenu(int prisoner)
+{
+	if (prisoner < 1 || !IsClientInGame(prisoner))
+	{
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_SetAllClass);
+	char title[64];
+	char line[96];
+	char targetLabel[32];
+	char classLabel[32];
+
+	AJB_LR_SetAllClassTargetLabel(prisoner, g_DraftSetAllClassTarget, targetLabel, sizeof(targetLabel));
+	AJB_LR_ClassName(g_DraftSetAllClassType, classLabel, sizeof(classLabel));
+
+	Format(title, sizeof(title), "%T", "LR SetAllClass Menu Title", prisoner);
+	menu.SetTitle(title);
+
+	Format(line, sizeof(line), "%T", "LR SetAllClass Opt Target", prisoner, targetLabel);
+	menu.AddItem("target", line);
+
+	Format(line, sizeof(line), "%T", "LR SetAllClass Opt Class", prisoner, classLabel);
+	menu.AddItem("class", line);
+
+	Format(line, sizeof(line), "%T", "LR SetAllClass Opt Confirm", prisoner);
+	menu.AddItem("confirm", line);
+
+	Format(line, sizeof(line), "%T", "LR SetAllClass Opt Back", prisoner);
+	menu.AddItem("back", line);
+
+	menu.ExitButton = false;
+	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+void AJB_LR_SetAllClassTargetLabel(int client, AJB_SetAllClassTarget target, char[] buffer, int maxlen)
+{
+	switch (target)
+	{
+		case SetAllClass_All:     Format(buffer, maxlen, "%T", "LR SetAllClass Target All", client);
+		case SetAllClass_RedOnly: Format(buffer, maxlen, "%T", "LR SetAllClass Target Red", client);
+		case SetAllClass_BluOnly: Format(buffer, maxlen, "%T", "LR SetAllClass Target Blu", client);
+	}
+}
+
+public int MenuHandler_SetAllClass(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return 0;
+	}
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+
+	if (StrEqual(info, "target"))
+	{
+		AJB_LR_ShowSetAllClassTargetMenu(client);
+		return 0;
+	}
+
+	if (StrEqual(info, "class"))
+	{
+		AJB_LR_ShowSetAllClassTypeMenu(client);
+		return 0;
+	}
+
+	if (StrEqual(info, "back"))
+	{
+		AJB_LR_ShowWishMenu(client);
+		return 0;
+	}
+
+	if (StrEqual(info, "confirm"))
+	{
+		AJB_LR_KillMenuTimer();
+		g_bMenuOpen = false;
+
+		AJB_LR_ClearPendingWish();
+		g_PendingWish = LRWish_SetAllClass;
+		g_PendingSetAllClassTarget = g_DraftSetAllClassTarget;
+		g_PendingSetAllClassType = g_DraftSetAllClassType;
+		AJB_LR_RememberChooser(client);
+		AJB_LR_ChatAllSetAllClassChose(client, g_DraftSetAllClassTarget, g_DraftSetAllClassType);
+		AJB_LR_CloseMenuState();
+		AJB_LR_MarkWishChosen();
+	}
+
+	return 0;
+}
+
+void AJB_LR_ShowSetAllClassTargetMenu(int prisoner)
+{
+	Menu menu = new Menu(MenuHandler_SetAllClassTarget);
+	char title[64];
+	char line[64];
+	Format(title, sizeof(title), "%T", "LR SetAllClass Target Title", prisoner);
+	menu.SetTitle(title);
+
+	Format(line, sizeof(line), "%T", "LR SetAllClass Target All", prisoner);
+	menu.AddItem("0", line);
+	Format(line, sizeof(line), "%T", "LR SetAllClass Target Red", prisoner);
+	menu.AddItem("1", line);
+	Format(line, sizeof(line), "%T", "LR SetAllClass Target Blu", prisoner);
+	menu.AddItem("2", line);
+
+	menu.ExitButton = false;
+	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+public int MenuHandler_SetAllClassTarget(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return 0;
+	}
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+	g_DraftSetAllClassTarget = view_as<AJB_SetAllClassTarget>(StringToInt(info));
+
+	AJB_LR_ShowSetAllClassMenu(client);
+	return 0;
+}
+
+void AJB_LR_ShowSetAllClassTypeMenu(int prisoner)
+{
+	Menu menu = new Menu(MenuHandler_SetAllClassType);
+	char title[64];
+	char line[64];
+	Format(title, sizeof(title), "%T", "LR SetAllClass Class Title", prisoner);
+	menu.SetTitle(title);
+
+	static const TFClassType kClasses[] = {
+		TFClass_Scout, TFClass_Soldier, TFClass_Pyro, TFClass_DemoMan,
+		TFClass_Heavy, TFClass_Engineer, TFClass_Medic, TFClass_Sniper, TFClass_Spy
+	};
+
+	for (int i = 0; i < sizeof(kClasses); i++)
+	{
+		char info[8];
+		IntToString(view_as<int>(kClasses[i]), info, sizeof(info));
+		AJB_LR_ClassName(kClasses[i], line, sizeof(line));
+		menu.AddItem(info, line);
+	}
+
+	menu.ExitButton = false;
+	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+public int MenuHandler_SetAllClassType(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return 0;
+	}
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+	g_DraftSetAllClassType = view_as<TFClassType>(StringToInt(info));
+
+	AJB_LR_ShowSetAllClassMenu(client);
+	return 0;
+}
+
+void AJB_LR_ApplySetAllClass(const char[] chooserName, AJB_SetAllClassTarget target, TFClassType cls)
+{
+	g_bSetAllClassActive = true;
+	g_SetAllClassTarget = target;
+	g_SetAllClassType = cls;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i))
+		{
+			continue;
+		}
+
+		if (AJB_LR_IsSetAllClassTarget(i, target))
+		{
+			TF2_SetPlayerClass(i, cls, false, true);
+			TF2_RegeneratePlayer(i);
+		}
+	}
+
+	AJB_LR_ChatAllSetAllClassApplied(chooserName, target, cls);
+}
+
+bool AJB_LR_IsSetAllClassTarget(int client, AJB_SetAllClassTarget target)
+{
+	if (!g_bHasCore)
+	{
+		return false;
+	}
+
+	switch (target)
+	{
+		case SetAllClass_All:     return AJB_IsPrisoner(client) || AJB_IsGuard(client);
+		case SetAllClass_RedOnly: return AJB_IsPrisoner(client);
+		case SetAllClass_BluOnly: return AJB_IsGuard(client);
+	}
+	return false;
+}
+
+void AJB_LR_ForceSetAllClass(int client)
+{
+	if (!g_bSetAllClassActive || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	if (!AJB_LR_IsSetAllClassTarget(client, g_SetAllClassTarget))
+	{
+		return;
+	}
+
+	if (TF2_GetPlayerClass(client) == g_SetAllClassType)
+	{
+		return;
+	}
+
+	TF2_SetPlayerClass(client, g_SetAllClassType, false, true);
+	TF2_RegeneratePlayer(client);
+}
+
+void AJB_LR_ChatAllSetAllClassChose(int chooser, AJB_SetAllClassTarget target, TFClassType cls)
+{
+	char className[32];
+	AJB_LR_ClassName(cls, className, sizeof(className));
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		char prefix[32];
+		char targetLabel[32];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+		AJB_LR_SetAllClassTargetLabel(i, target, targetLabel, sizeof(targetLabel));
+
+		CPrintToChat(i, "%T", "LR Chose SetAllClass", i, prefix, chooser, targetLabel, className);
+	}
+}
+
+void AJB_LR_ChatAllSetAllClassApplied(const char[] chooserName, AJB_SetAllClassTarget target, TFClassType cls)
+{
+	char className[32];
+	AJB_LR_ClassName(cls, className, sizeof(className));
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		char prefix[32];
+		char targetLabel[32];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+		AJB_LR_SetAllClassTargetLabel(i, target, targetLabel, sizeof(targetLabel));
+
+		CPrintToChat(i, "%T", "LR Applied SetAllClass", i, prefix, chooserName[0] != '\0' ? chooserName : "LR", targetLabel, className);
+	}
+}
+
+void AJB_LR_ChatAll2N(const char[] phrase, int player1, int player2)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		char prefix[32];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+		CPrintToChat(i, "%T", phrase, i, prefix, player1, player2);
+	}
+}
+
+public Action Command_LR(int client, int args)
+{
+	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	{
+		return Plugin_Handled;
+	}
+
+	if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if (AJB_GetWarden() != client)
+	{
+		AJB_Reply(client, "LR Warden Only");
+		return Plugin_Handled;
+	}
+
+	if (AJB_LR_IsGrantBlocked())
+	{
+		AJB_Reply(client, "LR Already Active");
+		return Plugin_Handled;
+	}
+
+	AJB_LR_ShowGrantMenu(client);
+	return Plugin_Handled;
+}
+
+public Action Command_ForceLR(int client, int args)
+{
+	if (!g_bHasCore || !AJB_IsEnabled())
+	{
+		return Plugin_Handled;
+	}
+
+	if (args < 1)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_ajb_lr_force <#userid|name>");
+		return Plugin_Handled;
+	}
+
+	char arg1[64];
+	GetCmdArg(1, arg1, sizeof(arg1));
+	int target = FindTarget(client, arg1, true, false);
+	if (target == -1)
+	{
+		return Plugin_Handled;
+	}
+
+	if (!IsPlayerAlive(target) || !AJB_IsPrisoner(target))
+	{
+		ReplyToCommand(client, "[AJB] Target must be a living prisoner.");
+		return Plugin_Handled;
+	}
+
+	AJB_LR_OpenForPrisoner(target);
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+	StrCat(prefix, sizeof(prefix), " ");
+	CShowActivity2(client, prefix, "%t", "Activity Forced LR", target);
+	return Plugin_Handled;
+}
+
+public Action Command_ReopenLR(int client, int args)
+{
+	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	{
+		return Plugin_Handled;
+	}
+
+	if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client) || !AJB_IsPrisoner(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if (client != g_iPrisoner || AJB_GetRoundState() != AJBState_LRChoosing)
+	{
+		AJB_Reply(client, "LR Reopen Not Eligible");
+		return Plugin_Handled;
+	}
+
+	AJB_LR_ShowWishMenu(client);
+	AJB_Reply(client, "LR Reopen Success");
+	return Plugin_Handled;
+}
+
+public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+	if (event.GetInt("death_flags") & TF_DEATHFLAG_DEADRINGER)
+	{
+		return;
+	}
+
+	int victim = GetClientOfUserId(event.GetInt("userid"));
+	if (victim < 1)
+	{
+		return;
+	}
+
+	if (g_bHungerGames)
+	{
+		AJB_LR_HG_OnPlayerDeath(victim);
+	}
+
+	if (victim == g_iPrisoner)
+	{
+		if (g_bAwaitingCustom)
+		{
+			g_bAwaitingCustom = false;
+		}
+		AJB_LR_Cleanup(true);
 	}
 }

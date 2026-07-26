@@ -188,6 +188,76 @@
 		"ru"		"{1} Вы слишком медлите — осталось всего {2} секунд."
 	}
 
+	"LR Menu Warn"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Choose a Last Request before time runs out!"
+		"es"		"{1} ¡Elige un Último Deseo antes de que se agote el tiempo!"
+		"las"		"{1} ¡Elige un Último Deseo antes de que se agote el tiempo!"
+		"de"		"{1} Wähle einen Last Request, bevor die Zeit abläuft!"
+		"fr"		"{1} Choisissez un Last Request avant la fin du temps !"
+		"pt"		"{1} Escolha um Last Request antes que o tempo acabe!"
+		"ru"		"{1} Выберите Last Request, пока no истекло время!"
+	}
+
+	"LR Grant Menu Title"
+	{
+		"en"		"Grant Last Request — Select Prisoner"
+		"es"		"Otorgar Último Deseo — Seleccionar Prisionero"
+		"las"		"Otorgar Último Deseo — Seleccionar Prisionero"
+		"de"		"Last Request gewähren — Gefangenen auswählen"
+		"fr"		"Accorder un Last Request — Sélectionner un prisonnier"
+		"pt"		"Conceder Last Request — Selecionar Prisioneiro"
+		"ru"		"Выдать Last Request — Выберите заключённого"
+	}
+
+	"LR Granted By Warden"
+	{
+		"#format"	"{1:s},{2:N},{3:N}"
+		"en"		"{1} Warden {2} granted Last Request to {3}."
+		"es"		"{1} El Warden {2} le otorgó un Último Deseo a {3}."
+		"las"		"{1} El Warden {2} le otorgó un Último Deseo a {3}."
+		"de"		"{1} Warden {2} hat {3} einen Last Request gewährt."
+		"fr"		"{1} Le Warden {2} a accordé un Last Request à {3}."
+		"pt"		"{1} O Warden {2} concedeu um Last Request a {3}."
+		"ru"		"{1} Warden {2} выдал Last Request для {3}."
+	}
+
+	"LR Reopen Not Eligible"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} You are not eligible to reopen the Last Request menu."
+		"es"		"{1} No eres elegible para reabrir el menú de Último Deseo."
+		"las"		"{1} No eres elegible para reabrir el menú de Último Deseo."
+		"de"		"{1} Du bist nicht berechtigt, das Last Request-Menü erneut zu öffnen."
+		"fr"		"{1} Vous n'êtes pas éligible pour rouvrir le menu Last Request."
+		"pt"		"{1} Você não é elegível para reabrir o menu do Last Request."
+		"ru"		"{1} Вы не можете повторно открыть меню Last Request."
+	}
+
+	"LR Reopen Success"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Reopened Last Request menu."
+		"es"		"{1} Se reabrió el menú de Último Deseo."
+		"las"		"{1} Se reabrió el menú de Último Deseo."
+		"de"		"{1} Last Request-Menü erneut geöffnet."
+		"fr"		"{1} Menu Last Request rouvert."
+		"pt"		"{1} Menu de Last Request reaberto."
+		"ru"		"{1} Меню Last Request повторно открыто."
+	}
+
+	"LR Wish Menu Title"
+	{
+		"en"		"Last Request — pick a wish"
+		"es"		"Deseo — elige"
+		"las"		"Deseo — elige"
+		"de"		"Last Request — wähle einen Wunsch"
+		"fr"		"Last Request — choisissez un souhait"
+		"pt"		"Last Request — escolha um desejo"
+		"ru"		"Last Request — выберите желание"
+	}
+
 	"LR Aborted"
 	{
 		"#format"	"{1:s}"
@@ -200,6 +270,7 @@
 		"ru"		"{1} Last Request отменён."
 	}
 
+
 	"LR Menu Title"
 	{
 		"en"		"Last Request — pick a wish"
@@ -211,7 +282,7 @@
 		"ru"		"Last Request — выберите желание"
 	}
 
-	"LR Wish Freeday Me"
+	"LR Wish FreedayMe"
 	{
 		"en"		"Freeday for me"
 		"es"		"Freeday para mí"
@@ -222,7 +293,7 @@
 		"ru"		"Freeday для меня"
 	}
 
-	"LR Wish Freeday Others"
+	"LR Wish FreedayOthers"
 	{
 		"en"		"Freeday for others"
 		"es"		"Freeday para otros"
@@ -230,10 +301,10 @@
 		"de"		"Freeday für andere"
 		"fr"		"Freeday pour d'autres"
 		"pt"		"Freeday para outros"
-		"ru"		"Freeday для других"
+		"ru"		"Freeday para outros"
 	}
 
-	"LR Wish Freeday All"
+	"LR Wish FreedayAll"
 	{
 		"en"		"Freeday for everyone"
 		"es"		"Freeday para todos"
@@ -264,6 +335,28 @@
 		"fr"		"Class Warfare"
 		"pt"		"Class Warfare"
 		"ru"		"Class Warfare"
+	}
+
+	"LR Wish SetAllClass"
+	{
+		"en"		"Set All Class"
+		"es"		"Clase designada (Set All Class)"
+		"las"		"Clase designada (Set All Class)"
+		"de"		"Set All Class"
+		"fr"		"Set All Class"
+		"pt"		"Set All Class"
+		"ru"		"Set All Class"
+	}
+
+	"LR Wish GuardMelee"
+	{
+		"en"		"Guard Melee Only"
+		"es"		"Guardias Solo Melee"
+		"las"		"Guardias Solo Melee"
+		"de"		"Wachen nur Nahkampf"
+		"fr"		"Gardes mêlée uniquement"
+		"pt"		"Guardas apenas Melee"
+		"ru"		"Охрана только ближний бой"
 	}
 
 	"LR Wish Custom"
@@ -310,7 +403,7 @@
 		"ru"		"Низкая гравитация"
 	}
 
-	"LR Wish HideAndSeek"
+	"LR Wish HideSeek"
 	{
 		"en"		"Hide and Seek"
 		"es"		"Escondite (Hide and Seek)"
@@ -514,6 +607,142 @@
 		"ru"		"{1} {2} выбрал Class Warfare."
 	}
 
+	"LR Chose SetAllClass"
+	{
+		"#format"	"{1:s},{2:N},{3:s},{4:s}"
+		"en"		"{1} {2} chose Set All Class ({3}: {4})."
+		"es"		"{1} {2} eligió Clase designada ({3}: {4})."
+		"las"		"{1} {2} eligió Clase designada ({3}: {4})."
+		"de"		"{1} {2} hat Set All Class gewählt ({3}: {4})."
+		"fr"		"{1} {2} a choisi Set All Class ({3} : {4})."
+		"pt"		"{1} {2} escolheu Set All Class ({3}: {4})."
+		"ru"		"{1} {2} выбрал Set All Class ({3}: {4})."
+	}
+
+	"LR Chose GuardMelee"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Guard Melee Only."
+		"es"		"{1} {2} eligió Guardias Solo Melee."
+		"las"		"{1} {2} eligió Guardias Solo Melee."
+		"de"		"{1} {2} hat Wachen nur Nahkampf gewählt."
+		"fr"		"{1} {2} a choisi Gardes mêlée uniquement."
+		"pt"		"{1} {2} escolheu Guardas apenas Melee."
+		"ru"		"{1} {2} выбрал Охрана только ближний бой."
+	}
+
+	"LR SetAllClass Menu Title"
+	{
+		"en"		"Set All Class — options"
+		"es"		"Clase designada — opciones"
+		"las"		"Clase designada — opciones"
+		"de"		"Set All Class — Optionen"
+		"fr"		"Set All Class — options"
+		"pt"		"Set All Class — opções"
+		"ru"		"Set All Class — опции"
+	}
+
+	"LR SetAllClass Target Title"
+	{
+		"en"		"Set All Class — target team"
+		"es"		"Clase designada — equipo objetivo"
+		"las"		"Clase designada — equipo objetivo"
+		"de"		"Set All Class — Zielteam"
+		"fr"		"Set All Class — équipe cible"
+		"pt"		"Set All Class — equipe alvo"
+		"ru"		"Set All Class — целевая команда"
+	}
+
+	"LR SetAllClass Class Title"
+	{
+		"en"		"Set All Class — class"
+		"es"		"Clase designada — clase"
+		"las"		"Clase designada — clase"
+		"de"		"Set All Class — Klasse"
+		"fr"		"Set All Class — classe"
+		"pt"		"Set All Class — classe"
+		"ru"		"Set All Class — класс"
+	}
+
+	"LR SetAllClass Opt Target"
+	{
+		"#format"	"{1:s}"
+		"en"		"Target: {1}"
+		"es"		"Objetivo: {1}"
+		"las"		"Objetivo: {1}"
+		"de"		"Ziel: {1}"
+		"fr"		"Cible : {1}"
+		"pt"		"Alvo: {1}"
+		"ru"		"Цель: {1}"
+	}
+
+	"LR SetAllClass Opt Class"
+	{
+		"#format"	"{1:s}"
+		"en"		"Class: {1}"
+		"es"		"Clase: {1}"
+		"las"		"Clase: {1}"
+		"de"		"Klasse: {1}"
+		"fr"		"Classe : {1}"
+		"pt"		"Classe: {1}"
+		"ru"		"Класс: {1}"
+	}
+
+	"LR SetAllClass Opt Confirm"
+	{
+		"en"		"Confirm Set All Class"
+		"es"		"Confirmar Clase Designada"
+		"las"		"Confirmar Clase Designada"
+		"de"		"Set All Class bestätigen"
+		"fr"		"Confirmer Set All Class"
+		"pt"		"Confirmar Set All Class"
+		"ru"		"Подтвердить Set All Class"
+	}
+
+	"LR SetAllClass Opt Back"
+	{
+		"en"		"Back"
+		"es"		"Volver"
+		"las"		"Volver"
+		"de"		"Zurück"
+		"fr"		"Retour"
+		"pt"		"Voltar"
+		"ru"		"Назад"
+	}
+
+	"LR SetAllClass Target All"
+	{
+		"en"		"Everyone (RED & BLU)"
+		"es"		"Todos (RED y BLU)"
+		"las"		"Todos (RED y BLU)"
+		"de"		"Alle (RED & BLU)"
+		"fr"		"Tout le monde (RED & BLU)"
+		"pt"		"Todos (RED & BLU)"
+		"ru"		"Все (RED и BLU)"
+	}
+
+	"LR SetAllClass Target Red"
+	{
+		"en"		"Prisoners only (RED)"
+		"es"		"Solo Prisioneros (RED)"
+		"las"		"Solo Prisioneros (RED)"
+		"de"		"Nur Gefangene (RED)"
+		"fr"		"Prisonniers uniquement (RED)"
+		"pt"		"Apenas Prisioneiros (RED)"
+		"ru"		"Только Заключённые (RED)"
+	}
+
+	"LR SetAllClass Target Blu"
+	{
+		"en"		"Guards only (BLU)"
+		"es"		"Solo Guardias (BLU)"
+		"las"		"Solo Guardias (BLU)"
+		"de"		"Nur Wachen (BLU)"
+		"fr"		"Gardes uniquement (BLU)"
+		"pt"		"Apenas Guardas (BLU)"
+		"ru"		"Только Охрана (BLU)"
+	}
+
 	"LR Chose Custom"
 	{
 		"#format"	"{1:s},{2:N},{3:s}"
@@ -644,6 +873,30 @@
 		"fr"		"{1} Class Warfare ({2}) : RED {3} contre BLU {4}."
 		"pt"		"{1} Class Warfare ({2}): RED {3} vs BLU {4}."
 		"ru"		"{1} Class Warfare ({2}): RED {3} против BLU {4}."
+	}
+
+	"LR Applied SetAllClass"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s}"
+		"en"		"{1} Set All Class ({2}): {3} -> {4}."
+		"es"		"{1} Clase designada ({2}): {3} -> {4}."
+		"las"		"{1} Clase designada ({2}): {3} -> {4}."
+		"de"		"{1} Set All Class ({2}): {3} -> {4}."
+		"fr"		"{1} Set All Class ({2}) : {3} -> {4}."
+		"pt"		"{1} Set All Class ({2}): {3} -> {4}."
+		"ru"		"{1} Set All Class ({2}): {3} -> {4}."
+	}
+
+	"LR Applied GuardMelee"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Guard Melee Only ({2}): Guards are restricted to melee weapons!"
+		"es"		"{1} Guardias Solo Melee ({2}): ¡Los guardias tienen solo armas melee!"
+		"las"		"{1} Guardias Solo Melee ({2}): ¡Los guardias tienen solo armas melee!"
+		"de"		"{1} Wachen nur Nahkampf ({2}): Wachen haben nur Nahkampfwaffen!"
+		"fr"		"{1} Gardes mêlée uniquement ({2}) : Les gardes n'ont que des armes de mêlée !"
+		"pt"		"{1} Guardas apenas Melee ({2}): Os guardas têm apenas armas melee!"
+		"ru"		"{1} Охрана только ближний бой ({2}): У охраны только оружие ближнего боя!"
 	}
 
 	"LR Applied Custom"

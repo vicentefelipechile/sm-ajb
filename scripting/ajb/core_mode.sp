@@ -18,11 +18,16 @@ static int g_iSavedArenaUseQueue = -1;
 static ConVar g_cvEngineTeamsUnbalance;
 static int g_iSavedTeamsUnbalance = -1;
 
+// Alltalk is required for cross-team communication in JB — force 1 while active.
+static ConVar g_cvEngineAllTalk;
+static int g_iSavedAllTalk = -1;
+
 void AJB_ApplyEngineCvarPolicy()
 {
 	AJB_ApplyEngineMovementPolicy();
 	AJB_ApplyEngineArenaQueuePolicy();
 	AJB_ApplyEngineTeamsUnbalancePolicy();
+	AJB_ApplyEngineAllTalkPolicy();
 }
 
 // Back-compat name used across core_rounds / OnPluginEnd.
@@ -149,6 +154,47 @@ void AJB_ApplyEngineTeamsUnbalancePolicy()
 		g_iSavedTeamsUnbalance = -1;
 		g_cvEngineTeamsUnbalance.SetInt(restore);
 		LogMessage("[AJB] restored mp_teams_unbalance_limit to %d.", restore);
+	}
+}
+
+void AJB_ApplyEngineAllTalkPolicy()
+{
+	if (g_cvEngineAllTalk == null)
+	{
+		g_cvEngineAllTalk = FindConVar("sv_alltalk");
+	}
+
+	if (g_cvEngineAllTalk == null)
+	{
+		static bool s_bLoggedMissing;
+		if (!s_bLoggedMissing)
+		{
+			s_bLoggedMissing = true;
+			LogError("[AJB] sv_alltalk ConVar not found.");
+		}
+		return;
+	}
+
+	if (g_bModeActive)
+	{
+		if (g_iSavedAllTalk < 0)
+		{
+			g_iSavedAllTalk = g_cvEngineAllTalk.IntValue;
+		}
+
+		int before = g_cvEngineAllTalk.IntValue;
+		g_cvEngineAllTalk.SetInt(1);
+		if (before != 1)
+		{
+			LogMessage("[AJB] sv_alltalk 1 (was %d).", before);
+		}
+	}
+	else if (g_iSavedAllTalk >= 0)
+	{
+		int restore = g_iSavedAllTalk;
+		g_iSavedAllTalk = -1;
+		g_cvEngineAllTalk.SetInt(restore);
+		LogMessage("[AJB] restored sv_alltalk to %d.", restore);
 	}
 }
 

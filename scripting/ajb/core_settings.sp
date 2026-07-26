@@ -304,8 +304,8 @@ void AJB_BeginCombatDay()
 	AJB_Prep_Stop();
 	g_bCombatDay = true;
 	g_bFreedayAllCosmetic = false;
-	AJB_SetRoundState(AJBState_SpecialDay);
 	AJB_OpenCellsInternal(true);
+	AJB_SetRoundState(AJBState_SpecialDay);
 	AJB_CombatDay_ArmAndTeleport();
 }
 

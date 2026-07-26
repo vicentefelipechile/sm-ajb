@@ -12,6 +12,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <tf2_stocks>
 
 #undef REQUIRE_PLUGIN
 #include <ajb/ajb>
@@ -204,6 +205,11 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
+	if (event.GetInt("death_flags") & TF_DEATHFLAG_DEADRINGER)
+	{
+		return;
+	}
+
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (client > 0)
 	{
