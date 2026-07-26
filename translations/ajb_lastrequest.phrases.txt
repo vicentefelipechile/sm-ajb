@@ -916,4 +916,51 @@
 		"pt"		"{1} Aguardando o desejo personalizado de {2} no chat..."
 		"ru"		"{1} Ожидание своего варианта от {2} в чате..."
 	}
+
+	"LR Wish Sniper"
+	{
+		"en"		"Watch out! Sniper"
+		"es"		"Watch out! Sniper"
+		"las"		"Watch out! Sniper"
+		"de"		"Achtung! Scharfschütze"
+		"fr"		"Attention ! Sniper"
+		"pt"		"Cuidado! Sniper"
+		"ru"		"Осторожно! Снайпер"
+	}
+
+	"LR Chose Sniper"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Watch out! Sniper for next round."
+		"es"		"{1} {2} eligió Watch out! Sniper para la siguiente ronda."
+		"las"		"{1} {2} eligió Watch out! Sniper para la siguiente ronda."
+		"de"		"{1} {2} hat Achtung! Scharfschütze für die nächste Runde gewählt."
+		"fr"		"{1} {2} a choisi Attention ! Sniper pour el próximo round."
+		"pt"		"{1} {2} escolheu Cuidado! Sniper para la siguiente ronda."
+		"ru"		"{1} {2} выбрал Осторожно! Снайпер на следующий раунд."
+	}
+
+	"LR Applied Sniper"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Watch out! Sniper is active (chosen by {2}). A sniper is targeting players!"
+		"es"		"{1} ¡Watch out! Sniper está activo (elegido por {2}). ¡Un francotirador está abatiendo jugadores!"
+		"las"		"{1} ¡Watch out! Sniper está activo (elegido por {2}). ¡Un francotirador está abatiendo jugadores!"
+		"de"		"{1} Achtung! Scharfschütze ist aktiv (gewählt von {2}). Ein Scharfschütze zielt auf Spieler!"
+		"fr"		"{1} Attention ! Sniper est actif (choisi par {2}). Un sniper vise les joueurs !"
+		"pt"		"{1} Cuidado! Sniper está ativo (escolhido por {2}). Um sniper está mirando nos jogadores!"
+		"ru"		"{1} Осторожно! Снайпер активен (выбрано {2}). Снайпер celится в игроков!"
+	}
+
+	"LR Sniper Shot"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} BANG! {2} was sniped out of nowhere!"
+		"es"		"{1} ¡BANG! ¡Un sniper le disparó a {2} desde las sombras!"
+		"las"		"{1} ¡BANG! ¡Un sniper le disparó a {2} desde las sombras!"
+		"de"		"{1} BANG! {2} wurde aus dem Nichts erschossen!"
+		"fr"		"{1} BANG ! {2} a été abattu por un sniper !"
+		"pt"		"{1} BANG! {2} foi atingido por um sniper do nada!"
+		"ru"		"{1} БАМ! {2} был застрелен снайпером из ниоткуда!"
+	}
 }

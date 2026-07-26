@@ -50,7 +50,8 @@ enum AJB_LRWish
 	LRWish_Suicide,
 	LRWish_LowGravity,
 	LRWish_HideSeek,
-	LRWish_HungerGames
+	LRWish_HungerGames,
+	LRWish_Sniper
 };
 
 public Plugin myinfo =
@@ -71,6 +72,9 @@ ConVar g_cvHSHideTime;
 ConVar g_cvHSRoundTime;
 ConVar g_cvHGGraceTime;
 ConVar g_cvHGRoundTime;
+ConVar g_cvSniperMin;
+ConVar g_cvSniperMax;
+ConVar g_cvSniperForce;
 ConVar g_cvEngineFriendlyFire;
 ConVar g_cvEngineSvTags;
 
@@ -84,6 +88,10 @@ bool g_bAwaitingCustom;
 bool g_bHotReds;
 bool g_bLowGravity;
 int g_iSavedGravity = -1;
+
+// Sniper wish: random kills during round with velocity push
+bool g_bSniper;
+Handle g_hSniperTimer;
 
 // Hide and Seek: BLU are frozen "seekers" for the hide window, RED run and hide.
 bool g_bHideSeek;
@@ -170,6 +178,9 @@ public void OnPluginStart()
 	g_cvHSRoundTime = CreateConVar("sm_ajb_lr_hs_round_time", "300", "Hide and Seek: total round duration in seconds (hiders win on timeout).", _, true, 60.0, true, 900.0);
 	g_cvHGGraceTime = CreateConVar("sm_ajb_lr_hg_grace_time", "30", "Hunger Games: seconds after live round begin before friendly fire turns on.", _, true, 5.0, true, 120.0);
 	g_cvHGRoundTime = CreateConVar("sm_ajb_lr_hg_round_time", "300", "Hunger Games: total round duration in seconds (survivors win on timeout).", _, true, 60.0, true, 900.0);
+	g_cvSniperMin = CreateConVar("sm_ajb_lr_sniper_min", "10.0", "Sniper: minimum interval in seconds between sniper shots.", _, true, 2.0, true, 300.0);
+	g_cvSniperMax = CreateConVar("sm_ajb_lr_sniper_max", "25.0", "Sniper: maximum interval in seconds between sniper shots.", _, true, 5.0, true, 600.0);
+	g_cvSniperForce = CreateConVar("sm_ajb_lr_sniper_force", "800.0", "Sniper: ragdoll / impact force impulse.", _, true, 100.0, true, 3000.0);
 
 	g_cvEngineFriendlyFire = FindConVar("mp_friendlyfire");
 	g_cvEngineSvTags = FindConVar("sv_tags");
@@ -816,6 +827,8 @@ void AJB_LR_ShowWishMenu(int prisoner)
 	menu.AddItem("hideseek", line);
 	Format(line, sizeof(line), "%T", "LR Wish HungerGames", prisoner);
 	menu.AddItem("hunger", line);
+	Format(line, sizeof(line), "%T", "LR Wish Sniper", prisoner);
+	menu.AddItem("sniper", line);
 
 	menu.ExitButton = false;
 	g_bMenuOpen = true;
@@ -999,6 +1012,10 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 	else if (StrEqual(info, "hunger"))
 	{
 		AJB_LR_StartHungerGamesConfig(client);
+	}
+	else if (StrEqual(info, "sniper"))
+	{
+		AJB_LR_DoSniper(client);
 	}
 
 	return 0;
@@ -1222,6 +1239,10 @@ void AJB_LR_ApplyPendingWish()
 		case LRWish_HungerGames:
 		{
 			AJB_LR_ApplyHungerGames(chooser, meleeOnly, classRandom, hgClass);
+		}
+		case LRWish_Sniper:
+		{
+			AJB_LR_ApplySniper(chooser);
 		}
 		default:
 		{
@@ -2554,13 +2575,144 @@ void AJB_LR_KillHSTimers()
 	}
 }
 
+void AJB_LR_DoSniper(int prisoner)
+{
+	// NEXT round Sniper wish.
+	AJB_LR_QueueWish(prisoner, LRWish_Sniper, "LR Chose Sniper");
+}
+
+void AJB_LR_ApplySniper(const char[] chooser)
+{
+	g_bSniper = true;
+	AJB_LR_KillSniperTimer();
+
+	float minTime = g_cvSniperMin.FloatValue;
+	float maxTime = g_cvSniperMax.FloatValue;
+	if (maxTime < minTime)
+	{
+		maxTime = minTime;
+	}
+
+	float nextInterval = GetRandomFloat(minTime, maxTime);
+	g_hSniperTimer = CreateTimer(nextInterval, Timer_SniperShot, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	AJB_LR_ChatAllQueuedApplied(chooser, "LR Applied Sniper");
+}
+
+Action Timer_SniperShot(Handle timer)
+{
+	g_hSniperTimer = null;
+
+	if (!g_bSniper || !g_bHasCore || !AJB_IsEnabled())
+	{
+		return Plugin_Stop;
+	}
+
+	// Pick a random alive player (Prisoner or Guard)
+	int candidates[MAXPLAYERS];
+	int count = 0;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i))
+		{
+			// Ignore indestructible or godmode if any, but standard alive players:
+			candidates[count++] = i;
+		}
+	}
+
+	if (count > 0)
+	{
+		int victim = candidates[GetRandomInt(0, count - 1)];
+
+		// Play sniper gunshot sound globally
+		EmitSoundToAll("weapons/sniper_railgun_shot.wav", victim, SNDCHAN_WEAPON, SNDLEVEL_GUNFIRE);
+		EmitSoundToAll("weapons/sniper_shoot.wav", victim, SNDCHAN_STATIC, SNDLEVEL_GUNFIRE);
+
+		// Random 3D direction vector
+		float forceMag = g_cvSniperForce.FloatValue;
+		float vecForce[3];
+		vecForce[0] = GetRandomFloat(-1.0, 1.0);
+		vecForce[1] = GetRandomFloat(-1.0, 1.0);
+		vecForce[2] = GetRandomFloat(0.3, 1.0); // slight upward bias for dramatic ragdoll launch
+		NormalizeVector(vecForce, vecForce);
+		ScaleVector(vecForce, forceMag);
+
+		// Announce sniper hit in chat / screen center
+		char prefix[32];
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientInGame(i) && !IsFakeClient(i))
+			{
+				AJB_GetPrefix(i, prefix, sizeof(prefix));
+				CPrintToChat(i, "%T", "LR Sniper Shot", i, prefix, victim);
+			}
+		}
+
+		// Apply lethal damage with force
+		SDKHooks_TakeDamage(victim, 0, 0, 5000.0, DMG_BULLET | DMG_CRIT, -1, vecForce);
+
+		// Post-frame ragdoll force impulse boost for TF2 ragdolls
+		DataPack pack = new DataPack();
+		pack.WriteCell(GetClientUserId(victim));
+		pack.WriteFloat(vecForce[0]);
+		pack.WriteFloat(vecForce[1]);
+		pack.WriteFloat(vecForce[2]);
+		RequestFrame(Frame_ApplyRagdollForce, pack);
+	}
+
+	// Schedule next shot if round is still active
+	float minTime = g_cvSniperMin.FloatValue;
+	float maxTime = g_cvSniperMax.FloatValue;
+	if (maxTime < minTime)
+	{
+		maxTime = minTime;
+	}
+
+	float nextInterval = GetRandomFloat(minTime, maxTime);
+	g_hSniperTimer = CreateTimer(nextInterval, Timer_SniperShot, _, TIMER_FLAG_NO_MAPCHANGE);
+	return Plugin_Stop;
+}
+
+void Frame_ApplyRagdollForce(DataPack pack)
+{
+	pack.Reset();
+	int userid = pack.ReadCell();
+	float force[3];
+	force[0] = pack.ReadFloat();
+	force[1] = pack.ReadFloat();
+	force[2] = pack.ReadFloat();
+	delete pack;
+
+	int client = GetClientOfUserId(userid);
+	if (client < 1 || !IsClientInGame(client))
+	{
+		return;
+	}
+
+	int ragdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
+	if (ragdoll > 0 && IsValidEntity(ragdoll))
+	{
+		TeleportEntity(ragdoll, NULL_VECTOR, NULL_VECTOR, force);
+	}
+}
+
+void AJB_LR_KillSniperTimer()
+{
+	if (g_hSniperTimer != null)
+	{
+		delete g_hSniperTimer;
+		g_hSniperTimer = null;
+	}
+}
+
 // =========================================================================================================
 // Cleanup
 // =========================================================================================================
 
 void AJB_LR_Cleanup(bool announce)
 {
-	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames);
+	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bSniper);
 	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
 
 	AJB_LR_KillMenuTimer();
@@ -2568,6 +2720,7 @@ void AJB_LR_Cleanup(bool announce)
 	AJB_LR_KillHotTimer();
 	AJB_LR_KillHSTimers();
 	AJB_LR_KillHGTimers();
+	AJB_LR_KillSniperTimer();
 
 	g_iPrisoner = 0;
 	g_bMenuOpen = false;
@@ -2592,6 +2745,11 @@ void AJB_LR_Cleanup(bool announce)
 	if (g_bHotReds)
 	{
 		g_bHotReds = false;
+	}
+
+	if (g_bSniper)
+	{
+		g_bSniper = false;
 	}
 
 	if (g_bLowGravity)

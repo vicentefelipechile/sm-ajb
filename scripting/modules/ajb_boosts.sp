@@ -31,7 +31,6 @@
 
 #define PLUGIN_VERSION "1.0.0"
 
-#define BOOST_ID_IRON_NECK     "iron_neck"
 #define BOOST_ID_IRON_NECK_II  "iron_neck_2"
 #define BOOST_ID_REVIVE        "revive"
 
@@ -42,7 +41,6 @@
 #define BOOST_ID_JARATE        "jarate"
 #define BOOST_ID_REGEN         "regen"
 
-#define BOOST_COST_IRON_NECK     1
 #define BOOST_COST_IRON_NECK_II  3
 #define BOOST_COST_REVIVE        3
 
@@ -52,7 +50,6 @@
 #define BOOST_COST_JARATE        3
 #define BOOST_COST_REGEN         3
 
-#define BOOST_CHARGES_IRON_NECK     1
 #define BOOST_CHARGES_IRON_NECK_II  2
 
 #define BOOST_SECOND_WIND_HP     50
@@ -86,6 +83,21 @@ public Plugin myinfo =
 ConVar g_cvEnabled;
 ConVar g_cvMaxPoints;
 ConVar g_cvBluEvery;
+
+// Cost ConVars
+ConVar g_cvCostIronNeck2;
+ConVar g_cvCostRevive;
+ConVar g_cvCostSecondWind;
+ConVar g_cvCostMadMilk;
+ConVar g_cvCostMeleeCrit;
+ConVar g_cvCostJarate;
+ConVar g_cvCostRegen;
+
+// Value ConVars
+ConVar g_cvSecondWindHp;
+ConVar g_cvRegenInstantHp;
+ConVar g_cvRegenDuration;
+ConVar g_cvRegenPerTick;
 
 bool g_bHasCore;
 
@@ -169,6 +181,21 @@ public void OnPluginStart()
 	g_cvEnabled.AddChangeHook(OnBoostsEnabledChanged);
 	g_cvMaxPoints = CreateConVar("sm_ajb_boosts_max_points", "3", "Max points a player can EARN-hold (0 = unlimited). Admin grants ignore this.", _, true, 0.0);
 	g_cvBluEvery = CreateConVar("sm_ajb_boosts_blu_every", "2", "BLU surviving players get +1 extra every N finished rounds.", _, true, 1.0);
+
+	// Costs
+	g_cvCostIronNeck2 = CreateConVar("sm_ajb_boosts_cost_iron_neck_2", "3", "Cost for Iron Neck II (2 backstab blocks for Guards).", _, true, 1.0);
+	g_cvCostRevive = CreateConVar("sm_ajb_boosts_cost_revive", "3", "Cost for Warden Revive.", _, true, 1.0);
+	g_cvCostSecondWind = CreateConVar("sm_ajb_boosts_cost_second_wind", "1", "Cost for Second Wind.", _, true, 1.0);
+	g_cvCostMadMilk = CreateConVar("sm_ajb_boosts_cost_mad_milk", "1", "Cost for Mad Milk.", _, true, 1.0);
+	g_cvCostMeleeCrit = CreateConVar("sm_ajb_boosts_cost_melee_crit", "2", "Cost for Melee Crit.", _, true, 1.0);
+	g_cvCostJarate = CreateConVar("sm_ajb_boosts_cost_jarate", "3", "Cost for Jarate.", _, true, 1.0);
+	g_cvCostRegen = CreateConVar("sm_ajb_boosts_cost_regen", "3", "Cost for Health Regen.", _, true, 1.0);
+
+	// Values
+	g_cvSecondWindHp = CreateConVar("sm_ajb_boosts_second_wind_hp", "50", "Instant HP granted by Second Wind.", _, true, 1.0);
+	g_cvRegenInstantHp = CreateConVar("sm_ajb_boosts_regen_instant_hp", "50", "Instant HP granted by Regen.", _, true, 0.0);
+	g_cvRegenDuration = CreateConVar("sm_ajb_boosts_regen_duration", "20.0", "Duration in seconds for Regen.", _, true, 1.0);
+	g_cvRegenPerTick = CreateConVar("sm_ajb_boosts_regen_per_tick", "5", "HP restored per second tick during Regen.", _, true, 1.0);
 
 	AutoExecConfig(true, "ajb_boosts");
 
@@ -465,33 +492,30 @@ void AJB_Boosts_ShowMenu(int client)
 	if (AJB_IsGuard(client))
 	{
 		// Cost is code-owned; translations only hold the description.
-		Format(line, sizeof(line), "%T", "Boost Iron Neck", client, BOOST_COST_IRON_NECK);
-		menu.AddItem(BOOST_ID_IRON_NECK, line, draw);
-
-		Format(line, sizeof(line), "%T", "Boost Iron Neck II", client, BOOST_COST_IRON_NECK_II);
+		Format(line, sizeof(line), "%T", "Boost Iron Neck II", client, g_cvCostIronNeck2.IntValue);
 		menu.AddItem(BOOST_ID_IRON_NECK_II, line, draw);
 
 		if (AJB_GetWarden() == client)
 		{
-			Format(line, sizeof(line), "%T", "Boost Revive", client, BOOST_COST_REVIVE);
+			Format(line, sizeof(line), "%T", "Boost Revive", client, g_cvCostRevive.IntValue);
 			menu.AddItem(BOOST_ID_REVIVE, line, draw);
 		}
 	}
 	else if (AJB_IsPrisoner(client))
 	{
-		Format(line, sizeof(line), "%T", "Boost Second Wind", client, BOOST_COST_SECOND_WIND);
+		Format(line, sizeof(line), "%T", "Boost Second Wind", client, g_cvCostSecondWind.IntValue);
 		menu.AddItem(BOOST_ID_SECOND_WIND, line, draw);
 
-		Format(line, sizeof(line), "%T", "Boost Mad Milk", client, BOOST_COST_MAD_MILK);
+		Format(line, sizeof(line), "%T", "Boost Mad Milk", client, g_cvCostMadMilk.IntValue);
 		menu.AddItem(BOOST_ID_MAD_MILK, line, draw);
 
-		Format(line, sizeof(line), "%T", "Boost Melee Crit", client, BOOST_COST_MELEE_CRIT);
+		Format(line, sizeof(line), "%T", "Boost Melee Crit", client, g_cvCostMeleeCrit.IntValue);
 		menu.AddItem(BOOST_ID_MELEE_CRIT, line, draw);
 
-		Format(line, sizeof(line), "%T", "Boost Jarate", client, BOOST_COST_JARATE);
+		Format(line, sizeof(line), "%T", "Boost Jarate", client, g_cvCostJarate.IntValue);
 		menu.AddItem(BOOST_ID_JARATE, line, draw);
 
-		Format(line, sizeof(line), "%T", "Boost Regen", client, BOOST_COST_REGEN);
+		Format(line, sizeof(line), "%T", "Boost Regen", client, g_cvCostRegen.IntValue);
 		menu.AddItem(BOOST_ID_REGEN, line, draw);
 	}
 	else
@@ -534,13 +558,9 @@ public int MenuHandler_Boosts(Menu menu, MenuAction action, int param1, int para
 	char id[32];
 	menu.GetItem(param2, id, sizeof(id));
 
-	if (StrEqual(id, BOOST_ID_IRON_NECK))
+	if (StrEqual(id, BOOST_ID_IRON_NECK_II))
 	{
-		AJB_Boosts_BuyIronNeck(client, BOOST_CHARGES_IRON_NECK, BOOST_COST_IRON_NECK);
-	}
-	else if (StrEqual(id, BOOST_ID_IRON_NECK_II))
-	{
-		AJB_Boosts_BuyIronNeck(client, BOOST_CHARGES_IRON_NECK_II, BOOST_COST_IRON_NECK_II);
+		AJB_Boosts_BuyIronNeck(client, BOOST_CHARGES_IRON_NECK_II, g_cvCostIronNeck2.IntValue);
 	}
 	else if (StrEqual(id, BOOST_ID_REVIVE))
 	{
@@ -724,7 +744,7 @@ public int MenuHandler_Revive(Menu menu, MenuAction action, int param1, int para
 		return 0;
 	}
 
-	if (!AJB_Boosts_TrySpend(client, BOOST_COST_REVIVE))
+	if (!AJB_Boosts_TrySpend(client, g_cvCostRevive.IntValue))
 	{
 		return 0;
 	}
@@ -770,17 +790,18 @@ void AJB_Boosts_BuySecondWind(int client)
 		return;
 	}
 
-	if (!AJB_Boosts_TrySpend(client, BOOST_COST_SECOND_WIND))
+	if (!AJB_Boosts_TrySpend(client, g_cvCostSecondWind.IntValue))
 	{
 		AJB_Boosts_ShowMenu(client);
 		return;
 	}
 
-	AJB_Boosts_AddHealth(client, BOOST_SECOND_WIND_HP, true);
+	int secondWindHp = g_cvSecondWindHp.IntValue;
+	AJB_Boosts_AddHealth(client, secondWindHp, true);
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CPrintToChat(client, "%T", "Boosts Purchased Second Wind", client, prefix, BOOST_SECOND_WIND_HP, g_Boost[client].points);
+	CPrintToChat(client, "%T", "Boosts Purchased Second Wind", client, prefix, secondWindHp, g_Boost[client].points);
 	AJB_Boosts_ShowMenu(client);
 }
 
@@ -792,7 +813,7 @@ void AJB_Boosts_BuyJarThrow(int client, bool milk)
 		return;
 	}
 
-	int cost = milk ? BOOST_COST_MAD_MILK : BOOST_COST_JARATE;
+	int cost = milk ? g_cvCostMadMilk.IntValue : g_cvCostJarate.IntValue;
 	if (!AJB_Boosts_TrySpend(client, cost))
 	{
 		AJB_Boosts_ShowMenu(client);
@@ -833,7 +854,7 @@ void AJB_Boosts_BuyMeleeCrit(int client)
 		return;
 	}
 
-	if (!AJB_Boosts_TrySpend(client, BOOST_COST_MELEE_CRIT))
+	if (!AJB_Boosts_TrySpend(client, g_cvCostMeleeCrit.IntValue))
 	{
 		AJB_Boosts_ShowMenu(client);
 		return;
@@ -854,18 +875,21 @@ void AJB_Boosts_BuyRegen(int client)
 		return;
 	}
 
-	if (!AJB_Boosts_TrySpend(client, BOOST_COST_REGEN))
+	if (!AJB_Boosts_TrySpend(client, g_cvCostRegen.IntValue))
 	{
 		AJB_Boosts_ShowMenu(client);
 		return;
 	}
 
-	AJB_Boosts_AddHealth(client, BOOST_REGEN_INSTANT_HP, true);
-	AJB_Boosts_StartRegen(client, BOOST_REGEN_DURATION);
+	int regenInstantHp = g_cvRegenInstantHp.IntValue;
+	float regenDuration = g_cvRegenDuration.FloatValue;
+
+	AJB_Boosts_AddHealth(client, regenInstantHp, true);
+	AJB_Boosts_StartRegen(client, regenDuration);
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CPrintToChat(client, "%T", "Boosts Purchased Regen", client, prefix, BOOST_REGEN_INSTANT_HP, RoundToNearest(BOOST_REGEN_DURATION), g_Boost[client].points);
+	CPrintToChat(client, "%T", "Boosts Purchased Regen", client, prefix, regenInstantHp, RoundToNearest(regenDuration), g_Boost[client].points);
 	AJB_Boosts_ShowMenu(client);
 }
 
@@ -922,7 +946,7 @@ Action Timer_BoostRegen(Handle timer, int userid)
 	}
 
 	// Passive heal toward max HP (no stacking overheal from ticks).
-	AJB_Boosts_AddHealth(client, BOOST_REGEN_PER_TICK, false);
+	AJB_Boosts_AddHealth(client, g_cvRegenPerTick.IntValue, false);
 	return Plugin_Continue;
 }
 

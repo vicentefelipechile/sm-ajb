@@ -312,14 +312,17 @@ Action Command_Freeday(int client, int args)
 		setFd = (StringToInt(flag) != 0);
 	}
 
-	for (int i = 0; i < count; i++)
-	{
-		AJB_SetPlayerFreeday(targetList[i], setFd);
-	}
-
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	ReplyToCommand(client, "%T", setFd ? "Admin Freeday On" : "Admin Freeday Off", AJB_TransTarget(client), prefix, targetName);
+
+	for (int i = 0; i < count; i++)
+	{
+		int target = targetList[i];
+		AJB_SetPlayerFreeday(target, setFd);
+		ShowActivity2(client, prefix, "%t", setFd ? "Activity Freeday On" : "Activity Freeday Off", target);
+		LogAction(client, target, "\"%L\" %s freeday for \"%L\"", client, setFd ? "queued" : "cleared", target);
+	}
+
 	return Plugin_Handled;
 }
 
@@ -332,7 +335,11 @@ Action Command_ClearWarden(int client, int args)
 	}
 
 	AJB_ClearWarden();
-	AJB_Reply(client, "Admin Warden Cleared");
+
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+	ShowActivity2(client, prefix, "%t", "Activity Cleared Warden");
+	LogAction(client, -1, "\"%L\" cleared warden via command", client);
 	return Plugin_Handled;
 }
 
@@ -521,6 +528,9 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 	char info[16];
 	menu.GetItem(param2, info, sizeof(info));
 
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+
 	if (StrEqual(info, "status"))
 	{
 		FakeClientCommand(client, "sm_ajb_status");
@@ -529,19 +539,22 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 	else if (StrEqual(info, "open"))
 	{
 		AJB_OpenCells();
-		AJB_Chat(client, "Admin Cells Opened");
+		ShowActivity2(client, prefix, "%t", "Activity Opened Cells");
+		LogAction(client, -1, "\"%L\" opened cell doors via admin menu", client);
 		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "close"))
 	{
 		AJB_CloseCells();
-		AJB_Chat(client, "Admin Cells Closed");
+		ShowActivity2(client, prefix, "%t", "Activity Closed Cells");
+		LogAction(client, -1, "\"%L\" closed cell doors via admin menu", client);
 		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "clearw"))
 	{
 		AJB_ClearWarden();
-		AJB_Chat(client, "Admin Warden Cleared");
+		ShowActivity2(client, prefix, "%t", "Activity Cleared Warden");
+		LogAction(client, -1, "\"%L\" cleared warden via admin menu", client);
 		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "setw"))
@@ -683,19 +696,23 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 			char cmd[64];
 			Format(cmd, sizeof(cmd), "sm_ajb_setwarden #%d", GetClientUserId(target));
 			FakeClientCommand(client, cmd);
+			ShowActivity2(client, prefix, "%t", "Activity Set Warden", target);
+			LogAction(client, target, "\"%L\" set warden on \"%L\"", client, target);
 		}
 	}
 	else if (StrEqual(parts[0], "rebel"))
 	{
 		bool next = !AJB_IsRebel(target);
 		AJB_SetRebel(target, next);
-		CPrintToChat(client, "%T", next ? "Admin Rebel On" : "Admin Rebel Off", client, prefix, target);
+		ShowActivity2(client, prefix, "%t", next ? "Activity Rebel On" : "Activity Rebel Off", target);
+		LogAction(client, target, "\"%L\" %s rebel status on \"%L\"", client, next ? "set" : "cleared", target);
 	}
 	else if (StrEqual(parts[0], "freeday"))
 	{
 		bool next = !AJB_IsFreedayPending(target);
 		AJB_SetPlayerFreeday(target, next);
-		CPrintToChat(client, "%T", next ? "Admin Freeday OnPlayer" : "Admin Freeday OffPlayer", client, prefix, target);
+		ShowActivity2(client, prefix, "%t", next ? "Activity Freeday On" : "Activity Freeday Off", target);
+		LogAction(client, target, "\"%L\" %s freeday status for \"%L\"", client, next ? "queued" : "cleared", target);
 	}
 	else if (StrEqual(parts[0], "forcelr"))
 	{
@@ -709,7 +726,8 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 			char cmd[64];
 			Format(cmd, sizeof(cmd), "sm_ajb_lr_force #%d", GetClientUserId(target));
 			FakeClientCommand(client, cmd);
-			CPrintToChat(client, "%T", "Admin LR Forced", client, prefix, target);
+			ShowActivity2(client, prefix, "%t", "Activity Forced LR", target);
+			LogAction(client, target, "\"%L\" forced Last Request for \"%L\"", client, target);
 		}
 	}
 	else if (StrEqual(parts[0], "guardban"))
