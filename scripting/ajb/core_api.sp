@@ -31,6 +31,7 @@ void AJB_RegisterNatives()
 	CreateNative("AJB_OpenCells", Native_OpenCells);
 	CreateNative("AJB_CloseCells", Native_CloseCells);
 	CreateNative("AJB_SetPhaseTimer", Native_SetPhaseTimer);
+	CreateNative("AJB_ClearPhaseTimer", Native_ClearPhaseTimer);
 	CreateNative("AJB_SetRoundState", Native_SetRoundState);
 	CreateNative("AJB_ForceTeamWin", Native_ForceTeamWin);
 	CreateNative("AJB_ShowWardenMenu", Native_ShowWardenMenu);
@@ -143,6 +144,12 @@ public int Native_SetPhaseTimer(Handle plugin, int numParams)
 {
 	float seconds = view_as<float>(GetNativeCell(1));
 	AJB_SetPhaseTimer(seconds);
+	return 0;
+}
+
+public int Native_ClearPhaseTimer(Handle plugin, int numParams)
+{
+	AJB_ClearPhaseTimer();
 	return 0;
 }
 

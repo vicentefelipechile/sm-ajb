@@ -321,6 +321,139 @@
 		"ru"		"Прятки (Hide and Seek)"
 	}
 
+	"LR Wish HungerGames"
+	{
+		"en"		"Hunger Games"
+		"es"		"Hunger Games"
+		"las"		"Hunger Games"
+		"de"		"Hunger Games"
+		"fr"		"Hunger Games"
+		"pt"		"Hunger Games"
+		"ru"		"Hunger Games"
+	}
+
+	"LR HG Menu Title"
+	{
+		"en"		"Hunger Games — options"
+		"es"		"Hunger Games — opciones"
+		"las"		"Hunger Games — opciones"
+		"de"		"Hunger Games — Optionen"
+		"fr"		"Hunger Games — options"
+		"pt"		"Hunger Games — opções"
+		"ru"		"Hunger Games — опции"
+	}
+
+	"LR HG Opt Class"
+	{
+		"#format"	"{1:s}"
+		"en"		"Class: {1}"
+		"es"		"Clase: {1}"
+		"las"		"Clase: {1}"
+		"de"		"Klasse: {1}"
+		"fr"		"Classe : {1}"
+		"pt"		"Classe: {1}"
+		"ru"		"Класс: {1}"
+	}
+
+	"LR HG Opt Melee On"
+	{
+		"en"		"Weapons: Melee only"
+		"es"		"Armas: Solo melee"
+		"las"		"Armas: Solo melee"
+		"de"		"Waffen: Nur Nahkampf"
+		"fr"		"Armes : Mêlée uniquement"
+		"pt"		"Armas: Apenas melee"
+		"ru"		"Оружие: только ближний бой"
+	}
+
+	"LR HG Opt Melee Off"
+	{
+		"en"		"Weapons: Full loadout"
+		"es"		"Armas: Loadout completo"
+		"las"		"Armas: Loadout completo"
+		"de"		"Waffen: Volle Ausrüstung"
+		"fr"		"Armes : Loadout complet"
+		"pt"		"Armas: Loadout completo"
+		"ru"		"Оружие: полный набор"
+	}
+
+	"LR HG Opt Confirm"
+	{
+		"en"		"Confirm Hunger Games"
+		"es"		"Confirmar Hunger Games"
+		"las"		"Confirmar Hunger Games"
+		"de"		"Hunger Games bestätigen"
+		"fr"		"Confirmer Hunger Games"
+		"pt"		"Confirmar Hunger Games"
+		"ru"		"Подтвердить Hunger Games"
+	}
+
+	"LR HG Opt Back"
+	{
+		"en"		"Back"
+		"es"		"Volver"
+		"las"		"Volver"
+		"de"		"Zurück"
+		"fr"		"Retour"
+		"pt"		"Voltar"
+		"ru"		"Назад"
+	}
+
+	"LR HG Class Title"
+	{
+		"en"		"Hunger Games — class"
+		"es"		"Hunger Games — clase"
+		"las"		"Hunger Games — clase"
+		"de"		"Hunger Games — Klasse"
+		"fr"		"Hunger Games — classe"
+		"pt"		"Hunger Games — classe"
+		"ru"		"Hunger Games — класс"
+	}
+
+	"LR HG Class Any"
+	{
+		"en"		"Any (keep class)"
+		"es"		"Cualquiera (mantener clase)"
+		"las"		"Cualquiera (mantener clase)"
+		"de"		"Beliebig (Klasse behalten)"
+		"fr"		"N'importe (garder la classe)"
+		"pt"		"Qualquer (manter classe)"
+		"ru"		"Любой (оставить класс)"
+	}
+
+	"LR HG Class Random"
+	{
+		"en"		"Random (same for all)"
+		"es"		"Aleatoria (igual para todos)"
+		"las"		"Aleatoria (igual para todos)"
+		"de"		"Zufällig (für alle gleich)"
+		"fr"		"Aléatoire (même pour tous)"
+		"pt"		"Aleatória (igual para todos)"
+		"ru"		"Случайный (один для всех)"
+	}
+
+	"LR HG Weapons Full"
+	{
+		"en"		"Full loadout"
+		"es"		"Loadout completo"
+		"las"		"Loadout completo"
+		"de"		"Volle Ausrüstung"
+		"fr"		"Loadout complet"
+		"pt"		"Loadout completo"
+		"ru"		"Полный набор"
+	}
+
+	"LR HG Weapons Melee"
+	{
+		"en"		"Melee only"
+		"es"		"Solo melee"
+		"las"		"Solo melee"
+		"de"		"Nur Nahkampf"
+		"fr"		"Mêlée uniquement"
+		"pt"		"Apenas melee"
+		"ru"		"Только ближний бой"
+	}
+
 	"LR Chose Freeday Me"
 	{
 		"#format"	"{1:s},{2:N}"
@@ -453,6 +586,18 @@
 		"ru"		"{1} {2} выбрал Прятки."
 	}
 
+	"LR Chose HungerGames"
+	{
+		"#format"	"{1:s},{2:N},{3:s},{4:s}"
+		"en"		"{1} {2} chose Hunger Games (class: {3}, weapons: {4})."
+		"es"		"{1} {2} eligió Hunger Games (clase: {3}, armas: {4})."
+		"las"		"{1} {2} eligió Hunger Games (clase: {3}, armas: {4})."
+		"de"		"{1} {2} hat Hunger Games gewählt (Klasse: {3}, Waffen: {4})."
+		"fr"		"{1} {2} a choisi Hunger Games (classe : {3}, armes : {4})."
+		"pt"		"{1} {2} escolheu Hunger Games (classe: {3}, armas: {4})."
+		"ru"		"{1} {2} выбрал Hunger Games (класс: {3}, оружие: {4})."
+	}
+
 	"LR Applied Freeday"
 	{
 		"#format"	"{1:s},{2:s}"
@@ -571,6 +716,66 @@
 		"fr"		"{1} Temps écoulé — les cachés ont survécu !"
 		"pt"		"{1} Tempo esgotado — os escondidos sobreviveram!"
 		"ru"		"{1} Время вышло — прячущиеся выжили!"
+	}
+
+	"LR Applied HungerGames"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:d}"
+		"en"		"{1} Hunger Games ({2})! Class: {3} | Weapons: {4}. Friendly fire in {5}s — everyone is RED!"
+		"es"		"{1} ¡Hunger Games ({2})! Clase: {3} | Armas: {4}. Fuego amigo en {5}s — ¡todos a RED!"
+		"las"		"{1} ¡Hunger Games ({2})! Clase: {3} | Armas: {4}. Fuego amigo en {5}s — ¡todos a RED!"
+		"de"		"{1} Hunger Games ({2})! Klasse: {3} | Waffen: {4}. Friendly Fire in {5}s — alle sind RED!"
+		"fr"		"{1} Hunger Games ({2}) ! Classe : {3} | Armes : {4}. Tir allié dans {5}s — tout le monde est RED !"
+		"pt"		"{1} Hunger Games ({2})! Classe: {3} | Armas: {4}. Fogo amigo em {5}s — todos no RED!"
+		"ru"		"{1} Hunger Games ({2})! Класс: {3} | Оружие: {4}. Friendly fire через {5}с — все в RED!"
+	}
+
+	"LR HG Grace End"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Hunger Games — friendly fire is ON. Fight!"
+		"es"		"{1} Hunger Games — fuego amigo ACTIVADO. ¡A pelear!"
+		"las"		"{1} Hunger Games — fuego amigo ACTIVADO. ¡A pelear!"
+		"de"		"{1} Hunger Games — Friendly Fire ist AN. Kämpft!"
+		"fr"		"{1} Hunger Games — le tir allié est ACTIVÉ. Combattez !"
+		"pt"		"{1} Hunger Games — fogo amigo ATIVADO. Lutem!"
+		"ru"		"{1} Hunger Games — friendly fire ВКЛ. В бой!"
+	}
+
+	"LR HG TimeUp"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Hunger Games — time's up! Survivors win."
+		"es"		"{1} Hunger Games — ¡se acabó el tiempo! Ganan los supervivientes."
+		"las"		"{1} Hunger Games — ¡se acabó el tiempo! Ganan los supervivientes."
+		"de"		"{1} Hunger Games — Zeit abgelaufen! Überlebende gewinnen."
+		"fr"		"{1} Hunger Games — temps écoulé ! Les survivants gagnent."
+		"pt"		"{1} Hunger Games — tempo esgotado! Os sobreviventes vencem."
+		"ru"		"{1} Hunger Games — время вышло! Побеждают выжившие."
+	}
+
+	"LR HG Winner"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Hunger Games — {2} is the last one standing!"
+		"es"		"{1} Hunger Games — ¡{2} es el último en pie!"
+		"las"		"{1} Hunger Games — ¡{2} es el último en pie!"
+		"de"		"{1} Hunger Games — {2} ist der letzte Überlebende!"
+		"fr"		"{1} Hunger Games — {2} est le dernier survivant !"
+		"pt"		"{1} Hunger Games — {2} é o último de pé!"
+		"ru"		"{1} Hunger Games — {2} — последний выживший!"
+	}
+
+	"LR HG NoWinner"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Hunger Games — no one left standing."
+		"es"		"{1} Hunger Games — no queda nadie en pie."
+		"las"		"{1} Hunger Games — no queda nadie en pie."
+		"de"		"{1} Hunger Games — niemand steht mehr."
+		"fr"		"{1} Hunger Games — plus personne debout."
+		"pt"		"{1} Hunger Games — ninguém restou de pé."
+		"ru"		"{1} Hunger Games — никто не выжил."
 	}
 
 	"LR Freeday Others Title"

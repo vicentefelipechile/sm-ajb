@@ -1,6 +1,7 @@
 // =========================================================================================================
 // Another Jailbreak — Last Request
-// Classic JB wishes (not melee duels): freeday, warday, class warfare, custom, hot reds, suicide, low grav.
+// Classic JB wishes (not melee duels): freeday, warday, class warfare, custom, hot reds,
+// suicide, low grav, hide and seek, hunger games.
 // =========================================================================================================
 
 #pragma semicolon 1
@@ -18,7 +19,7 @@
 
 #include <ajb/phrases>
 
-#define PLUGIN_VERSION "1.1.0"
+#define PLUGIN_VERSION "1.2.0"
 
 #define LR_SUICIDE_DELAY   5.0
 #define LR_HOT_DPS         8.0
@@ -32,6 +33,8 @@
 #define LR_FREEDAY_PAGE_SIZE  6
 // A forced map vote can hijack the panel slot; retry the timeout instead of dropping the offer.
 #define LR_REOPEN_RETRY       5.0
+#define LR_HG_GRACE_DEFAULT   30.0
+#define LR_HG_ROUND_DEFAULT   300.0
 
 enum AJB_LRWish
 {
@@ -45,7 +48,8 @@ enum AJB_LRWish
 	LRWish_HotReds,
 	LRWish_Suicide,
 	LRWish_LowGravity,
-	LRWish_HideSeek
+	LRWish_HideSeek,
+	LRWish_HungerGames
 };
 
 public Plugin myinfo =
@@ -64,6 +68,11 @@ ConVar g_cvHotDamage;
 ConVar g_cvGravity;
 ConVar g_cvHSHideTime;
 ConVar g_cvHSRoundTime;
+ConVar g_cvHGGraceTime;
+ConVar g_cvHGRoundTime;
+ConVar g_cvEngineFriendlyFire;
+ConVar g_cvEngineSvTags;
+ConVar g_cvEngineIgnoreWinConditions;
 
 bool g_bHasCore;
 
@@ -78,12 +87,23 @@ int g_iSavedGravity = -1;
 // Hide and Seek: BLU are frozen "seekers" for the hide window, RED run and hide.
 bool g_bHideSeek;
 
+// Hunger Games: everyone on RED, grace then friendly fire FFA.
+bool g_bHungerGames;
+bool g_bHGGrace;           // true until FF is enabled
+bool g_bHGMeleeOnly;
+bool g_bHGClassLock;       // forced class for everyone
+TFClassType g_HGClass;
+bool g_bHGEnding;          // true while we force the round end (ignore extra death checks)
+int g_iSavedIgnoreWinConditions = -1; // -1 = we are not holding a restore value
+
 Handle g_hMenuTimer;
 Handle g_hMenuWarnTimer;
 Handle g_hSuicideTimer;
 Handle g_hHotTimer;
 Handle g_hHSHideTimer;   // fires when the hide window ends → release seekers
 Handle g_hHSEndTimer;    // authoritative 5-minute round end (hiders win on timeout)
+Handle g_hHGGraceTimer;
+Handle g_hHGEndTimer;
 
 // Seconds remaining when the hurry warning fires (half of menu time).
 int g_iMenuWarnLeft;
@@ -101,6 +121,16 @@ char g_sPendingCustom[192];
 TFClassType g_PendingClassRed;  // prisoners
 TFClassType g_PendingClassBlu;  // guards
 char g_sPendingChooserName[64];
+
+// Hunger Games options chosen with the wish (applied next live round).
+bool g_PendingHGMeleeOnly;
+bool g_PendingHGClassRandom;
+TFClassType g_PendingHGClass; // Unknown = any (keep each player's class)
+
+// Draft options while the chooser is still in the HG config menu.
+bool g_bHGDraftMelee;
+bool g_bHGDraftClassRandom;
+TFClassType g_HGDraftClass;
 
 // Active Class Warfare lock (this live round).
 bool g_bClassWarfareActive;
@@ -121,6 +151,14 @@ public void OnPluginStart()
 	g_cvGravity = CreateConVar("sm_ajb_lr_low_gravity", "200", "sv_gravity value for Low Gravity LR (stock is 800).", _, true, 50.0, true, 800.0);
 	g_cvHSHideTime = CreateConVar("sm_ajb_lr_hs_hide_time", "30", "Hide and Seek: seconds RED get to hide before the frozen BLU seekers are released.", _, true, 5.0, true, 120.0);
 	g_cvHSRoundTime = CreateConVar("sm_ajb_lr_hs_round_time", "300", "Hide and Seek: total round duration in seconds (hiders win on timeout).", _, true, 60.0, true, 900.0);
+	g_cvHGGraceTime = CreateConVar("sm_ajb_lr_hg_grace_time", "30", "Hunger Games: seconds after live round begin before friendly fire turns on.", _, true, 5.0, true, 120.0);
+	g_cvHGRoundTime = CreateConVar("sm_ajb_lr_hg_round_time", "300", "Hunger Games: total round duration in seconds (survivors win on timeout).", _, true, 60.0, true, 900.0);
+
+	g_cvEngineFriendlyFire = FindConVar("mp_friendlyfire");
+	g_cvEngineSvTags = FindConVar("sv_tags");
+	// Blocks empty-team / objective auto-wins while everyone is forced onto RED (HG FFA).
+	// Forced wins via game_round_win (AJB_ForceTeamWin) still work with this set to 1.
+	g_cvEngineIgnoreWinConditions = FindConVar("mp_ignore_round_win_conditions");
 
 	AutoExecConfig(true, "ajb_lastrequest");
 
@@ -136,6 +174,8 @@ public void OnPluginStart()
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 	HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_PostNoCopy);
+	// Pre: swallow engine auto-wins while HG is live; only g_bHGEnding ends (last standing / timeout).
+	HookEvent("teamplay_round_win", Event_RoundWinPre, EventHookMode_Pre);
 	HookEvent("teamplay_round_win", Event_RoundWin, EventHookMode_PostNoCopy);
 
 	AddCommandListener(Listener_Say, "say");
@@ -261,27 +301,48 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 	AJB_LR_Cleanup(false);
 }
 
+// While HG is running, only plugin-driven ends (g_bHGEnding) should be visible as a win.
+// Empty-team auto-wins are blocked by mp_ignore_round_win_conditions (set before team moves).
+// If an unexpected win still fires, suppress client broadcast but do NOT Plugin_Handled —
+// Post hooks (including our cleanup) must still run.
+Action Event_RoundWinPre(Event event, const char[] name, bool dontBroadcast)
+{
+	if (!g_bHungerGames || g_bHGEnding)
+	{
+		return Plugin_Continue;
+	}
+
+	event.BroadcastDisabled = true;
+	LogMessage("[AJB-LR] Unexpected teamplay_round_win during Hunger Games (not plugin-ended); suppressed broadcast.");
+	return Plugin_Changed;
+}
+
 void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 {
 	// Keep g_PendingWish — it is for the NEXT live round.
 	AJB_LR_ClearClassWarfareActive();
+	// Hunger Games may still be active until win cleanup — tear it down without announcing abort.
 	AJB_LR_Cleanup(false);
 }
 
 void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!g_bClassWarfareActive)
-	{
-		return;
-	}
-
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client))
 	{
 		return;
 	}
 
-	AJB_LR_ForceClassWarfareClass(client);
+	if (g_bHungerGames)
+	{
+		AJB_LR_HG_OnPlayerSpawn(client);
+		return;
+	}
+
+	if (g_bClassWarfareActive)
+	{
+		AJB_LR_ForceClassWarfareClass(client);
+	}
 }
 
 // Core fires this when prep ends, or right after round start if prep time is 0.
@@ -306,6 +367,12 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	if (victim == g_iPrisoner && (g_bMenuOpen || g_bAwaitingCustom))
 	{
 		AJB_LR_Cleanup(true);
+	}
+
+	if (g_bHungerGames && !g_bHGEnding)
+	{
+		// Next frame: victim is fully dead in engine state for the alive count.
+		RequestFrame(Frame_HGCheckWinner);
 	}
 }
 
@@ -683,6 +750,8 @@ void AJB_LR_ShowWishMenu(int prisoner)
 	menu.AddItem("lowgrav", line);
 	Format(line, sizeof(line), "%T", "LR Wish HideAndSeek", prisoner);
 	menu.AddItem("hideseek", line);
+	Format(line, sizeof(line), "%T", "LR Wish HungerGames", prisoner);
+	menu.AddItem("hunger", line);
 
 	menu.ExitButton = false;
 	g_bMenuOpen = true;
@@ -863,6 +932,10 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 	{
 		AJB_LR_DoHideSeek(client);
 	}
+	else if (StrEqual(info, "hunger"))
+	{
+		AJB_LR_StartHungerGamesConfig(client);
+	}
 
 	return 0;
 }
@@ -908,6 +981,9 @@ void AJB_LR_ClearPendingWish()
 	g_PendingClassRed = TFClass_Unknown;
 	g_PendingClassBlu = TFClass_Unknown;
 	g_sPendingChooserName[0] = '\0';
+	g_PendingHGMeleeOnly = false;
+	g_PendingHGClassRandom = false;
+	g_PendingHGClass = TFClass_Unknown;
 }
 
 void AJB_LR_ClearClassWarfareActive()
@@ -992,6 +1068,9 @@ void AJB_LR_ApplyPendingWish()
 	strcopy(custom, sizeof(custom), g_sPendingCustom);
 	TFClassType clsRed = g_PendingClassRed;
 	TFClassType clsBlu = g_PendingClassBlu;
+	bool meleeOnly = g_PendingHGMeleeOnly;
+	bool classRandom = g_PendingHGClassRandom;
+	TFClassType hgClass = g_PendingHGClass;
 	char chooser[64];
 	strcopy(chooser, sizeof(chooser), g_sPendingChooserName);
 
@@ -1047,7 +1126,7 @@ void AJB_LR_ApplyPendingWish()
 		}
 		case LRWish_Custom:
 		{
-			AJB_OpenCells();
+			// Custom is a normal round: only re-announce the wish text (no auto-open cells).
 			AJB_LR_ChatAllCustomApplied(chooser, custom);
 		}
 		case LRWish_HotReds:
@@ -1075,6 +1154,10 @@ void AJB_LR_ApplyPendingWish()
 		case LRWish_HideSeek:
 		{
 			AJB_LR_ApplyHideSeek(chooser);
+		}
+		case LRWish_HungerGames:
+		{
+			AJB_LR_ApplyHungerGames(chooser, meleeOnly, classRandom, hgClass);
 		}
 		default:
 		{
@@ -1643,6 +1726,661 @@ void AJB_LR_DoHideSeek(int prisoner)
 }
 
 // =========================================================================================================
+// Hunger Games — config menu (class + weapons) then queue for next live round
+// =========================================================================================================
+
+void AJB_LR_StartHungerGamesConfig(int prisoner)
+{
+	// Defaults: any class, full loadout. Chooser can change before confirm.
+	g_bHGDraftMelee = false;
+	g_bHGDraftClassRandom = false;
+	g_HGDraftClass = TFClass_Unknown;
+	g_bMenuOpen = true;
+	AJB_LR_ShowHungerGamesMenu(prisoner);
+	AJB_LR_StartMenuTimers(prisoner);
+}
+
+void AJB_LR_ShowHungerGamesMenu(int prisoner)
+{
+	if (prisoner < 1 || !IsClientInGame(prisoner))
+	{
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_HungerGames);
+	char title[64];
+	char line[96];
+	char classLabel[32];
+	AJB_LR_HG_ClassOptionLabel(prisoner, classLabel, sizeof(classLabel));
+
+	Format(title, sizeof(title), "%T", "LR HG Menu Title", prisoner);
+	menu.SetTitle(title);
+
+	Format(line, sizeof(line), "%T", "LR HG Opt Class", prisoner, classLabel);
+	menu.AddItem("class", line);
+
+	Format(line, sizeof(line), "%T",
+		g_bHGDraftMelee ? "LR HG Opt Melee On" : "LR HG Opt Melee Off", prisoner);
+	menu.AddItem("melee", line);
+
+	Format(line, sizeof(line), "%T", "LR HG Opt Confirm", prisoner);
+	menu.AddItem("confirm", line);
+
+	Format(line, sizeof(line), "%T", "LR HG Opt Back", prisoner);
+	menu.AddItem("back", line);
+
+	menu.ExitButton = false;
+	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+void AJB_LR_HG_ClassOptionLabel(int client, char[] buffer, int maxlen)
+{
+	if (g_bHGDraftClassRandom)
+	{
+		Format(buffer, maxlen, "%T", "LR HG Class Random", client);
+		return;
+	}
+
+	if (g_HGDraftClass == TFClass_Unknown)
+	{
+		Format(buffer, maxlen, "%T", "LR HG Class Any", client);
+		return;
+	}
+
+	char name[32];
+	AJB_LR_ClassName(g_HGDraftClass, name, sizeof(name));
+	strcopy(buffer, maxlen, name);
+}
+
+public int MenuHandler_HungerGames(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return 0;
+	}
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+
+	if (StrEqual(info, "class"))
+	{
+		AJB_LR_ShowHungerGamesClassMenu(client);
+		return 0;
+	}
+
+	if (StrEqual(info, "melee"))
+	{
+		g_bHGDraftMelee = !g_bHGDraftMelee;
+		AJB_LR_ShowHungerGamesMenu(client);
+		return 0;
+	}
+
+	if (StrEqual(info, "back"))
+	{
+		AJB_LR_ShowWishMenu(client);
+		return 0;
+	}
+
+	if (StrEqual(info, "confirm"))
+	{
+		AJB_LR_KillMenuTimer();
+		g_bMenuOpen = false;
+
+		AJB_LR_ClearPendingWish();
+		g_PendingWish = LRWish_HungerGames;
+		g_PendingHGMeleeOnly = g_bHGDraftMelee;
+		g_PendingHGClassRandom = g_bHGDraftClassRandom;
+		g_PendingHGClass = g_HGDraftClass;
+		AJB_LR_RememberChooser(client);
+		AJB_LR_ChatAllHungerGamesChose(client, g_bHGDraftMelee, g_bHGDraftClassRandom, g_HGDraftClass);
+		AJB_LR_CloseMenuState();
+		AJB_LR_MarkWishChosen();
+	}
+
+	return 0;
+}
+
+void AJB_LR_ShowHungerGamesClassMenu(int prisoner)
+{
+	Menu menu = new Menu(MenuHandler_HungerGamesClass);
+	char title[64];
+	char line[64];
+	Format(title, sizeof(title), "%T", "LR HG Class Title", prisoner);
+	menu.SetTitle(title);
+
+	Format(line, sizeof(line), "%T", "LR HG Class Any", prisoner);
+	menu.AddItem("any", line);
+	Format(line, sizeof(line), "%T", "LR HG Class Random", prisoner);
+	menu.AddItem("random", line);
+
+	static const TFClassType kClasses[] = {
+		TFClass_Scout, TFClass_Soldier, TFClass_Pyro, TFClass_DemoMan,
+		TFClass_Heavy, TFClass_Engineer, TFClass_Medic, TFClass_Sniper, TFClass_Spy
+	};
+
+	for (int i = 0; i < sizeof(kClasses); i++)
+	{
+		char info[8];
+		IntToString(view_as<int>(kClasses[i]), info, sizeof(info));
+		AJB_LR_ClassName(kClasses[i], line, sizeof(line));
+		menu.AddItem(info, line);
+	}
+
+	menu.ExitButton = false;
+	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+public int MenuHandler_HungerGamesClass(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return 0;
+	}
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+
+	if (StrEqual(info, "any"))
+	{
+		g_bHGDraftClassRandom = false;
+		g_HGDraftClass = TFClass_Unknown;
+	}
+	else if (StrEqual(info, "random"))
+	{
+		g_bHGDraftClassRandom = true;
+		g_HGDraftClass = TFClass_Unknown;
+	}
+	else
+	{
+		g_bHGDraftClassRandom = false;
+		g_HGDraftClass = view_as<TFClassType>(StringToInt(info));
+	}
+
+	AJB_LR_ShowHungerGamesMenu(client);
+	return 0;
+}
+
+void AJB_LR_ChatAllHungerGamesChose(int chooser, bool meleeOnly, bool classRandom, TFClassType cls)
+{
+	char fixedClass[32];
+	if (!classRandom && cls != TFClass_Unknown)
+	{
+		AJB_LR_ClassName(cls, fixedClass, sizeof(fixedClass));
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		char prefix[32];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+
+		char locClass[32];
+		char locWeapons[32];
+		if (classRandom)
+		{
+			Format(locClass, sizeof(locClass), "%T", "LR HG Class Random", i);
+		}
+		else if (cls == TFClass_Unknown)
+		{
+			Format(locClass, sizeof(locClass), "%T", "LR HG Class Any", i);
+		}
+		else
+		{
+			strcopy(locClass, sizeof(locClass), fixedClass);
+		}
+		Format(locWeapons, sizeof(locWeapons), "%T",
+			meleeOnly ? "LR HG Weapons Melee" : "LR HG Weapons Full", i);
+
+		CPrintToChat(i, "%T", "LR Chose HungerGames", i, prefix, chooser, locClass, locWeapons);
+	}
+}
+
+// =========================================================================================================
+// Hunger Games — live round
+// =========================================================================================================
+
+void AJB_LR_ApplyHungerGames(const char[] chooser, bool meleeOnly, bool classRandom, TFClassType cls)
+{
+	g_bHungerGames = true;
+	g_bHGGrace = true;
+	g_bHGEnding = false;
+	g_bHGMeleeOnly = meleeOnly;
+	g_bHGClassLock = false;
+	g_HGClass = TFClass_Unknown;
+
+	if (classRandom)
+	{
+		g_bHGClassLock = true;
+		g_HGClass = view_as<TFClassType>(GetRandomInt(view_as<int>(TFClass_Scout), view_as<int>(TFClass_Engineer)));
+	}
+	else if (cls != TFClass_Unknown)
+	{
+		g_bHGClassLock = true;
+		g_HGClass = cls;
+	}
+
+	// Combat day: full loadouts allowed, no warden claim, freekill rules relaxed.
+	AJB_BeginCombatDay();
+	AJB_ClearWarden();
+	AJB_SetRebelOnHit(false);
+
+	// Friendly fire stays off for the grace window (same-team damage blocked by engine).
+	AJB_LR_HG_SetFriendlyFire(false);
+
+	// MUST be on before team moves: emptying BLU would otherwise auto-end the round.
+	AJB_LR_HG_SetIgnoreWinConditions(true);
+
+	// Core jail clock still awards guards on expire — HG owns the end (last standing / timeout).
+	AJB_ClearPhaseTimer();
+
+	// Everyone becomes a prisoner on RED, then loadouts are applied next frame (post-respawn).
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		int team = GetClientTeam(i);
+		if (team != 2 && team != 3)
+		{
+			continue;
+		}
+
+		if (team != redTeam)
+		{
+			ChangeClientTeam(i, redTeam);
+			if (IsClientInGame(i))
+			{
+				TF2_RespawnPlayer(i);
+			}
+		}
+		else if (!IsPlayerAlive(i))
+		{
+			TF2_RespawnPlayer(i);
+		}
+	}
+
+	RequestFrame(Frame_HGArmAll);
+
+	float grace = g_cvHGGraceTime.FloatValue;
+	if (grace < 5.0)
+	{
+		grace = LR_HG_GRACE_DEFAULT;
+	}
+
+	float roundTime = g_cvHGRoundTime.FloatValue;
+	if (roundTime < 60.0)
+	{
+		roundTime = LR_HG_ROUND_DEFAULT;
+	}
+
+	// HUD only — authoritative end is g_hHGEndTimer / last-standing (not core guards-win expire).
+	AJB_SetPhaseTimer(roundTime);
+	AJB_LR_KillHGTimers();
+	g_hHGGraceTimer = CreateTimer(grace, Timer_HGGraceEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+	g_hHGEndTimer = CreateTimer(roundTime, Timer_HGEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	AJB_LR_ChatAllHungerGamesApplied(chooser, meleeOnly, g_bHGClassLock, g_HGClass, grace);
+}
+
+void Frame_HGArmAll(any data)
+{
+	if (!g_bHungerGames)
+	{
+		return;
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && AJB_IsPrisoner(i))
+		{
+			AJB_LR_HG_ArmPlayer(i);
+		}
+	}
+}
+
+void AJB_LR_HG_OnPlayerSpawn(int client)
+{
+	if (!g_bHungerGames || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	int team = GetClientTeam(client);
+	if (team < 2)
+	{
+		return;
+	}
+
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	if (team != redTeam)
+	{
+		// Late join / team switch onto BLU: bounce to RED next frame.
+		RequestFrame(Frame_HGForceRed, GetClientUserId(client));
+		return;
+	}
+
+	RequestFrame(Frame_HGArmClient, GetClientUserId(client));
+}
+
+void Frame_HGForceRed(int userid)
+{
+	if (!g_bHungerGames)
+	{
+		return;
+	}
+
+	int client = GetClientOfUserId(userid);
+	if (client < 1 || !IsClientInGame(client))
+	{
+		return;
+	}
+
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	if (GetClientTeam(client) == redTeam)
+	{
+		return;
+	}
+
+	if (GetClientTeam(client) < 2)
+	{
+		return;
+	}
+
+	ChangeClientTeam(client, redTeam);
+	TF2_RespawnPlayer(client);
+}
+
+void Frame_HGArmClient(int userid)
+{
+	if (!g_bHungerGames)
+	{
+		return;
+	}
+
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && IsClientInGame(client) && IsPlayerAlive(client) && AJB_IsPrisoner(client))
+	{
+		AJB_LR_HG_ArmPlayer(client);
+	}
+}
+
+void AJB_LR_HG_ArmPlayer(int client)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	if (g_bHGClassLock && g_HGClass != TFClass_Unknown)
+	{
+		if (TF2_GetPlayerClass(client) != g_HGClass)
+		{
+			TF2_SetPlayerClass(client, g_HGClass, false, true);
+		}
+	}
+
+	// Full unrestricted stock loadout (combat day already cleared rebel/freeday flags).
+	TF2_RegeneratePlayer(client);
+
+	if (g_bHGMeleeOnly)
+	{
+		AJB_LR_HG_StripToMelee(client);
+	}
+}
+
+void AJB_LR_HG_StripToMelee(int client)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	// Hard melee-only (no prisoner allowlist) so HG is fair for everyone.
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Primary);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Secondary);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Grenade);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Building);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_PDA);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Item1);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Item2);
+
+	if (TF2_GetPlayerClass(client) == TFClass_Spy)
+	{
+		if (TF2_IsPlayerInCondition(client, TFCond_Stealthed))
+		{
+			TF2_RemoveCondition(client, TFCond_Stealthed);
+		}
+		if (TF2_IsPlayerInCondition(client, TFCond_Disguised))
+		{
+			TF2_RemoveCondition(client, TFCond_Disguised);
+		}
+	}
+
+	int melee = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
+	if (melee != -1 && IsValidEntity(melee))
+	{
+		SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", melee);
+	}
+}
+
+void AJB_LR_HG_SetFriendlyFire(bool enabled)
+{
+	if (g_cvEngineFriendlyFire == null)
+	{
+		return;
+	}
+
+	int ffFlags = g_cvEngineFriendlyFire.Flags;
+	g_cvEngineFriendlyFire.Flags = ffFlags & ~FCVAR_NOTIFY;
+
+	int tagFlags = 0;
+	if (g_cvEngineSvTags != null)
+	{
+		tagFlags = g_cvEngineSvTags.Flags;
+		g_cvEngineSvTags.Flags = tagFlags & ~FCVAR_NOTIFY;
+	}
+
+	g_cvEngineFriendlyFire.SetInt(enabled ? 1 : 0);
+
+	g_cvEngineFriendlyFire.Flags = ffFlags;
+	if (g_cvEngineSvTags != null)
+	{
+		g_cvEngineSvTags.Flags = tagFlags;
+	}
+}
+
+// Enable while HG is active so emptying BLU does not auto-win; restore on cleanup.
+// Forced ends still go through game_round_win / SetWinningTeam (not blocked by this cvar).
+void AJB_LR_HG_SetIgnoreWinConditions(bool ignore)
+{
+	if (g_cvEngineIgnoreWinConditions == null)
+	{
+		static bool s_bLoggedMissing;
+		if (!s_bLoggedMissing)
+		{
+			s_bLoggedMissing = true;
+			LogError("[AJB-LR] mp_ignore_round_win_conditions not found — empty-team auto-win may still fire during HG.");
+		}
+		return;
+	}
+
+	int flags = g_cvEngineIgnoreWinConditions.Flags;
+	g_cvEngineIgnoreWinConditions.Flags = flags & ~FCVAR_NOTIFY;
+
+	if (ignore)
+	{
+		if (g_iSavedIgnoreWinConditions < 0)
+		{
+			g_iSavedIgnoreWinConditions = g_cvEngineIgnoreWinConditions.IntValue;
+		}
+		g_cvEngineIgnoreWinConditions.SetInt(1);
+	}
+	else if (g_iSavedIgnoreWinConditions >= 0)
+	{
+		int restore = g_iSavedIgnoreWinConditions;
+		g_iSavedIgnoreWinConditions = -1;
+		g_cvEngineIgnoreWinConditions.SetInt(restore);
+	}
+
+	g_cvEngineIgnoreWinConditions.Flags = flags;
+}
+
+Action Timer_HGGraceEnd(Handle timer)
+{
+	g_hHGGraceTimer = null;
+
+	if (!g_bHungerGames)
+	{
+		return Plugin_Stop;
+	}
+
+	g_bHGGrace = false;
+	AJB_LR_HG_SetFriendlyFire(true);
+	AJB_ChatAll("LR HG Grace End");
+	return Plugin_Stop;
+}
+
+Action Timer_HGEnd(Handle timer)
+{
+	g_hHGEndTimer = null;
+
+	if (!g_bHungerGames || !g_bHasCore || g_bHGEnding)
+	{
+		return Plugin_Stop;
+	}
+
+	g_bHGEnding = true;
+	AJB_ChatAll("LR HG TimeUp");
+	AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+	return Plugin_Stop;
+}
+
+void Frame_HGCheckWinner(any data)
+{
+	if (!g_bHungerGames || g_bHGEnding || !g_bHasCore)
+	{
+		return;
+	}
+
+	// Grace is loot/scatter time — do not end on deaths during the window.
+	if (g_bHGGrace)
+	{
+		return;
+	}
+
+	int alive = 0;
+	int last = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) >= 2)
+		{
+			alive++;
+			last = i;
+		}
+	}
+
+	if (alive == 1 && last > 0)
+	{
+		g_bHGEnding = true;
+		AJB_LR_ChatAll1N("LR HG Winner", last);
+		AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+	}
+	else if (alive <= 0)
+	{
+		g_bHGEnding = true;
+		AJB_ChatAll("LR HG NoWinner");
+		AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+	}
+}
+
+void AJB_LR_KillHGTimers()
+{
+	if (g_hHGGraceTimer != null)
+	{
+		delete g_hHGGraceTimer;
+		g_hHGGraceTimer = null;
+	}
+	if (g_hHGEndTimer != null)
+	{
+		delete g_hHGEndTimer;
+		g_hHGEndTimer = null;
+	}
+}
+
+void AJB_LR_ChatAllHungerGamesApplied(const char[] chooserName, bool meleeOnly, bool classLock, TFClassType cls, float grace)
+{
+	char classLabel[32];
+	if (!classLock)
+	{
+		strcopy(classLabel, sizeof(classLabel), "Any");
+	}
+	else
+	{
+		AJB_LR_ClassName(cls, classLabel, sizeof(classLabel));
+	}
+
+	int graceSec = RoundToFloor(grace);
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		char prefix[32];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+
+		char locClass[32];
+		char locWeapons[32];
+		if (!classLock)
+		{
+			Format(locClass, sizeof(locClass), "%T", "LR HG Class Any", i);
+		}
+		else
+		{
+			strcopy(locClass, sizeof(locClass), classLabel);
+		}
+		Format(locWeapons, sizeof(locWeapons), "%T",
+			meleeOnly ? "LR HG Weapons Melee" : "LR HG Weapons Full", i);
+
+		CPrintToChat(i, "%T", "LR Applied HungerGames", i, prefix,
+			chooserName[0] != '\0' ? chooserName : "LR", locClass, locWeapons, graceSec);
+	}
+}
+
+// =========================================================================================================
 // Hide and Seek
 // =========================================================================================================
 
@@ -1838,19 +2576,23 @@ void AJB_LR_KillHSTimers()
 
 void AJB_LR_Cleanup(bool announce)
 {
-	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek);
+	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames);
 	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
 
 	AJB_LR_KillMenuTimer();
 	AJB_LR_KillSuicideTimer();
 	AJB_LR_KillHotTimer();
 	AJB_LR_KillHSTimers();
+	AJB_LR_KillHGTimers();
 
 	g_iPrisoner = 0;
 	g_bMenuOpen = false;
 	g_bMenuInterrupted = false;
 	g_bAwaitingCustom = false;
 	g_iFreedayPickCount = 0;
+	g_bHGDraftMelee = false;
+	g_bHGDraftClassRandom = false;
+	g_HGDraftClass = TFClass_Unknown;
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -1889,6 +2631,22 @@ void AJB_LR_Cleanup(bool announce)
 			{
 				AJB_LR_SetSeekerFrozen(i, false);
 			}
+		}
+	}
+
+	if (g_bHungerGames)
+	{
+		g_bHungerGames = false;
+		g_bHGGrace = false;
+		g_bHGMeleeOnly = false;
+		g_bHGClassLock = false;
+		g_HGClass = TFClass_Unknown;
+		g_bHGEnding = false;
+		AJB_LR_HG_SetFriendlyFire(false);
+		AJB_LR_HG_SetIgnoreWinConditions(false);
+		if (g_bHasCore)
+		{
+			AJB_SetRebelOnHit(true);
 		}
 	}
 

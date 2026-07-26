@@ -41,6 +41,8 @@ native void AJB_GiveFreedayNow(int client, bool freeday);
 native bool AJB_OpenCells();
 native bool AJB_CloseCells();
 native void AJB_SetPhaseTimer(float seconds);
+// Stop the HUD clock apply + the core guards-win expire timer (special days that own their own end).
+native void AJB_ClearPhaseTimer();
 native bool AJB_SetRoundState(AJBRoundState state);
 native void AJB_ForceTeamWin(int team);
 // Reopen the stock warden menu (for submenu "Back" / post-action return).
@@ -84,6 +86,7 @@ public void __pl_ajb_SetNTVOptional()
 	MarkNativeAsOptional("AJB_OpenCells");
 	MarkNativeAsOptional("AJB_CloseCells");
 	MarkNativeAsOptional("AJB_SetPhaseTimer");
+	MarkNativeAsOptional("AJB_ClearPhaseTimer");
 	MarkNativeAsOptional("AJB_SetRoundState");
 	MarkNativeAsOptional("AJB_ForceTeamWin");
 	MarkNativeAsOptional("AJB_ShowWardenMenu");

@@ -1176,5 +1176,18 @@
 		"pt"		"{1} Nenhum prisioneiro não-rebelde disponível para marcar."
 		"ru"		"{1} Нет не-бунтующих заключенных для отметки."
 	}
+
+	// First round is an automatic free day for all lasting 5 minutes. {1}=prefix
+	"First Round Freeday"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} {green}FREE DAY FOR ALL!{default} First round is a free day — enjoy 5 minutes of freedom!"
+		"es"		"{1} {green}¡DÍA LIBRE PARA TODOS!{default} La primera ronda es un día libre — ¡disfruta 5 minutos de libertad!"
+		"las"		"{1} {green}¡DÍA LIBRE PARA TODOS!{default} La primera ronda es un día libre — ¡disfruta 5 minutos de libertad!"
+		"de"		"{1} {green}FREEDAY FÜR ALLE!{default} Die erste Runde ist ein Freeday — genieße 5 Minuten Freiheit!"
+		"fr"		"{1} {green}JOURNÉE LIBRE POUR TOUS !{default} Le premier round est un freeday — profitez de 5 minutes de liberté !"
+		"pt"		"{1} {green}DIA LIVRE PARA TODOS!{default} A primeira rodada é um dia livre — aproveite 5 minutos de liberdade!"
+		"ru"		"{1} {green}СВОБОДНЫЙ ДЕНЬ ДЛЯ ВСЕХ!{default} Первый раунд — свободный день. Наслаждайтесь 5 минутами свободы!"
+	}
 }
 

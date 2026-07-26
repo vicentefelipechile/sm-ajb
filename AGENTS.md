@@ -253,6 +253,8 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_lr_low_gravity` | `200` | `sv_gravity` value for Low Gravity LR (stock 800) |
 | `sm_ajb_lr_hs_hide_time` | `30` | Hide and Seek LR: seconds RED get to hide before frozen BLU seekers release (5–120) |
 | `sm_ajb_lr_hs_round_time` | `300` | Hide and Seek LR: total round duration in seconds, hiders win on timeout (60–900) |
+| `sm_ajb_lr_hg_grace_time` | `30` | Hunger Games: seconds after live round begin before friendly fire turns on (5–120) |
+| `sm_ajb_lr_hg_round_time` | `300` | Hunger Games: total round duration in seconds, survivors win on timeout (60–900) |
 
 **Module — `ajb_mutes.sp`**
 

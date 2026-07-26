@@ -195,6 +195,23 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 	AJB_SetRoundState(AJBState_CellsLocked);
 
+	// ── First round: automatic free day for all (5 minutes, no warden, cells open) ──────────
+	if (g_iWardenRoundSerial == 1)
+	{
+		// BeginFreedayAllCosmetic stops prep, opens cells and sets g_bFreedayAllCosmetic.
+		AJB_BeginFreedayAllCosmetic();
+		// Apply pending personal freedays, trigger balance + forward.
+		AJB_NotifyLiveRoundBegin();
+		// Override the normal round clock with a fixed 5-minute window.
+		AJB_SetPhaseTimer(300.0);
+		AJB_StartRoundExpireTimer(300.0);
+		// Announce to all players.
+		AJB_ChatAll("First Round Freeday");
+		AJB_ChatAll("Prepare");
+		return;
+	}
+	// ─────────────────────────────────────────────────────────────────────────────────────────
+
 	float prep = g_cvPrepTime.FloatValue;
 	float autoOpen = g_cvCellsAutoOpen.FloatValue;
 
