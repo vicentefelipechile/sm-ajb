@@ -18,11 +18,17 @@
 
 ConVar g_cvVoteEnabled;
 ConVar g_cvVoteTime;
-ConVar g_cvVoteAudience;
 
 int g_iVoteComposer;      // client currently typing a vote question (0 = none)
 int g_iVoteComposeMode;   // AJB_VOTE_MODE_*
 Handle g_hVoteComposeTimer;
+
+#define AJB_VOTE_AUDIENCE_REDS     0
+#define AJB_VOTE_AUDIENCE_BLUS     1
+#define AJB_VOTE_AUDIENCE_DEAD     2
+#define AJB_VOTE_AUDIENCE_ALL      3
+
+int g_iVoteTargetAudience[MAXPLAYERS + 1]; // Selected audience for composing warden
 
 void AJB_Votes_OnPluginStart()
 {
@@ -37,12 +43,6 @@ void AJB_Votes_OnPluginStart()
 		"20.0",
 		"How long a warden vote panel stays open, in seconds.",
 		_, true, 5.0, true, 60.0);
-
-	g_cvVoteAudience = CreateConVar(
-		"sm_ajb_warden_vote_audience",
-		"0",
-		"Who sees warden votes: 0 = living prisoners (RED) only, 1 = all living players.",
-		_, true, 0.0, true, 1.0);
 
 	// One shared listener catches the warden's next chat line while composing.
 	AddCommandListener(Listener_WardenVoteSay, "say");
@@ -64,7 +64,7 @@ void AJB_Votes_Reset()
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Menu entry (page 1) → ask the warden to type the question in chat.
+// Menu entry (page 1) → Ask warden to pick audience target first.
 // ---------------------------------------------------------------------------------------------------------
 
 void AJB_Warden_StartVoteCompose(int client, int mode)
@@ -87,16 +87,77 @@ void AJB_Warden_StartVoteCompose(int client, int mode)
 		return;
 	}
 
-	// No point opening a poll nobody can see.
-	int clients[MAXPLAYERS];
-	if (AJB_Votes_BuildAudience(clients, sizeof(clients)) < 1)
+	g_iVoteComposeMode = mode;
+	AJB_Warden_ShowVoteAudienceMenu(client);
+}
+
+void AJB_Warden_ShowVoteAudienceMenu(int client)
+{
+	Menu menu = new Menu(MenuHandler_VoteAudience);
+	menu.SetTitle("%T", "Warden Vote Audience Title", client);
+
+	char line[64];
+	Format(line, sizeof(line), "%T", "Warden Vote Target REDs", client);
+	menu.AddItem("reds", line);
+	Format(line, sizeof(line), "%T", "Warden Vote Target BLUs", client);
+	menu.AddItem("blus", line);
+	Format(line, sizeof(line), "%T", "Warden Vote Target Dead", client);
+	menu.AddItem("dead", line);
+	Format(line, sizeof(line), "%T", "Warden Vote Target All", client);
+	menu.AddItem("all", line);
+
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_VoteAudience(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
 	{
-		AJB_Reply(client, "Warden Vote No Audience");
-		return;
+		delete menu;
+		return 0;
+	}
+
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+
+	int client = param1;
+	if (!g_bModeActive || !AJB_IsWarden(client) || IsVoteInProgress() || g_iVoteComposer > 0)
+	{
+		return 0;
+	}
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+
+	if (StrEqual(info, "reds"))
+	{
+		g_iVoteTargetAudience[client] = AJB_VOTE_AUDIENCE_REDS;
+	}
+	else if (StrEqual(info, "blus"))
+	{
+		g_iVoteTargetAudience[client] = AJB_VOTE_AUDIENCE_BLUS;
+	}
+	else if (StrEqual(info, "dead"))
+	{
+		g_iVoteTargetAudience[client] = AJB_VOTE_AUDIENCE_DEAD;
+	}
+	else
+	{
+		g_iVoteTargetAudience[client] = AJB_VOTE_AUDIENCE_ALL;
+	}
+
+	// Verify audience is not empty
+	int clients[MAXPLAYERS];
+	if (AJB_Votes_BuildAudienceEx(g_iVoteTargetAudience[client], clients, sizeof(clients)) < 1)
+	{
+		AJB_Reply(client, "Warden Vote Target Empty");
+		return 0;
 	}
 
 	g_iVoteComposer = client;
-	g_iVoteComposeMode = mode;
 
 	if (g_hVoteComposeTimer != null)
 	{
@@ -104,7 +165,8 @@ void AJB_Warden_StartVoteCompose(int client, int mode)
 	}
 	g_hVoteComposeTimer = CreateTimer(AJB_VOTE_COMPOSE_TIME, Timer_VoteComposeTimeout, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 
-	AJB_Reply(client, mode == AJB_VOTE_MODE_YESNO ? "Warden Vote Prompt YesNo" : "Warden Vote Prompt Multi");
+	AJB_Reply(client, g_iVoteComposeMode == AJB_VOTE_MODE_YESNO ? "Warden Vote Prompt YesNo" : "Warden Vote Prompt Multi");
+	return 0;
 }
 
 Action Timer_VoteComposeTimeout(Handle timer, int userid)
@@ -227,10 +289,11 @@ void AJB_Votes_LaunchYesNo(int warden, const char[] question)
 void AJB_Votes_Launch(int warden, const char[] question, const char[][] options, int optCount)
 {
 	int clients[MAXPLAYERS];
-	int total = AJB_Votes_BuildAudience(clients, sizeof(clients));
+	int audienceType = g_iVoteTargetAudience[warden];
+	int total = AJB_Votes_BuildAudienceEx(audienceType, clients, sizeof(clients));
 	if (total < 1)
 	{
-		AJB_Reply(warden, "Warden Vote No Audience");
+		AJB_Reply(warden, "Warden Vote Target Empty");
 		return;
 	}
 
@@ -263,28 +326,53 @@ void AJB_Votes_Launch(int warden, const char[] question, const char[][] options,
 	AJB_Votes_AnnounceStart(warden, question);
 }
 
-// Fill clients[] with the eligible audience; returns how many.
-int AJB_Votes_BuildAudience(int[] clients, int maxClients)
+// Fill clients[] with the eligible audience based on target type; returns how many.
+int AJB_Votes_BuildAudienceEx(int audienceType, int[] clients, int maxClients)
 {
-	bool everyone = (g_cvVoteAudience != null && g_cvVoteAudience.IntValue == 1);
-
 	int count = 0;
 	for (int i = 1; i <= MaxClients && count < maxClients; i++)
 	{
-		if (!IsClientInGame(i) || IsFakeClient(i) || !IsPlayerAlive(i))
+		if (!IsClientInGame(i) || IsFakeClient(i))
 		{
 			continue;
 		}
 
-		if (!everyone && !AJB_ClientIsPrisoner(i))
-		{
-			continue;
-		}
+		bool alive = IsPlayerAlive(i);
+		int team = GetClientTeam(i);
 
-		clients[count++] = i;
+		switch (audienceType)
+		{
+			case AJB_VOTE_AUDIENCE_REDS:
+			{
+				if (alive && team == AJB_TEAM_RED)
+				{
+					clients[count++] = i;
+				}
+			}
+			case AJB_VOTE_AUDIENCE_BLUS:
+			{
+				if (alive && team == AJB_TEAM_BLU)
+				{
+					clients[count++] = i;
+				}
+			}
+			case AJB_VOTE_AUDIENCE_DEAD:
+			{
+				if (!alive || team == AJB_TEAM_SPECTATOR || team == AJB_TEAM_UNASSIGNED)
+				{
+					clients[count++] = i;
+				}
+			}
+			case AJB_VOTE_AUDIENCE_ALL:
+			{
+				clients[count++] = i;
+			}
+		}
 	}
 	return count;
 }
+
+
 
 public int MenuHandler_WardenVote(Menu menu, MenuAction action, int param1, int param2)
 {

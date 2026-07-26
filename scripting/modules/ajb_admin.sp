@@ -1052,6 +1052,7 @@ void AJB_AddGuardBan(const char[] steamid, const char[] name, int minutes, const
 	if (g_hDB == null)
 	{
 		LogError("[AJB-Admin] guard ban applied to cache only (no database): %s", steamid);
+		AJB_DB_Connect();
 		return;
 	}
 

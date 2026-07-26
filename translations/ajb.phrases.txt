@@ -409,6 +409,73 @@
 		"ru"		"{1} Нет живых заключённых для голосования."
 	}
 
+	"Warden Vote Target Empty"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} There are no players in the selected group to vote."
+		"es"		"{1} No hay jugadores en el grupo seleccionado para votar."
+		"las"		"{1} No hay jugadores en el grupo seleccionado para votar."
+		"de"		"{1} In der ausgewählten Gruppe gibt es keine Spieler zum Abstimmen."
+		"fr"		"{1} Aucun joueur dans le groupe sélectionné pour voter."
+		"pt"		"{1} Não há jogadores no grupo selecionado para votar."
+		"ru"		"{1} В выбранной группе нет игроков для голосования."
+	}
+
+	"Warden Vote Audience Title"
+	{
+		"en"		"Select Vote Target Group:"
+		"es"		"Selecciona el grupo a votar:"
+		"las"		"Selecciona el grupo a votar:"
+		"de"		"Wähle die Zielgruppe für die Abstimmung:"
+		"fr"		"Sélectionnez le groupe cible :"
+		"pt"		"Selecione o grupo-alvo da votação:"
+		"ru"		"Выберите целевую группу голосования:"
+	}
+
+	"Warden Vote Target REDs"
+	{
+		"en"		"Prisoners (RED)"
+		"es"		"Prisioneros (RED)"
+		"las"		"Prisioneros (RED)"
+		"de"		"Gefangene (RED)"
+		"fr"		"Prisonniers (RED)"
+		"pt"		"Prisioneiros (RED)"
+		"ru"		"Заключённые (RED)"
+	}
+
+	"Warden Vote Target BLUs"
+	{
+		"en"		"Guards (BLU)"
+		"es"		"Guardias (BLU)"
+		"las"		"Guardias (BLU)"
+		"de"		"Wärter (BLU)"
+		"fr"		"Gardiens (BLU)"
+		"pt"		"Guardas (BLU)"
+		"ru"		"Охрана (BLU)"
+	}
+
+	"Warden Vote Target Dead"
+	{
+		"en"		"Dead / Spectators"
+		"es"		"Muertos / Espectadores"
+		"las"		"Muertos / Espectadores"
+		"de"		"Tote / Zuschauer"
+		"fr"		"Morts / Spectateurs"
+		"pt"		"Mortos / Espectadores"
+		"ru"		"Мёртвые / Наблюдатели"
+	}
+
+	"Warden Vote Target All"
+	{
+		"en"		"Everyone"
+		"es"		"Todos los jugadores"
+		"las"		"Todos los jugadores"
+		"de"		"Alle Spieler"
+		"fr"		"Tous les joueurs"
+		"pt"		"Todos os jogadores"
+		"ru"		"Все игроки"
+	}
+
 	"Warden Vote Prompt YesNo"
 	{
 		"#format"	"{1:s}"

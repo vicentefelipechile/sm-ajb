@@ -67,12 +67,20 @@ public int Native_ClearWarden(Handle plugin, int numParams)
 public int Native_IsPrisoner(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
+	if (!AJB_IsValidClient(client))
+	{
+		return false;
+	}
 	return AJB_ClientIsPrisoner(client);
 }
 
 public int Native_IsGuard(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
+	if (!AJB_IsValidClient(client))
+	{
+		return false;
+	}
 	return AJB_ClientIsGuard(client);
 }
 

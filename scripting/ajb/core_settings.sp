@@ -82,7 +82,7 @@ Action Command_SettingsReload(int client, int args)
 {
 	AJB_Settings_Load();
 	AJB_RefreshModeActive();
-	ReplyToCommand(client, "[AJB] settings.cfg reloaded (%d map prefixes).", g_iMapPrefixCount);
+	AJB_Reply(client, "Settings Reloaded");
 	return Plugin_Handled;
 }
 

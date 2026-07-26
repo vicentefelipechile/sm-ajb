@@ -73,6 +73,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	MarkNativeAsOptional("BaseComm_IsClientMuted");
 	MarkNativeAsOptional("BaseComm_SetClientMute");
+	__pl_ajb_SetNTVOptional();
 	return APLRes_Success;
 }
 
@@ -513,20 +514,38 @@ void AJB_Voice_DoRefreshAll()
 
 			if (bypass[send] || bypass[recv])
 			{
-				// A bypass-flag admin always talks to / hears everyone.
+				// A bypass-flag admin can speak to everyone and hear everyone.
 				override = Listen_Yes;
 			}
 			else if (!IsPlayerAlive(send))
 			{
 				if (!recvDead)
 				{
-					// Living never hear the dead.
+					// Living NEVER hear the dead.
 					override = Listen_No;
 				}
 				else if (crossTeam || GetClientTeam(send) == recvTeam)
 				{
 					// Dead hear each other (all dead, or same-team only).
 					override = Listen_Yes;
+				}
+				else
+				{
+					override = Listen_No;
+				}
+			}
+			else
+			{
+				// Sender is ALIVE:
+				if (recvDead)
+				{
+					// Dead CAN hear living players.
+					override = Listen_Yes;
+				}
+				else
+				{
+					// Living hear living.
+					override = Listen_Default;
 				}
 			}
 
