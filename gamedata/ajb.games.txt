@@ -34,6 +34,13 @@
 			{
 				"windows"	"204"
 			}
+
+			// virtual void SetWinningTeam(int team, int iWinReason, bool bForceMapReset = true, bool bSwitchTeams = false, bool bDontAddScore = false)
+			"SetWinningTeam"
+			{
+				"windows"	"165"
+				"linux"		"166"
+			}
 		}
 
 		"Functions"

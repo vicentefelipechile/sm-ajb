@@ -12,6 +12,7 @@
 #include <sdkhooks>
 #include <tf2>
 #include <tf2_stocks>
+#include <dhooks>
 
 #undef REQUIRE_PLUGIN
 #include <ajb/ajb>
@@ -72,8 +73,8 @@ ConVar g_cvHGGraceTime;
 ConVar g_cvHGRoundTime;
 ConVar g_cvEngineFriendlyFire;
 ConVar g_cvEngineSvTags;
-ConVar g_cvEngineIgnoreWinConditions;
 
+DynamicHook g_hSetWinningTeam;
 bool g_bHasCore;
 
 int g_iPrisoner;
@@ -94,7 +95,6 @@ bool g_bHGMeleeOnly;
 bool g_bHGClassLock;       // forced class for everyone
 TFClassType g_HGClass;
 bool g_bHGEnding;          // true while we force the round end (ignore extra death checks)
-int g_iSavedIgnoreWinConditions = -1; // -1 = we are not holding a restore value
 
 Handle g_hMenuTimer;
 Handle g_hMenuWarnTimer;
@@ -141,6 +141,23 @@ TFClassType g_ActiveClassBlu;
 // Lifecycle
 // =========================================================================================================
 
+public void OnMapStart()
+{
+	if (g_hSetWinningTeam != null)
+	{
+		g_hSetWinningTeam.HookGamerules(Hook_Pre, Detour_SetWinningTeam);
+	}
+}
+
+public MRESReturn Detour_SetWinningTeam(DHookReturn hReturn, DHookParam hParams)
+{
+	if (g_bHungerGames && !g_bHGEnding)
+	{
+		return MRES_Supercede;
+	}
+	return MRES_Ignored;
+}
+
 public void OnPluginStart()
 {
 	CreateConVar("sm_ajb_lr_version", PLUGIN_VERSION, "AJB Last Request module version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
@@ -156,9 +173,31 @@ public void OnPluginStart()
 
 	g_cvEngineFriendlyFire = FindConVar("mp_friendlyfire");
 	g_cvEngineSvTags = FindConVar("sv_tags");
-	// Blocks empty-team / objective auto-wins while everyone is forced onto RED (HG FFA).
-	// Forced wins via game_round_win (AJB_ForceTeamWin) still work with this set to 1.
-	g_cvEngineIgnoreWinConditions = FindConVar("mp_ignore_round_win_conditions");
+
+	GameData conf = new GameData("ajb.games");
+	if (conf != null)
+	{
+		int offset = conf.GetOffset("SetWinningTeam");
+		if (offset != -1)
+		{
+			g_hSetWinningTeam = new DynamicHook(offset, HookType_GameRules, ReturnType_Void, ThisPointer_Ignore);
+			g_hSetWinningTeam.AddParam(HookParamType_Int);
+			g_hSetWinningTeam.AddParam(HookParamType_Int);
+			g_hSetWinningTeam.AddParam(HookParamType_Bool);
+			g_hSetWinningTeam.AddParam(HookParamType_Bool);
+			g_hSetWinningTeam.AddParam(HookParamType_Bool);
+			g_hSetWinningTeam.AddParam(HookParamType_Bool);
+		}
+		else
+		{
+			LogError("[AJB-LR] No se encontró el offset de SetWinningTeam en ajb.games.txt");
+		}
+		delete conf;
+	}
+	else
+	{
+		LogError("[AJB-LR] No se pudo cargar ajb.games.txt");
+	}
 
 	AutoExecConfig(true, "ajb_lastrequest");
 
@@ -188,6 +227,7 @@ public void OnPluginStart()
 		if (IsClientInGame(i))
 		{
 			SDKHook(i, SDKHook_StartTouch, AJB_LR_OnStartTouch);
+			SDKHook(i, SDKHook_OnTakeDamage, AJB_LR_OnTakeDamage);
 		}
 	}
 
@@ -208,7 +248,31 @@ public void OnMapEnd()
 public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_StartTouch, AJB_LR_OnStartTouch);
+	SDKHook(client, SDKHook_OnTakeDamage, AJB_LR_OnTakeDamage);
 	g_bPickedFreeday[client] = false;
+}
+
+public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
+{
+	if (!g_bHungerGames)
+	{
+		return Plugin_Continue;
+	}
+
+	if (attacker > 0 && attacker <= MaxClients && victim > 0 && victim <= MaxClients)
+	{
+		if (g_bHGGrace)
+		{
+			return Plugin_Handled;
+		}
+
+		int redTeam = AJB_LR_GetPrisonersTeam();
+		if (GetClientTeam(attacker) != redTeam || GetClientTeam(victim) != redTeam)
+		{
+			return Plugin_Handled;
+		}
+	}
+	return Plugin_Continue;
 }
 
 public void OnClientDisconnect(int client)
@@ -1995,38 +2059,29 @@ void AJB_LR_ApplyHungerGames(const char[] chooser, bool meleeOnly, bool classRan
 	// Friendly fire stays off for the grace window (same-team damage blocked by engine).
 	AJB_LR_HG_SetFriendlyFire(false);
 
-	// MUST be on before team moves: emptying BLU would otherwise auto-end the round.
-	AJB_LR_HG_SetIgnoreWinConditions(true);
-
 	// Core jail clock still awards guards on expire — HG owns the end (last standing / timeout).
 	AJB_ClearPhaseTimer();
 
-	// Everyone becomes a prisoner on RED, then loadouts are applied next frame (post-respawn).
+	// Cells must be open so RED and BLU can reach each other.
+	AJB_OpenCells();
+
+	// Force everyone onto the RED team and respawn dead prisoners.
 	int redTeam = AJB_LR_GetPrisonersTeam();
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
+		if (IsClientInGame(i) && !IsFakeClient(i))
 		{
-			continue;
-		}
+			// Move Guards to RED team
+			if (GetClientTeam(i) != redTeam && GetClientTeam(i) >= 2)
+			{
+				ChangeClientTeam(i, redTeam);
+			}
 
-		int team = GetClientTeam(i);
-		if (team != 2 && team != 3)
-		{
-			continue;
-		}
-
-		if (team != redTeam)
-		{
-			ChangeClientTeam(i, redTeam);
-			if (IsClientInGame(i))
+			// Respawn if they are dead (so everyone participates)
+			if (!IsPlayerAlive(i) && AJB_IsPrisoner(i))
 			{
 				TF2_RespawnPlayer(i);
 			}
-		}
-		else if (!IsPlayerAlive(i))
-		{
-			TF2_RespawnPlayer(i);
 		}
 	}
 
@@ -2082,43 +2137,7 @@ void AJB_LR_HG_OnPlayerSpawn(int client)
 		return;
 	}
 
-	int redTeam = AJB_LR_GetPrisonersTeam();
-	if (team != redTeam)
-	{
-		// Late join / team switch onto BLU: bounce to RED next frame.
-		RequestFrame(Frame_HGForceRed, GetClientUserId(client));
-		return;
-	}
-
 	RequestFrame(Frame_HGArmClient, GetClientUserId(client));
-}
-
-void Frame_HGForceRed(int userid)
-{
-	if (!g_bHungerGames)
-	{
-		return;
-	}
-
-	int client = GetClientOfUserId(userid);
-	if (client < 1 || !IsClientInGame(client))
-	{
-		return;
-	}
-
-	int redTeam = AJB_LR_GetPrisonersTeam();
-	if (GetClientTeam(client) == redTeam)
-	{
-		return;
-	}
-
-	if (GetClientTeam(client) < 2)
-	{
-		return;
-	}
-
-	ChangeClientTeam(client, redTeam);
-	TF2_RespawnPlayer(client);
 }
 
 void Frame_HGArmClient(int userid)
@@ -2220,42 +2239,6 @@ void AJB_LR_HG_SetFriendlyFire(bool enabled)
 	}
 }
 
-// Enable while HG is active so emptying BLU does not auto-win; restore on cleanup.
-// Forced ends still go through game_round_win / SetWinningTeam (not blocked by this cvar).
-void AJB_LR_HG_SetIgnoreWinConditions(bool ignore)
-{
-	if (g_cvEngineIgnoreWinConditions == null)
-	{
-		static bool s_bLoggedMissing;
-		if (!s_bLoggedMissing)
-		{
-			s_bLoggedMissing = true;
-			LogError("[AJB-LR] mp_ignore_round_win_conditions not found — empty-team auto-win may still fire during HG.");
-		}
-		return;
-	}
-
-	int flags = g_cvEngineIgnoreWinConditions.Flags;
-	g_cvEngineIgnoreWinConditions.Flags = flags & ~FCVAR_NOTIFY;
-
-	if (ignore)
-	{
-		if (g_iSavedIgnoreWinConditions < 0)
-		{
-			g_iSavedIgnoreWinConditions = g_cvEngineIgnoreWinConditions.IntValue;
-		}
-		g_cvEngineIgnoreWinConditions.SetInt(1);
-	}
-	else if (g_iSavedIgnoreWinConditions >= 0)
-	{
-		int restore = g_iSavedIgnoreWinConditions;
-		g_iSavedIgnoreWinConditions = -1;
-		g_cvEngineIgnoreWinConditions.SetInt(restore);
-	}
-
-	g_cvEngineIgnoreWinConditions.Flags = flags;
-}
-
 Action Timer_HGGraceEnd(Handle timer)
 {
 	g_hHGGraceTimer = null;
@@ -2301,9 +2284,10 @@ void Frame_HGCheckWinner(any data)
 
 	int alive = 0;
 	int last = 0;
+	int redTeam = AJB_LR_GetPrisonersTeam();
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) >= 2)
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
 		{
 			alive++;
 			last = i;
@@ -2314,7 +2298,7 @@ void Frame_HGCheckWinner(any data)
 	{
 		g_bHGEnding = true;
 		AJB_LR_ChatAll1N("LR HG Winner", last);
-		AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+		AJB_ForceTeamWin(GetClientTeam(last));
 	}
 	else if (alive <= 0)
 	{
@@ -2643,7 +2627,6 @@ void AJB_LR_Cleanup(bool announce)
 		g_HGClass = TFClass_Unknown;
 		g_bHGEnding = false;
 		AJB_LR_HG_SetFriendlyFire(false);
-		AJB_LR_HG_SetIgnoreWinConditions(false);
 		if (g_bHasCore)
 		{
 			AJB_SetRebelOnHit(true);

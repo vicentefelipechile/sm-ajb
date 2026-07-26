@@ -1099,12 +1099,32 @@ int AJB_ResolveSteamID64(int client, const char[] arg, char[] out, int maxlen)
 		}
 		if (digits)
 		{
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (IsClientInGame(i) && !IsFakeClient(i))
+				{
+					char temp[32];
+					if (GetClientAuthId(i, AuthId_SteamID64, temp, sizeof(temp)))
+					{
+						if (StrEqual(temp, arg))
+						{
+							if (client != 0 && !CanUserTarget(client, i))
+							{
+								ReplyToCommand(client, "[AJB] You cannot target this player.");
+								return -1;
+							}
+							strcopy(out, maxlen, arg);
+							return i;
+						}
+					}
+				}
+			}
 			strcopy(out, maxlen, arg);
 			return 0;
 		}
 	}
 
-	int target = FindTarget(client, arg, true, false);
+	int target = FindTarget(client, arg, true, true);
 	if (target <= 0)
 	{
 		// FindTarget already replied with the reason.
