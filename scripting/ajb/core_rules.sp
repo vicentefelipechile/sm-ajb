@@ -71,6 +71,7 @@ void AJB_SetRebelInternal(int client, bool rebel, bool announce, int source = 0)
 	{
 		AJB_FlagSet(client, AJB_PF_FREEDAY, false);
 		AJB_Freeday_OnApplied(client, false);
+		AJB_FireFreedayChanged(client, false, false);
 	}
 
 	// Sentry AI: clear residual cloak + drop non-rebel locks so they re-acquire this frame.
@@ -122,12 +123,25 @@ void AJB_QueueFreeday(int client, bool freeday)
 		return;
 	}
 
+	bool pendingChanged = AJB_FlagGet(client, AJB_PF_FREEDAY_PENDING) != freeday;
 	AJB_FlagSet(client, AJB_PF_FREEDAY_PENDING, freeday);
 
 	// Cancel also drops a stale current-round flag.
-	if (!freeday)
+	bool activeCleared = false;
+	if (!freeday && AJB_FlagGet(client, AJB_PF_FREEDAY))
 	{
 		AJB_FlagSet(client, AJB_PF_FREEDAY, false);
+		activeCleared = true;
+	}
+
+	if (pendingChanged)
+	{
+		AJB_FireFreedayChanged(client, freeday, true);
+	}
+
+	if (activeCleared)
+	{
+		AJB_FireFreedayChanged(client, false, false);
 	}
 }
 
@@ -136,6 +150,16 @@ void AJB_ApplyFreedayNow(int client, bool freeday)
 {
 	if (!AJB_IsValidClient(client))
 	{
+		return;
+	}
+
+	if (AJB_FlagGet(client, AJB_PF_FREEDAY) == freeday)
+	{
+		if (freeday)
+		{
+			// Re-apply trail / cosmetic even if already marked.
+			AJB_Freeday_OnApplied(client, true);
+		}
 		return;
 	}
 
@@ -150,6 +174,8 @@ void AJB_ApplyFreedayNow(int client, bool freeday)
 	{
 		AJB_Freeday_OnApplied(client, false);
 	}
+
+	AJB_FireFreedayChanged(client, freeday, false);
 }
 
 // Prisoner hit a guard → become rebel (damage auto). Safe to call often.
@@ -284,10 +310,18 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 
 		// Non-rebels cannot hurt guards. Rebel mark already attempted above, so a
 		// successful auto-rebel allows this same hit to deal damage.
+		// Exception: if auto-rebel is disabled for this guard type, never block —
+		// the admin chose to let prisoners hit freely without becoming rebel.
 		if (g_cvBlockPrisonerDamage.BoolValue && !AJB_FlagGet(attacker, AJB_PF_REBEL))
 		{
-			damage = 0.0;
-			return Plugin_Changed;
+			bool rebelWouldFire = AJB_IsWarden(victim)
+				? g_cvRebelOnWardenDamage.BoolValue
+				: g_cvRebelOnDamage.BoolValue;
+			if (rebelWouldFire)
+			{
+				damage = 0.0;
+				return Plugin_Changed;
+			}
 		}
 	}
 

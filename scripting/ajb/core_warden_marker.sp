@@ -110,6 +110,7 @@ void AJB_Warden_PlaceMarker(int client)
 
 	AJB_Marker_ShowAnnotation(pos, life);
 	EmitSoundToAll(AJB_MARKER_SOUND, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, _, _, _, _, pos);
+	AJB_FireWardenMarkerPlaced(client);
 }
 
 Action Timer_MarkerPulse(Handle timer)

@@ -98,13 +98,17 @@ public MRESReturn Detour_CanPlayerMove_Post(int client, DHookReturn hReturn)
 	}
 
 	// Outside prep but engine still in PREROUND: let playable teams move (JB has no setup doors).
-	int eng = GameRules_GetProp("m_iRoundState");
-	if (eng == 3) // GR_STATE_PREROUND
+	int gc = FindEntityByClassname(-1, "tf_gamerules");
+	if (gc != -1 && IsValidEntity(gc))
 	{
-		if (GetClientTeam(client) >= AJB_TEAM_RED)
+		int eng = GameRules_GetProp("m_iRoundState");
+		if (eng == 3) // GR_STATE_PREROUND
 		{
-			hReturn.Value = true;
-			return MRES_Override;
+			if (GetClientTeam(client) >= AJB_TEAM_RED)
+			{
+				hReturn.Value = true;
+				return MRES_Override;
+			}
 		}
 	}
 

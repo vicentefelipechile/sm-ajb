@@ -31,7 +31,7 @@
 
 #define PLUGIN_VERSION "1.0.0"
 
-#define BOOST_ID_IRON_NECK_II  "iron_neck_2"
+#define BOOST_ID_IRON_NECK     "iron_neck"
 #define BOOST_ID_REVIVE        "revive"
 
 // RED (prisoner) boosts
@@ -41,7 +41,7 @@
 #define BOOST_ID_JARATE        "jarate"
 #define BOOST_ID_REGEN         "regen"
 
-#define BOOST_COST_IRON_NECK_II  3
+#define BOOST_COST_IRON_NECK    1
 #define BOOST_COST_REVIVE        3
 
 #define BOOST_COST_SECOND_WIND   1
@@ -50,7 +50,7 @@
 #define BOOST_COST_JARATE        3
 #define BOOST_COST_REGEN         3
 
-#define BOOST_CHARGES_IRON_NECK_II  2
+#define BOOST_CHARGES_IRON_NECK  1
 
 #define BOOST_SECOND_WIND_HP     50
 #define BOOST_REGEN_INSTANT_HP   50
@@ -85,7 +85,7 @@ ConVar g_cvMaxPoints;
 ConVar g_cvBluEvery;
 
 // Cost ConVars
-ConVar g_cvCostIronNeck2;
+ConVar g_cvCostIronNeck;
 ConVar g_cvCostRevive;
 ConVar g_cvCostSecondWind;
 ConVar g_cvCostMadMilk;
@@ -183,7 +183,7 @@ public void OnPluginStart()
 	g_cvBluEvery = CreateConVar("sm_ajb_boosts_blu_every", "2", "BLU surviving players get +1 extra every N finished rounds.", _, true, 1.0);
 
 	// Costs
-	g_cvCostIronNeck2 = CreateConVar("sm_ajb_boosts_cost_iron_neck_2", "3", "Cost for Iron Neck II (2 backstab blocks for Guards).", _, true, 1.0);
+	g_cvCostIronNeck = CreateConVar("sm_ajb_boosts_cost_iron_neck", "1", "Cost for Iron Neck (1 backstab block for Guards).", _, true, 1.0);
 	g_cvCostRevive = CreateConVar("sm_ajb_boosts_cost_revive", "3", "Cost for Warden Revive.", _, true, 1.0);
 	g_cvCostSecondWind = CreateConVar("sm_ajb_boosts_cost_second_wind", "1", "Cost for Second Wind.", _, true, 1.0);
 	g_cvCostMadMilk = CreateConVar("sm_ajb_boosts_cost_mad_milk", "1", "Cost for Mad Milk.", _, true, 1.0);
@@ -492,8 +492,8 @@ void AJB_Boosts_ShowMenu(int client)
 	if (AJB_IsGuard(client))
 	{
 		// Cost is code-owned; translations only hold the description.
-		Format(line, sizeof(line), "%T", "Boost Iron Neck II", client, g_cvCostIronNeck2.IntValue);
-		menu.AddItem(BOOST_ID_IRON_NECK_II, line, draw);
+		Format(line, sizeof(line), "%T", "Boost Iron Neck", client, g_cvCostIronNeck.IntValue);
+		menu.AddItem(BOOST_ID_IRON_NECK, line, draw);
 
 		if (AJB_GetWarden() == client)
 		{
@@ -558,9 +558,9 @@ public int MenuHandler_Boosts(Menu menu, MenuAction action, int param1, int para
 	char id[32];
 	menu.GetItem(param2, id, sizeof(id));
 
-	if (StrEqual(id, BOOST_ID_IRON_NECK_II))
+	if (StrEqual(id, BOOST_ID_IRON_NECK))
 	{
-		AJB_Boosts_BuyIronNeck(client, BOOST_CHARGES_IRON_NECK_II, g_cvCostIronNeck2.IntValue);
+		AJB_Boosts_BuyIronNeck(client, BOOST_CHARGES_IRON_NECK, g_cvCostIronNeck.IntValue);
 	}
 	else if (StrEqual(id, BOOST_ID_REVIVE))
 	{
@@ -608,14 +608,7 @@ void AJB_Boosts_BuyIronNeck(int client, int charges, int cost)
 		return;
 	}
 
-	if (charges > g_Boost[client].backstabCharges)
-	{
-		g_Boost[client].backstabCharges = charges;
-	}
-	else
-	{
-		g_Boost[client].backstabCharges += charges;
-	}
+	g_Boost[client].backstabCharges += charges;
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));

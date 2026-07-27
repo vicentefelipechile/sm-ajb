@@ -200,25 +200,31 @@ void AJB_ApplyEngineAllTalkPolicy()
 
 void AJB_RefreshModeActive()
 {
+	bool was = g_bModeActive;
+	bool now;
+
 	if (g_cvEnabled == null || !g_cvEnabled.BoolValue)
 	{
-		g_bModeActive = false;
-		AJB_ApplyEngineCvarPolicy();
-		return;
+		now = false;
 	}
-
-	if (g_cvForce != null && g_cvForce.BoolValue)
+	else if (g_cvForce != null && g_cvForce.BoolValue)
 	{
-		g_bModeActive = true;
-		AJB_ApplyEngineCvarPolicy();
-		return;
+		now = true;
+	}
+	else
+	{
+		char map[PLATFORM_MAX_PATH];
+		GetCurrentMap(map, sizeof(map));
+		now = AJB_MapMatchesPrefix(map);
 	}
 
-	char map[PLATFORM_MAX_PATH];
-	GetCurrentMap(map, sizeof(map));
-
-	g_bModeActive = AJB_MapMatchesPrefix(map);
+	g_bModeActive = now;
 	AJB_ApplyEngineCvarPolicy();
+
+	if (was != now)
+	{
+		AJB_FireModeChanged(now);
+	}
 }
 
 int AJB_GetGuardsTeam()

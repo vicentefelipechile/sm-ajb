@@ -27,6 +27,8 @@ void AJB_Prep_Start()
 	AJB_Prep_ApplyAll();
 	g_hPrepTickTimer = CreateTimer(0.5, Timer_PrepTick, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	g_hPrepEndTimer = CreateTimer(prep, Timer_PrepEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	AJB_FirePrepStart(prep);
 }
 
 void AJB_Prep_Stop()
@@ -63,6 +65,8 @@ void AJB_Prep_Stop()
 			AJB_Prep_SetMovable(i, true);
 		}
 	}
+
+	AJB_FirePrepEnd();
 }
 
 bool AJB_IsPrepActive()

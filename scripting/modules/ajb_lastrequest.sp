@@ -483,14 +483,24 @@ void AJB_LR_HG_OnPlayerDeath(int victim)
 
 	if (victim > 0 && victim <= MaxClients && g_bHGOriginalBlu[victim])
 	{
-		g_bHGOriginalBlu[victim] = false;
-		if (IsClientInGame(victim))
-		{
-			TF2_ChangeClientTeam(victim, view_as<TFTeam>(AJB_LR_GetGuardsTeam()));
-		}
+		RequestFrame(Frame_HGRestoreBluTeam, GetClientUserId(victim));
 	}
 
 	RequestFrame(Frame_HGCheckWinner);
+}
+
+void Frame_HGRestoreBluTeam(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && IsClientInGame(client) && g_bHGOriginalBlu[client])
+	{
+		g_bHGOriginalBlu[client] = false;
+		int blueTeam = AJB_LR_GetGuardsTeam();
+		if (GetClientTeam(client) != blueTeam)
+		{
+			TF2_ChangeClientTeam(client, view_as<TFTeam>(blueTeam));
+		}
+	}
 }
 
 
@@ -1885,7 +1895,9 @@ void AJB_LR_ApplyHungerGames(const char[] chooser, bool meleeOnly, bool classRan
 		AJB_SetRoundState(AJBState_SpecialDay);
 	}
 
-	// Force everyone onto the RED team and respawn dead prisoners.
+	// Move guards to RED without killing them: route through Spectator first.
+	// TF2_ChangeClientTeam from BLU→RED kills a live player and fires player_death,
+	// which would trigger Frame_HGRestoreBluTeam and move them back to BLU.
 	int redTeam = AJB_LR_GetPrisonersTeam();
 	int blueTeam = AJB_LR_GetGuardsTeam();
 	for (int i = 1; i <= MaxClients; i++)
@@ -1893,15 +1905,16 @@ void AJB_LR_ApplyHungerGames(const char[] chooser, bool meleeOnly, bool classRan
 		g_bHGOriginalBlu[i] = false;
 		if (IsClientInGame(i) && !IsFakeClient(i))
 		{
-			// Move Guards to RED team
 			if (GetClientTeam(i) == blueTeam)
 			{
 				g_bHGOriginalBlu[i] = true;
-				TF2_ChangeClientTeam(i, view_as<TFTeam>(redTeam));
+				// Spectator transit avoids the death event from a direct cross-team swap.
+				ChangeClientTeam(i, 1);
+				ChangeClientTeam(i, redTeam);
 			}
 
-			// Respawn if they are dead (so everyone participates)
-			if (!IsPlayerAlive(i) && AJB_IsPrisoner(i))
+			// Respawn everyone on RED (former guards + dead prisoners).
+			if (!IsPlayerAlive(i) && GetClientTeam(i) == redTeam)
 			{
 				TF2_RespawnPlayer(i);
 			}
@@ -2196,10 +2209,15 @@ void AJB_LR_ChatAllHungerGamesApplied(const char[] chooserName, bool meleeOnly, 
 void AJB_LR_ApplyHideSeek(const char[] chooser)
 {
 	g_bHideSeek = true;
-	AJB_SetRoundState(AJBState_SpecialDay);
 
 	// Doors open so hiders can run.
 	AJB_OpenCells();
+
+	if (g_bHasCore)
+	{
+		AJB_SetRoundState(AJBState_SpecialDay);
+		AJB_ClearWarden();
+	}
 
 	// First spawn point for the guards' team — all seekers stack on it (expected).
 	int spawn = AJB_LR_FindGuardSpawn();
@@ -2577,6 +2595,11 @@ void AJB_LR_Cleanup(bool announce)
 		}
 	}
 
+	if (g_bHasCore)
+	{
+		AJB_SetRebelOnHit(true);
+	}
+
 	if (g_bHungerGames)
 	{
 		g_bHungerGames = false;
@@ -2586,10 +2609,6 @@ void AJB_LR_Cleanup(bool announce)
 		g_HGClass = TFClass_Unknown;
 		g_bHGEnding = false;
 		AJB_LR_HG_SetFriendlyFire(false);
-		if (g_bHasCore)
-		{
-			AJB_SetRebelOnHit(true);
-		}
 
 		int blueTeam = AJB_LR_GetGuardsTeam();
 		for (int i = 1; i <= MaxClients; i++)

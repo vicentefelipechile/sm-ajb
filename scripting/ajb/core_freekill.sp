@@ -217,6 +217,7 @@ void AJB_Freekill_Trigger(int attacker, int victims)
 	g_iFKPendingVictims = victims;
 	LogMessage("[AJB-Freekill] blocked crit splash by %L endangering %d prisoners.", attacker, victims);
 
+	AJB_FireFreekillDetected(attacker, victims);
 	AJB_Freekill_NotifyJudges(attacker, victims);
 
 	AJB_Freekill_KillDecideTimer();

@@ -224,6 +224,12 @@ void AJB_Weapons_OnMapStart()
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
+	if (StrEqual(classname, "tf_dropped_weapon"))
+	{
+		RequestFrame(Frame_HookDroppedWeapon, EntIndexToEntRef(entity));
+		return;
+	}
+
 	// Death drop: remove while AJB is active (except combat days — stock ammo packs).
 	if (StrEqual(classname, "tf_ammo_pack"))
 	{
@@ -274,12 +280,23 @@ void Frame_HookAmmoPack(int entRef)
 	}
 }
 
+void Frame_HookDroppedWeapon(int entRef)
+{
+	int entity = EntRefToEntIndex(entRef);
+	if (entity > MaxClients && IsValidEntity(entity))
+	{
+		SDKUnhook(entity, SDKHook_Touch, AJB_Weapons_OnDroppedWeaponTouch);
+		SDKHook(entity, SDKHook_Touch, AJB_Weapons_OnDroppedWeaponTouch);
+	}
+}
+
 // Map entities only (not player death drops).
 bool AJB_Weapons_IsMapAmmoPack(const char[] classname)
 {
 	return StrEqual(classname, "item_ammopack_small")
 		|| StrEqual(classname, "item_ammopack_medium")
-		|| StrEqual(classname, "item_ammopack_full");
+		|| StrEqual(classname, "item_ammopack_full")
+		|| StrEqual(classname, "tf_ammo_pack");
 }
 
 void AJB_Weapons_HookAmmoPack(int entity)
@@ -288,6 +305,29 @@ void AJB_Weapons_HookAmmoPack(int entity)
 	SDKUnhook(entity, SDKHook_Touch, AJB_Weapons_OnAmmoTouch);
 	SDKHook(entity, SDKHook_Touch, AJB_Weapons_OnAmmoTouch);
 }
+
+Action AJB_Weapons_OnDroppedWeaponTouch(int entity, int other)
+{
+	if (!g_bModeActive || other < 1 || other > MaxClients || !IsClientInGame(other) || !IsPlayerAlive(other))
+	{
+		return Plugin_Continue;
+	}
+
+	if (!AJB_ClientIsPrisoner(other) || AJB_IsCombatDay())
+	{
+		return Plugin_Continue;
+	}
+
+	if (!AJB_FlagGet(other, AJB_PF_REBEL))
+	{
+		AJB_SetRebelInternal(other, true, true, 0);
+	}
+
+	// Engine already arms the player with the picked-up weapon — no forced ammo.
+	return Plugin_Continue;
+}
+
+
 
 Action AJB_Weapons_OnAmmoTouch(int entity, int other)
 {
@@ -312,25 +352,43 @@ Action AJB_Weapons_OnAmmoTouch(int entity, int other)
 		return Plugin_Continue;
 	}
 
-	// Pure LR menu phase (not a resolved combat day).
-	if (AJB_IsLRPhase(g_RoundState))
+	// Pure LR menu phase (not a resolved combat day) or Special Day (Hide & Seek).
+	if (AJB_IsLRPhase(g_RoundState) || g_RoundState == AJBState_SpecialDay)
 	{
 		return Plugin_Continue;
 	}
 
-	// Already has a primary that can take ammo — let stock GiveAmmo run alone
-	// (engine only consumes the pack when the player actually needs ammo).
 	bool needsArm = (GetPlayerWeaponSlot(other, TFWeaponSlot_Primary) == -1);
 	if (needsArm)
 	{
-		// Melee-only: restore class weapons, but EMPTY of ammo.
-		// Then stock ItemTouch → GiveAmmo actually grants something and consumes the pack.
-		// (If we left them full from Regenerate, the pack would never be taken.)
+		// Melee-only prisoner touching ammo: restore full class loadout (standard class ammo).
 		TF2_RegeneratePlayer(other);
-		AJB_Weapons_EmptyAllAmmo(other);
+
+		if (!AJB_FlagGet(other, AJB_PF_REBEL))
+		{
+			AJB_SetRebelInternal(other, true, true, 0);
+		}
+
+		ClientCommand(other, "playgamesound Item.PickupAmmo");
+
+		char classname[32];
+		GetEntityClassname(entity, classname, sizeof(classname));
+		if (StrEqual(classname, "tf_ammo_pack"))
+		{
+			AcceptEntityInput(entity, "Kill");
+		}
+		else
+		{
+			AcceptEntityInput(entity, "Disable");
+			CreateTimer(10.0, Timer_RespawnAmmoPack, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
+		}
+
+		return Plugin_Handled;
 	}
 
-	// Grabbing map ammo / arming = freerun with guns → rebel (ends personal freeday).
+	// Already armed — let the engine refill ammo from the pack naturally.
+
+	// Grabbing map ammo / arming = freerun with guns -> rebel (ends personal freeday).
 	if (!AJB_FlagGet(other, AJB_PF_REBEL))
 	{
 		AJB_SetRebelInternal(other, true, true, 0);
@@ -339,42 +397,14 @@ Action AJB_Weapons_OnAmmoTouch(int entity, int other)
 	return Plugin_Continue;
 }
 
-// Strip clips + reserve ammo so the next GiveAmmo (this same touch, if PRE) can fill and eat the pack.
-void AJB_Weapons_EmptyAllAmmo(int client)
+Action Timer_RespawnAmmoPack(Handle timer, int entRef)
 {
-	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+	int entity = EntRefToEntIndex(entRef);
+	if (entity > MaxClients && IsValidEntity(entity))
 	{
-		return;
+		AcceptEntityInput(entity, "Enable");
 	}
-
-	// Reserve ammo types (TF2 uses a fixed ammo array on the player).
-	for (int i = 0; i < 32; i++)
-	{
-		SetEntProp(client, Prop_Send, "m_iAmmo", 0, _, i);
-	}
-
-	// Clips on equipped weapons (primary/secondary/melee/etc.).
-	for (int slot = 0; slot <= 5; slot++)
-	{
-		int wep = GetPlayerWeaponSlot(client, slot);
-		if (wep <= MaxClients || !IsValidEntity(wep))
-		{
-			continue;
-		}
-
-		if (HasEntProp(wep, Prop_Send, "m_iClip1"))
-		{
-			SetEntProp(wep, Prop_Send, "m_iClip1", 0);
-		}
-		if (HasEntProp(wep, Prop_Data, "m_iClip1"))
-		{
-			SetEntProp(wep, Prop_Data, "m_iClip1", 0);
-		}
-		if (HasEntProp(wep, Prop_Send, "m_iClip2"))
-		{
-			SetEntProp(wep, Prop_Send, "m_iClip2", 0);
-		}
-	}
+	return Plugin_Stop;
 }
 
 Action Timer_StripPrisoner(Handle timer, int userid)

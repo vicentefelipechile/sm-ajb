@@ -87,7 +87,8 @@ in `plugins/`; it loads on next server start or a later `reload_plugin`.
   → `cfg/sourcemod/ajb.cfg`. A hot `reload_plugin` does **not** refresh a ConVar's help text
   or bounds (cosmetic only) — that needs a map change; behavior still updates.
 - Prefer `TF2_RespawnPlayer` after `ChangeClientTeam` for players who must keep playing —
-  `ChangeClientTeam` kills a live player and prisoners get no mid-round respawn wave.
+  `ChangeClientTeam` kills a live player and prisoners get no mid-round respawn wave. To safely swap teams without dying, transit through Spectator first (`ChangeClientTeam(client, 1)`).
+- **Round state order matters**: Helpers like `AJB_OpenCells` implicitly change the round state (to `AJBState_CellsOpen`). When building LR modules or Special Days, always open cells *before* calling `AJB_SetRoundState` if you want your custom state (like `AJBState_SpecialDay`) to persist.
 - Memory: no leaked Handles. Timers that fire once and return `Plugin_Stop` are freed
   automatically; stored Handles (`g_h*`) must be `delete`d. Prefer stack arrays over
   `ArrayList`/`StringMap` for short-lived per-player scans.

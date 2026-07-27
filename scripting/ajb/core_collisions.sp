@@ -65,4 +65,5 @@ void AJB_Collisions_Toggle()
 	AJB_Collisions_Apply();
 
 	AJB_ChatAll(g_bTeamPush ? "Collisions Enabled" : "Collisions Disabled");
+	AJB_FireTeamPushChanged(g_bTeamPush);
 }

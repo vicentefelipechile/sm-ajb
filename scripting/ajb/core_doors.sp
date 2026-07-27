@@ -206,8 +206,7 @@ bool AJB_IsDoorLikeClass(const char[] classname)
 	}
 	if (StrEqual(classname, "logic_relay", false)
 		|| StrEqual(classname, "func_brush", false)
-		|| StrEqual(classname, "func_wall_toggle", false)
-		|| StrEqual(classname, "trigger_teleport", false))
+		|| StrEqual(classname, "func_wall_toggle", false))
 	{
 		return true;
 	}
@@ -233,11 +232,30 @@ void AJB_AddDoorName(const char[] name)
 	g_iDoorNameCount++;
 }
 
+// Handles for the delayed Close/Lock retries so Open/Freeday can cancel them.
+// Without this, first-round freedsay opens cells then a 0.15s/0.50s reset closes them again.
+static Handle g_hCellsResetRetry[2];
+
+void AJB_KillCellsResetRetries()
+{
+	for (int i = 0; i < 2; i++)
+	{
+		if (g_hCellsResetRetry[i] != null)
+		{
+			delete g_hCellsResetRetry[i];
+			g_hCellsResetRetry[i] = null;
+		}
+	}
+}
+
 // Bring cell targets back to closed/locked. After force_map_reset this is mostly a no-op;
 // after a soft engine win (no map regen) this is what stops open cages from carrying over.
 void AJB_ResetCellsForRound()
 {
+	AJB_KillCellsResetRetries();
+
 	// Named cell targets from config / scan.
+	// Order: Unlock → Close → Lock. Unlock must NOT Press buttons (see AJB_SendEntityDoorInput).
 	AJB_FireDoorInput("Unlock");
 	AJB_FireDoorInput("Close");
 	AJB_FireDoorInput("Lock");
@@ -248,13 +266,19 @@ void AJB_ResetCellsForRound()
 	AJB_FireAllCellLikeDoors("Close");
 	AJB_FireAllCellLikeDoors("Lock");
 
-	CreateTimer(0.15, Timer_CellsResetRetry, _, TIMER_FLAG_NO_MAPCHANGE);
-	CreateTimer(0.50, Timer_CellsResetRetry, _, TIMER_FLAG_NO_MAPCHANGE);
+	g_hCellsResetRetry[0] = CreateTimer(0.15, Timer_CellsResetRetry, 0, TIMER_FLAG_NO_MAPCHANGE);
+	g_hCellsResetRetry[1] = CreateTimer(0.50, Timer_CellsResetRetry, 1, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-Action Timer_CellsResetRetry(Handle timer)
+Action Timer_CellsResetRetry(Handle timer, int idx)
 {
-	if (!g_bModeActive)
+	if (idx >= 0 && idx < 2)
+	{
+		g_hCellsResetRetry[idx] = null;
+	}
+
+	// Do not fight an intentional open (warden open, freedsay-all, first-round freedsay).
+	if (!g_bModeActive || g_RoundState == AJBState_CellsOpen || g_bFreedayAllCosmetic)
 	{
 		return Plugin_Stop;
 	}
@@ -283,6 +307,11 @@ void AJB_FireAllCellLikeDoors(const char[] input)
 		if (!AJB_IsDoorLikeClass(classname))
 		{
 			continue;
+		}
+
+		if (StrEqual(classname, "logic_relay", false) || StrContains(classname, "button", false) != -1)
+		{
+			continue; // Never fire map logic blindly by heuristic name match
 		}
 
 		if (!HasEntProp(ent, Prop_Data, "m_iName"))
@@ -314,6 +343,9 @@ bool AJB_OpenCellsInternal(bool announce)
 	{
 		return true;
 	}
+
+	// Cancel any pending round-reset Close/Lock so it cannot undo this open a tick later.
+	AJB_KillCellsResetRetries();
 
 	AJB_FireDoorInput("Unlock");
 	AJB_FireDoorInput("Open");
@@ -392,33 +424,61 @@ void AJB_SendEntityDoorInput(int ent, const char[] input)
 	char classname[64];
 	GetEntityClassname(ent, classname, sizeof(classname));
 
-	AcceptEntityInput(ent, input);
-
+	// Buttons: only Press on Open. Unlock alone must never Press/Use — ResetCellsForRound
+	// fires Unlock→Close→Lock at round start, and Pressing cell buttons there would open
+	// cages (and run map I/O) during teamplay_round_start, which has crashed maps like
+	// jb_snowday under first-round freedsay.
 	if (StrContains(classname, "button", false) != -1)
 	{
-		if (StrEqual(input, "Open", false) || StrEqual(input, "Unlock", false))
+		if (StrEqual(input, "Open", false))
 		{
-			AcceptEntityInput(ent, "Unlock");
-			AcceptEntityInput(ent, "Press");
-			AcceptEntityInput(ent, "Use");
+			AcceptEntityInput(ent, "Unlock", 0, 0);
+			AcceptEntityInput(ent, "Press", 0, 0);
+		}
+		else if (StrEqual(input, "Unlock", false))
+		{
+			AcceptEntityInput(ent, "Unlock", 0, 0);
 		}
 		else if (StrEqual(input, "Close", false) || StrEqual(input, "Lock", false))
 		{
-			AcceptEntityInput(ent, "Lock");
+			AcceptEntityInput(ent, input, 0, 0);
+			if (StrEqual(input, "Close", false))
+			{
+				AcceptEntityInput(ent, "Lock", 0, 0);
+			}
 		}
+		else
+		{
+			AcceptEntityInput(ent, input, 0, 0);
+		}
+		return;
 	}
-	else if (StrEqual(classname, "logic_relay", false))
+
+	// Relays: Trigger only on Open. Unlock only Enables — never Trigger (map freedsay /
+	// setup relays often contain "jail"/"cell" in the name and crash when fired early).
+	if (StrEqual(classname, "logic_relay", false))
 	{
-		if (StrEqual(input, "Open", false) || StrEqual(input, "Unlock", false))
+		if (StrEqual(input, "Open", false))
 		{
-			AcceptEntityInput(ent, "Enable");
-			AcceptEntityInput(ent, "Trigger");
+			AcceptEntityInput(ent, "Enable", 0, 0);
+			AcceptEntityInput(ent, "Trigger", 0, 0);
+		}
+		else if (StrEqual(input, "Unlock", false))
+		{
+			AcceptEntityInput(ent, "Enable", 0, 0);
 		}
 		else if (StrEqual(input, "Close", false) || StrEqual(input, "Lock", false))
 		{
-			AcceptEntityInput(ent, "Disable");
+			AcceptEntityInput(ent, "Disable", 0, 0);
 		}
+		else
+		{
+			AcceptEntityInput(ent, input, 0, 0);
+		}
+		return;
 	}
+
+	AcceptEntityInput(ent, input, 0, 0);
 }
 
 public void EntityOutput_OnCellDoorOpened(const char[] output, int caller, int activator, float delay)
@@ -428,13 +488,19 @@ public void EntityOutput_OnCellDoorOpened(const char[] output, int caller, int a
 		return;
 	}
 
-	if (g_RoundState != AJBState_CellsOpen)
+	// Only transition to CellsOpen if the doors were locked.
+	// If the state is already advanced (e.g. SpecialDay, LRChosen), do not revert it.
+	if (g_RoundState != AJBState_CellsLocked)
 	{
-		g_RoundState = AJBState_CellsOpen;
-		AJB_KillCellsAutoTimer();
-		Call_StartForward(g_hFwdCellsOpened);
-		Call_Finish();
+		return;
 	}
+
+	AJB_KillCellsAutoTimer();
+	AJB_KillCellsResetRetries();
+	AJB_SetRoundState(AJBState_CellsOpen);
+
+	Call_StartForward(g_hFwdCellsOpened);
+	Call_Finish();
 }
 
 public void EntityOutput_OnCellDoorClosed(const char[] output, int caller, int activator, float delay)
@@ -444,12 +510,16 @@ public void EntityOutput_OnCellDoorClosed(const char[] output, int caller, int a
 		return;
 	}
 
-	if (g_RoundState == AJBState_CellsOpen)
+	// Ignore map Close outputs while freedsay-all (or intentional open) owns the cells.
+	if (g_bFreedayAllCosmetic || g_RoundState != AJBState_CellsOpen)
 	{
-		g_RoundState = AJBState_CellsLocked;
-		Call_StartForward(g_hFwdCellsClosed);
-		Call_Finish();
+		return;
 	}
+
+	AJB_SetRoundState(AJBState_CellsLocked);
+
+	Call_StartForward(g_hFwdCellsClosed);
+	Call_Finish();
 }
 
 void AJB_HookCellEntities()
@@ -504,14 +574,29 @@ void AJB_HookCellEntities()
 
 		if (match)
 		{
-			HookSingleEntityOutput(ent, "OnPressed", EntityOutput_OnCellDoorOpened);
-			HookSingleEntityOutput(ent, "OnUse", EntityOutput_OnCellDoorOpened);
-			HookSingleEntityOutput(ent, "OnOpen", EntityOutput_OnCellDoorOpened);
-			HookSingleEntityOutput(ent, "OnFullyOpen", EntityOutput_OnCellDoorOpened);
-			HookSingleEntityOutput(ent, "OnTrigger", EntityOutput_OnCellDoorOpened);
-
-			HookSingleEntityOutput(ent, "OnClose", EntityOutput_OnCellDoorClosed);
-			HookSingleEntityOutput(ent, "OnFullyClosed", EntityOutput_OnCellDoorClosed);
+			if (StrContains(classname, "button", false) != -1)
+			{
+				UnhookSingleEntityOutput(ent, "OnPressed", EntityOutput_OnCellDoorOpened);
+				UnhookSingleEntityOutput(ent, "OnUse", EntityOutput_OnCellDoorOpened);
+				HookSingleEntityOutput(ent, "OnPressed", EntityOutput_OnCellDoorOpened);
+				HookSingleEntityOutput(ent, "OnUse", EntityOutput_OnCellDoorOpened);
+			}
+			else if (StrEqual(classname, "logic_relay", false))
+			{
+				UnhookSingleEntityOutput(ent, "OnTrigger", EntityOutput_OnCellDoorOpened);
+				HookSingleEntityOutput(ent, "OnTrigger", EntityOutput_OnCellDoorOpened);
+			}
+			else
+			{
+				UnhookSingleEntityOutput(ent, "OnOpen", EntityOutput_OnCellDoorOpened);
+				UnhookSingleEntityOutput(ent, "OnFullyOpen", EntityOutput_OnCellDoorOpened);
+				UnhookSingleEntityOutput(ent, "OnClose", EntityOutput_OnCellDoorClosed);
+				UnhookSingleEntityOutput(ent, "OnFullyClosed", EntityOutput_OnCellDoorClosed);
+				HookSingleEntityOutput(ent, "OnOpen", EntityOutput_OnCellDoorOpened);
+				HookSingleEntityOutput(ent, "OnFullyOpen", EntityOutput_OnCellDoorOpened);
+				HookSingleEntityOutput(ent, "OnClose", EntityOutput_OnCellDoorClosed);
+				HookSingleEntityOutput(ent, "OnFullyClosed", EntityOutput_OnCellDoorClosed);
+			}
 		}
 	}
 }
@@ -612,6 +697,11 @@ void AJB_AutoDetectCellDoors(const char[] fileMap)
 			continue;
 		}
 
+		if (StrEqual(classname, "logic_relay", false) || StrContains(classname, "button", false) != -1)
+		{
+			continue; // Logic entities lack bounds and shouldn't be auto-fired by proximity
+		}
+
 		if (!HasEntProp(ent, Prop_Data, "m_iHammerID"))
 		{
 			continue;
@@ -678,7 +768,9 @@ void AJB_GetEntityWorldCenter(int ent, float out[3])
 	}
 	else
 	{
-		out = origin;
+		out[0] = origin[0];
+		out[1] = origin[1];
+		out[2] = origin[2];
 	}
 }
 
@@ -833,7 +925,8 @@ void AJB_GetShortMapName(char[] out, int maxlen)
 }
 
 // Collect every door-like entity that has a non-empty targetname (deduped).
-int AJB_CollectDoorLikeNames(char[][] out, int maxNames)
+// includeLogic allows logic_relay/buttons to be collected (only used when generating config stubs).
+int AJB_CollectDoorLikeNames(char[][] out, int maxNames, bool includeLogic = false)
 {
 	int count = 0;
 	int maxEdicts = GetMaxEntities();
@@ -849,6 +942,11 @@ int AJB_CollectDoorLikeNames(char[][] out, int maxNames)
 
 		GetEntityClassname(ent, classname, sizeof(classname));
 		if (!AJB_IsDoorLikeClass(classname))
+		{
+			continue;
+		}
+
+		if (!includeLogic && (StrEqual(classname, "logic_relay", false) || StrContains(classname, "button", false) != -1))
 		{
 			continue;
 		}
@@ -894,7 +992,7 @@ bool AJB_GenerateMapConfigStub(const char[] fileMap, bool overwrite)
 	}
 
 	char names[AJB_MAX_DOOR_NAMES][AJB_MAX_DOOR_NAME_LEN];
-	int count = AJB_CollectDoorLikeNames(names, AJB_MAX_DOOR_NAMES);
+	int count = AJB_CollectDoorLikeNames(names, AJB_MAX_DOOR_NAMES, true);
 
 	File f = OpenFile(path, "w");
 	if (f == null)

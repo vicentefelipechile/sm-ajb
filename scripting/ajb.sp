@@ -103,6 +103,19 @@ Handle g_hFwdLastPrisoner;
 Handle g_hFwdWardenGiveLR;
 // Fired when the live round begins (after prep, or immediately if prep is 0).
 Handle g_hFwdLiveRoundBegin;
+Handle g_hFwdFreedayChanged;
+Handle g_hFwdPrepStart;
+Handle g_hFwdPrepEnd;
+Handle g_hFwdCombatDayStart;
+Handle g_hFwdPhaseTimerExpired;
+Handle g_hFwdGuardBounced;
+Handle g_hFwdFreedayAllStart;
+Handle g_hFwdModeChanged;
+Handle g_hFwdRoundWin;
+Handle g_hFwdFriendlyFire;
+Handle g_hFwdTeamPush;
+Handle g_hFwdWardenMarker;
+Handle g_hFwdFreekill;
 
 Handle g_hCellsAutoTimer;
 
@@ -338,7 +351,11 @@ public void OnPluginEnd()
 	AJB_Collisions_OnPluginEnd();
 	AJB_FF_OnPluginEnd();
 	// Restore stock engine freeze if fallback changed it.
-	g_bModeActive = false;
+	if (g_bModeActive)
+	{
+		g_bModeActive = false;
+		AJB_FireModeChanged(false);
+	}
 	AJB_ApplyEngineMovementPolicy();
 }
 
@@ -350,12 +367,15 @@ public void OnMapStart()
 	AJB_ClearWarden(false);
 	AJB_Prep_Stop();
 	AJB_KillCellsAutoTimer();
+	AJB_KillCellsResetRetries();
 	AJB_ClearPhaseTimer();
 	AJB_Timer_OnMapStart();
 	AJB_Weapons_OnMapStart();
 	AJB_Weapons_OnMapStartLoadout();
 	AJB_Marker_OnMapStart();
 	g_iDoorNameCount = 0;
+	// Per-map first-round freedsay (g_iWardenRoundSerial == 1 in Event_RoundStart).
+	g_iWardenRoundSerial = 0;
 
 	if (g_bModeActive)
 	{
@@ -372,15 +392,25 @@ public void OnMapStart()
 	}
 }
 
+public void OnConfigsExecuted()
+{
+	AJB_RefreshModeActive();
+}
+
 public void OnMapEnd()
 {
 	AJB_Prep_Stop();
 	AJB_KillCellsAutoTimer();
+	AJB_KillCellsResetRetries();
 	AJB_ClearPhaseTimer();
 	AJB_ClearWarden(false);
 	AJB_Marker_Clear();
 	AJB_Votes_Reset();
-	g_bModeActive = false;
+	if (g_bModeActive)
+	{
+		g_bModeActive = false;
+		AJB_FireModeChanged(false);
+	}
 	g_RoundState = AJBState_Disabled;
 }
 

@@ -12,6 +12,113 @@ void AJB_CreateForwards()
 	g_hFwdLastPrisoner = CreateGlobalForward("AJB_OnLastPrisoner", ET_Ignore, Param_Cell);
 	g_hFwdWardenGiveLR = CreateGlobalForward("AJB_OnWardenGiveLR", ET_Ignore, Param_Cell);
 	g_hFwdLiveRoundBegin = CreateGlobalForward("AJB_OnLiveRoundBegin", ET_Ignore);
+	g_hFwdFreedayChanged = CreateGlobalForward("AJB_OnFreedayChanged", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
+	g_hFwdPrepStart = CreateGlobalForward("AJB_OnPrepStart", ET_Ignore, Param_Float);
+	g_hFwdPrepEnd = CreateGlobalForward("AJB_OnPrepEnd", ET_Ignore);
+	g_hFwdCombatDayStart = CreateGlobalForward("AJB_OnCombatDayStart", ET_Ignore);
+	g_hFwdPhaseTimerExpired = CreateGlobalForward("AJB_OnPhaseTimerExpired", ET_Ignore);
+	g_hFwdGuardBounced = CreateGlobalForward("AJB_OnGuardBounced", ET_Ignore, Param_Cell);
+	g_hFwdFreedayAllStart = CreateGlobalForward("AJB_OnFreedayAllStart", ET_Ignore);
+	g_hFwdModeChanged = CreateGlobalForward("AJB_OnModeChanged", ET_Ignore, Param_Cell);
+	g_hFwdRoundWin = CreateGlobalForward("AJB_OnRoundWin", ET_Ignore, Param_Cell);
+	g_hFwdFriendlyFire = CreateGlobalForward("AJB_OnFriendlyFireChanged", ET_Ignore, Param_Cell);
+	g_hFwdTeamPush = CreateGlobalForward("AJB_OnTeamPushChanged", ET_Ignore, Param_Cell);
+	g_hFwdWardenMarker = CreateGlobalForward("AJB_OnWardenMarkerPlaced", ET_Ignore, Param_Cell);
+	g_hFwdFreekill = CreateGlobalForward("AJB_OnFreekillDetected", ET_Ignore, Param_Cell, Param_Cell);
+}
+
+// =========================================================================================================
+// Forward fire helpers (single place to Call_StartForward / Call_Finish)
+// =========================================================================================================
+
+void AJB_FireFreedayChanged(int client, bool freeday, bool isPending)
+{
+	Call_StartForward(g_hFwdFreedayChanged);
+	Call_PushCell(client);
+	Call_PushCell(freeday);
+	Call_PushCell(isPending);
+	Call_Finish();
+}
+
+void AJB_FirePrepStart(float duration)
+{
+	Call_StartForward(g_hFwdPrepStart);
+	Call_PushFloat(duration);
+	Call_Finish();
+}
+
+void AJB_FirePrepEnd()
+{
+	Call_StartForward(g_hFwdPrepEnd);
+	Call_Finish();
+}
+
+void AJB_FireCombatDayStart()
+{
+	Call_StartForward(g_hFwdCombatDayStart);
+	Call_Finish();
+}
+
+void AJB_FireFreedayAllStart()
+{
+	Call_StartForward(g_hFwdFreedayAllStart);
+	Call_Finish();
+}
+
+void AJB_FirePhaseTimerExpired()
+{
+	Call_StartForward(g_hFwdPhaseTimerExpired);
+	Call_Finish();
+}
+
+void AJB_FireGuardBounced(int client)
+{
+	Call_StartForward(g_hFwdGuardBounced);
+	Call_PushCell(client);
+	Call_Finish();
+}
+
+void AJB_FireModeChanged(bool enabled)
+{
+	Call_StartForward(g_hFwdModeChanged);
+	Call_PushCell(enabled);
+	Call_Finish();
+}
+
+void AJB_FireRoundWin(int team)
+{
+	Call_StartForward(g_hFwdRoundWin);
+	Call_PushCell(team);
+	Call_Finish();
+}
+
+void AJB_FireFriendlyFireChanged(bool enabled)
+{
+	Call_StartForward(g_hFwdFriendlyFire);
+	Call_PushCell(enabled);
+	Call_Finish();
+}
+
+void AJB_FireTeamPushChanged(bool enabled)
+{
+	Call_StartForward(g_hFwdTeamPush);
+	Call_PushCell(enabled);
+	Call_Finish();
+}
+
+void AJB_FireWardenMarkerPlaced(int warden)
+{
+	Call_StartForward(g_hFwdWardenMarker);
+	Call_PushCell(warden);
+	Call_Finish();
+}
+
+void AJB_FireFreekillDetected(int attacker, int victimCount)
+{
+	Call_StartForward(g_hFwdFreekill);
+	Call_PushCell(attacker);
+	Call_PushCell(victimCount);
+	Call_Finish();
 }
 
 void AJB_RegisterNatives()

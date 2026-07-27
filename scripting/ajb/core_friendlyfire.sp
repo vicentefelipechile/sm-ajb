@@ -84,6 +84,7 @@ void AJB_FF_Toggle()
 	AJB_FF_Apply();
 
 	AJB_ChatAll(g_bFriendlyFire ? "FriendlyFire Enabled" : "FriendlyFire Disabled");
+	AJB_FireFriendlyFireChanged(g_bFriendlyFire);
 }
 
 // Restore stock friendly fire on unload so we don't leave the global cvar forced.

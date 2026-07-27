@@ -1,6 +1,10 @@
 // =========================================================================================================
 // team_round_timer — stock TF2 HUD clock for prep + remaining round time
 // jb maps often ship with none; create/reuse one AFTER teamplay_round_start (engine wipes earlier ones).
+//
+// CRITICAL: never adopt or reconfigure a map-owned team_round_timer. Arena maps (tf_logic_arena,
+// e.g. many jb_snowday builds) own a setup/round timer; stomping m_bInSetup / SetTime / Resume on it
+// segfaults the engine. We only ever touch an entity named AJB_TIMER_NAME that we created.
 // =========================================================================================================
 
 #define AJB_TIMER_NAME "ajb_round_timer"
@@ -34,6 +38,12 @@ void AJB_KillRoundExpireTimer()
 	}
 }
 
+// True when the map runs arena rules (tf_logic_arena present). HUD timer must stay hands-off.
+bool AJB_IsArenaMap()
+{
+	return FindEntityByClassname(-1, "tf_logic_arena") != -1;
+}
+
 // Remove the plugin-created HUD timer so a leftover entity cannot keep ticking into the next round.
 void AJB_DestroyPluginRoundTimer()
 {
@@ -42,23 +52,29 @@ void AJB_DestroyPluginRoundTimer()
 	if (g_iRoundTimerRef != INVALID_ENT_REFERENCE)
 	{
 		int ent = EntRefToEntIndex(g_iRoundTimerRef);
-		if (ent != -1 && IsValidEntity(ent))
+		if (ent != -1 && IsValidEntity(ent) && AJB_IsPluginRoundTimer(ent))
 		{
-			char name[64];
-			name[0] = '\0';
-			if (HasEntProp(ent, Prop_Data, "m_iName"))
-			{
-				GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
-			}
-
-			// Only kill our own entity — never delete a map-owned timer mid-reset.
-			if (StrEqual(name, AJB_TIMER_NAME, false))
-			{
-				AcceptEntityInput(ent, "Kill");
-			}
+			AcceptEntityInput(ent, "Kill");
 		}
 		g_iRoundTimerRef = INVALID_ENT_REFERENCE;
 	}
+}
+
+bool AJB_IsPluginRoundTimer(int ent)
+{
+	if (ent <= MaxClients || !IsValidEntity(ent))
+	{
+		return false;
+	}
+
+	char name[64];
+	name[0] = '\0';
+	if (HasEntProp(ent, Prop_Data, "m_iName"))
+	{
+		GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
+	}
+
+	return StrEqual(name, AJB_TIMER_NAME, false);
 }
 
 // When the main jail clock hits zero: guards (BLU) win. The entity HUD does not end rounds alone.
@@ -94,6 +110,7 @@ Action Timer_RoundTimeExpired(Handle timer)
 	}
 
 	// Time up → guards win and the engine ends the round (scoreboard / next round).
+	AJB_FirePhaseTimerExpired();
 	AJB_ChatAll("Round Time Expired");
 	AJB_ForceTeamWin(AJB_GetGuardsTeam());
 	return Plugin_Stop;
@@ -101,6 +118,9 @@ Action Timer_RoundTimeExpired(Handle timer)
 
 // Queue a HUD clock update. Delay is required: TF2 removes team_round_timer entities
 // created before/at the exact start of teamplay_round_start.
+// Arena maps: skip entity HUD entirely (creating/fighting team_round_timer under
+// tf_logic_arena has segfaulted dedicated servers). SM expire timer still runs via
+// AJB_StartRoundExpireTimer / freedsay callers.
 void AJB_SetPhaseTimer(float seconds)
 {
 	if (seconds <= 0.0)
@@ -197,8 +217,16 @@ void AJB_ConfigureAndStartTimer(int timerEnt, float seconds)
 		return;
 	}
 
-	// Only one timer may own the HUD; hide siblings first.
+	// Hard gate: never reconfigure a map/arena timer (segfault on tf_logic_arena maps).
+	if (!AJB_IsPluginRoundTimer(timerEnt))
+	{
+		LogMessage("[AJB] Refusing to configure non-plugin team_round_timer ent=%d.", timerEnt);
+		g_iRoundTimerRef = INVALID_ENT_REFERENCE;
+		return;
+	}
+
 	AJB_HideOtherRoundTimers(timerEnt);
+
 	AJB_ShowRoundTimer(timerEnt);
 
 	// Order used by working TF2 plugins: Enable → ShowInHUD → SetTime → Resume.
@@ -264,7 +292,7 @@ void AJB_ConfigureAndStartTimer(int timerEnt, float seconds)
 
 void AJB_ShowRoundTimer(int timerEnt)
 {
-	if (timerEnt == -1 || !IsValidEntity(timerEnt))
+	if (timerEnt == -1 || !IsValidEntity(timerEnt) || !AJB_IsPluginRoundTimer(timerEnt))
 	{
 		return;
 	}
@@ -297,6 +325,7 @@ void AJB_HideOtherRoundTimers(int keep)
 			continue;
 		}
 
+		// Never disable/kill map timers — only pull them out of the HUD slot.
 		if (HasEntProp(ent, Prop_Send, "m_bShowInHUD"))
 		{
 			SetEntProp(ent, Prop_Send, "m_bShowInHUD", 0);
@@ -307,27 +336,28 @@ void AJB_HideOtherRoundTimers(int keep)
 	}
 }
 
+// Only ever returns our plugin-owned timer (or creates one). Never adopts map/arena timers.
 int AJB_EnsureRoundTimer()
 {
-	// Prefer our cached ref if still valid.
+	// Prefer our cached ref if still valid and still ours.
 	if (g_iRoundTimerRef != INVALID_ENT_REFERENCE)
 	{
 		int cached = EntRefToEntIndex(g_iRoundTimerRef);
-		if (cached != -1 && IsValidEntity(cached))
+		if (cached != -1 && AJB_IsPluginRoundTimer(cached))
 		{
 			return cached;
 		}
 		g_iRoundTimerRef = INVALID_ENT_REFERENCE;
 	}
 
-	int timerEnt = AJB_FindPrimaryRoundTimer();
+	int timerEnt = AJB_FindPluginRoundTimer();
 	if (timerEnt != -1)
 	{
 		g_iRoundTimerRef = EntIndexToEntRef(timerEnt);
 		return timerEnt;
 	}
 
-	// Many jb maps ship without a usable HUD timer — create one after round start.
+	// Create a dedicated HUD timer. Do not fall back to any map-owned team_round_timer.
 	timerEnt = CreateEntityByName("team_round_timer");
 	if (timerEnt == -1 || !IsValidEntity(timerEnt))
 	{
@@ -336,7 +366,7 @@ int AJB_EnsureRoundTimer()
 	}
 
 	DispatchKeyValue(timerEnt, "targetname", AJB_TIMER_NAME);
-	DispatchKeyValue(timerEnt, "show_in_hud", "1");
+	DispatchKeyValue(timerEnt, "show_in_hud", "0");
 	DispatchKeyValue(timerEnt, "auto_countdown", "1");
 	DispatchKeyValue(timerEnt, "start_paused", "0");
 	DispatchKeyValue(timerEnt, "timer_length", "600");
@@ -358,40 +388,16 @@ int AJB_EnsureRoundTimer()
 	return timerEnt;
 }
 
-int AJB_FindPrimaryRoundTimer()
+// Locate only the plugin-named timer. Map timers are intentionally ignored.
+int AJB_FindPluginRoundTimer()
 {
 	int ent = -1;
-	int first = -1;
-	int named = -1;
-
 	while ((ent = FindEntityByClassname(ent, "team_round_timer")) != -1)
 	{
-		if (!IsValidEntity(ent))
+		if (AJB_IsPluginRoundTimer(ent))
 		{
-			continue;
-		}
-
-		if (first == -1)
-		{
-			first = ent;
-		}
-
-		char name[64];
-		if (HasEntProp(ent, Prop_Data, "m_iName"))
-		{
-			GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
-			if (StrEqual(name, AJB_TIMER_NAME, false))
-			{
-				named = ent;
-			}
+			return ent;
 		}
 	}
-
-	// Prefer our named entity so we don't fight a dead map timer.
-	if (named != -1)
-	{
-		return named;
-	}
-
-	return first;
+	return -1;
 }

@@ -2,6 +2,11 @@
 // Round state machine + TF2 round events
 // =========================================================================================================
 
+// How many times we've re-deferred the first-round freeday waiting for the engine to exit preround.
+// Reset at round start; caps out at AJB_FREEDAY_ARENA_MAX_RETRIES to avoid infinite deferral.
+static int g_iFreedayArenaRetries;
+#define AJB_FREEDAY_ARENA_MAX_RETRIES 30   // 30 × 0.5s = 15s ceiling
+
 void AJB_SetRoundState(AJBRoundState newState)
 {
 	if (g_RoundState == newState)
@@ -92,6 +97,7 @@ void AJB_CleanupRoundRuntime()
 	AJB_Settings_ClearRoundModes();
 	AJB_Freekill_Reset();
 	g_bLastPrisonerAnnounced = false;
+	g_bRebelOnHit = true;
 }
 
 void AJB_ResetPlayerFlags()
@@ -195,22 +201,17 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 	AJB_SetRoundState(AJBState_CellsLocked);
 
-	// ── First round: automatic free day for all (5 minutes, no warden, cells open) ──────────
+	// First round of each map: automatic freedsay for all (5 min, no warden, cells open).
+	// Deferred off teamplay_round_start — opening cells / firing map button+relay I/O inside
+	// the round-start event has segfaulted on dense JB maps (e.g. jb_snowday_v9).
+	// On arena maps, Timer_FirstRoundFreeday further defers until the engine exits
+	// GR_STATE_PREROUND (logic_relay Trigger during preround crashes arena infra).
 	if (g_iWardenRoundSerial == 1)
 	{
-		// BeginFreedayAllCosmetic stops prep, opens cells and sets g_bFreedayAllCosmetic.
-		AJB_BeginFreedayAllCosmetic();
-		// Apply pending personal freedays, trigger balance + forward.
-		AJB_NotifyLiveRoundBegin();
-		// Override the normal round clock with a fixed 5-minute window.
-		AJB_SetPhaseTimer(300.0);
-		AJB_StartRoundExpireTimer(300.0);
-		// Announce to all players.
-		AJB_ChatAll("First Round Freeday");
-		AJB_ChatAll("Prepare");
+		g_iFreedayArenaRetries = 0;
+		CreateTimer(0.35, Timer_FirstRoundFreeday, _, TIMER_FLAG_NO_MAPCHANGE);
 		return;
 	}
-	// ─────────────────────────────────────────────────────────────────────────────────────────
 
 	float prep = g_cvPrepTime.FloatValue;
 	float autoOpen = g_cvCellsAutoOpen.FloatValue;
@@ -248,6 +249,8 @@ void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
+	int team = event.GetInt("team");
+
 	if (g_iWarden != 0)
 	{
 		AJB_ClearWarden(true);
@@ -255,6 +258,7 @@ void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 
 	AJB_CleanupRoundRuntime();
 	AJB_SetRoundState(AJBState_RoundEnd);
+	AJB_FireRoundWin(team);
 }
 
 void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -383,6 +387,66 @@ Action Timer_PostDeathChecks(Handle timer)
 	}
 
 	AJB_CheckLastPrisoner();
+	return Plugin_Stop;
+}
+
+// First map-round freedsay — runs a beat after teamplay_round_start so entity I/O is safe.
+Action Timer_FirstRoundFreeday(Handle timer)
+{
+	if (!g_bModeActive)
+	{
+		return Plugin_Stop;
+	}
+
+	// Only the first live round of the map should freedsay; a late fire after round end is a no-op.
+	if (g_RoundState == AJBState_RoundEnd || g_RoundState == AJBState_Disabled || g_RoundState == AJBState_Waiting)
+	{
+		return Plugin_Stop;
+	}
+
+	// ARENA CRASH FIX: On arena maps, firing Trigger on logic_relay entities while the engine
+	// is still in GR_STATE_PREROUND (3) chains into arena round infrastructure that is not
+	// fully initialized — segfaulting the server on maps like jb_snowday_v9. Re-schedule
+	// until the engine transitions to GR_STATE_RND_RUNNING (4) or later.
+	if (AJB_IsArenaMap())
+	{
+		int engState = GameRules_GetProp("m_iRoundState");
+		if (engState <= 3 && g_iFreedayArenaRetries < AJB_FREEDAY_ARENA_MAX_RETRIES)
+		{
+			g_iFreedayArenaRetries++;
+			if (g_iFreedayArenaRetries == 1)
+			{
+				LogMessage("[AJB] First-round freedsay: arena eng_state=%d, deferring until round is active.", engState);
+			}
+			CreateTimer(0.5, Timer_FirstRoundFreeday, _, TIMER_FLAG_NO_MAPCHANGE);
+			return Plugin_Stop;
+		}
+
+		if (g_iFreedayArenaRetries >= AJB_FREEDAY_ARENA_MAX_RETRIES)
+		{
+			LogMessage("[AJB] First-round freedsay: arena retry limit reached (eng_state=%d), proceeding anyway.",
+				GameRules_GetProp("m_iRoundState"));
+		}
+	}
+
+	// Step logs help pinpoint native crashes (SM log is the last line before a segfault).
+	LogMessage("[AJB] First-round freedsay: begin (arena=%d, retries=%d).", AJB_IsArenaMap() ? 1 : 0, g_iFreedayArenaRetries);
+
+	AJB_BeginFreedayAllCosmetic();
+	LogMessage("[AJB] First-round freedsay: cells/cosmetic done.");
+
+	AJB_NotifyLiveRoundBegin();
+	LogMessage("[AJB] First-round freedsay: live-round begin done.");
+
+	// 5-minute window. On arena maps SetPhaseTimer is a no-op for the entity HUD;
+	// the SM expire timer still ends the round.
+	AJB_SetPhaseTimer(300.0);
+	AJB_StartRoundExpireTimer(300.0);
+	LogMessage("[AJB] First-round freedsay: timers armed.");
+
+	AJB_ChatAll("First Round Freeday");
+	AJB_ChatAll("Prepare");
+	LogMessage("[AJB] First-round freedsay: complete.");
 	return Plugin_Stop;
 }
 

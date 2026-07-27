@@ -14,17 +14,64 @@
 #include <ajb/enums>
 #include <ajb/constants>
 
+// =========================================================================================================
+// Round / lifecycle
+// =========================================================================================================
+
 forward void AJB_OnRoundStateChange(AJBRoundState oldState, AJBRoundState newState);
-forward void AJB_OnWardenChanged(int oldWarden, int newWarden);
-forward void AJB_OnRebel(int client, bool isRebel);
-forward void AJB_OnCellsOpened();
-forward void AJB_OnCellsClosed();
-forward void AJB_OnLastPrisoner(int client);
-// Warden picked "Give Last Request" in their menu — modules handle the picker/offer.
-forward void AJB_OnWardenGiveLR(int warden);
 // Live round begins: after prep ends, or right after round start if prep time is 0.
 // LR wishes and similar must apply here — never during preround/prep.
 forward void AJB_OnLiveRoundBegin();
+// Engine round win (teamplay_round_win). team is TF2 team index (2=RED, 3=BLU).
+forward void AJB_OnRoundWin(int team);
+// Main jail clock hit zero (guards win path). Fires before AJB_ForceTeamWin.
+forward void AJB_OnPhaseTimerExpired();
+// Mode enable flipped (map prefix / sm_ajb_enabled / sm_ajb_force / unload).
+forward void AJB_OnModeChanged(bool enabled);
+
+// =========================================================================================================
+// Prep window
+// =========================================================================================================
+
+forward void AJB_OnPrepStart(float duration);
+// Fires whenever an active prep window is torn down (natural end, combat day, cleanup).
+forward void AJB_OnPrepEnd();
+
+// =========================================================================================================
+// Warden / cells / last prisoner
+// =========================================================================================================
+
+forward void AJB_OnWardenChanged(int oldWarden, int newWarden);
+// Warden picked "Give Last Request" in their menu — modules handle the picker/offer.
+forward void AJB_OnWardenGiveLR(int warden);
+forward void AJB_OnCellsOpened();
+forward void AJB_OnCellsClosed();
+forward void AJB_OnLastPrisoner(int client);
+// Warden placed a "Come here!" ground marker.
+forward void AJB_OnWardenMarkerPlaced(int warden);
+
+// =========================================================================================================
+// Player state
+// =========================================================================================================
+
+forward void AJB_OnRebel(int client, bool isRebel);
+// freeday = new value. isPending = next-round queue (AJB_SetPlayerFreeday) vs current round.
+forward void AJB_OnFreedayChanged(int client, bool freeday, bool isPending);
+// Guard bounced to prisoners by the live-round ratio cap.
+forward void AJB_OnGuardBounced(int client);
+
+// =========================================================================================================
+// Special days / warden tools
+// =========================================================================================================
+
+forward void AJB_OnCombatDayStart();
+// Server-wide cosmetic freeday-all (cells open, no warden claim).
+forward void AJB_OnFreedayAllStart();
+forward void AJB_OnFriendlyFireChanged(bool enabled);
+// Teammate push (tf_avoidteammates_pushaway) toggled by warden.
+forward void AJB_OnTeamPushChanged(bool enabled);
+// Crit splash freekill blocked; judges get the decision menu after this.
+forward void AJB_OnFreekillDetected(int attacker, int victimCount);
 
 native bool AJB_IsEnabled();
 native AJBRoundState AJB_GetRoundState();

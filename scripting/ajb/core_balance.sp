@@ -45,6 +45,13 @@ bool AJB_Balance_Active()
 		return false;
 	}
 
+	// Combat / special days (War Day, HG, Zombie, …) move players across teams on purpose.
+	// Mid-round ratio bounce would undo those roles (e.g. infect → BLU then bounce to RED).
+	if (AJB_IsCombatDay())
+	{
+		return false;
+	}
+
 	return AJB_Balance_RoundLive();
 }
 
@@ -60,6 +67,15 @@ void AJB_Balance_Notify(int client, int maxGuards)
 	CPrintToChat(client, "%T", "Balance Guards Full", client, prefix, maxGuards);
 }
 
+void AJB_Frame_RespawnPlayer(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && IsClientInGame(client) && !IsPlayerAlive(client))
+	{
+		TF2_RespawnPlayer(client);
+	}
+}
+
 // Move a bounced guard down to the prisoners. ChangeClientTeam kills a live player, and prisoners get
 // no respawn wave mid-round — so without a forced respawn the moved player would sit dead (watching a
 // corpse) until the round ends. Respawn them so they actually get to play the round as a reo.
@@ -71,8 +87,9 @@ void AJB_Balance_MoveToPrisoners(int client, int maxGuards)
 	}
 
 	ChangeClientTeam(client, AJB_GetPrisonersTeam());
-	TF2_RespawnPlayer(client);
+	RequestFrame(AJB_Frame_RespawnPlayer, GetClientUserId(client));
 	AJB_Balance_Notify(client, maxGuards);
+	AJB_FireGuardBounced(client);
 }
 
 // Called from Event_PlayerTeam (post) once a client has landed on a team.
@@ -174,7 +191,8 @@ int AJB_Balance_ReconcileGuards()
 		int client = candidates[idx];
 		candidates[idx] = candidates[--count];
 
-		AJB_Balance_MoveToPrisoners(client, maxGuards);
+		// Defer bounce to frame to prevent recursive event dispatch / iterator corruption during round start
+		RequestFrame(AJB_Balance_BounceFrame, GetClientUserId(client));
 
 		moved++;
 		excess--;

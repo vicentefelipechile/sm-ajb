@@ -168,9 +168,18 @@ void AJB_Settings_LoadMapPrefixes(KeyValues kv)
 
 bool AJB_MapMatchesPrefix(const char[] map)
 {
+	char shortMap[PLATFORM_MAX_PATH];
+	strcopy(shortMap, sizeof(shortMap), map);
+
+	int slash = FindCharInString(shortMap, '/', true);
+	if (slash != -1)
+	{
+		strcopy(shortMap, sizeof(shortMap), shortMap[slash + 1]);
+	}
+
 	for (int i = 0; i < g_iMapPrefixCount; i++)
 	{
-		if (StrContains(map, g_szMapPrefixes[i], false) == 0)
+		if (g_szMapPrefixes[i][0] != '\0' && StrContains(shortMap, g_szMapPrefixes[i], false) == 0)
 		{
 			return true;
 		}
@@ -307,6 +316,7 @@ void AJB_BeginCombatDay()
 	AJB_OpenCellsInternal(true);
 	AJB_SetRoundState(AJBState_SpecialDay);
 	AJB_CombatDay_ArmAndTeleport();
+	AJB_FireCombatDayStart();
 }
 
 void AJB_BeginFreedayAllCosmetic()
@@ -316,6 +326,7 @@ void AJB_BeginFreedayAllCosmetic()
 	g_bCombatDay = false;
 	AJB_OpenCellsInternal(true);
 	AJB_SetRoundState(AJBState_CellsOpen);
+	AJB_FireFreedayAllStart();
 }
 
 void AJB_CombatDay_ArmAndTeleport()
@@ -412,6 +423,7 @@ void AJB_Freeday_KillTrailFx(int client)
 	}
 
 	g_PlayerFx[client].hasMid = false;
+
 }
 
 // Parented beams often do not render for the local player, so the trail anchor stays world-space.
@@ -440,14 +452,15 @@ void AJB_Freeday_EnsureTrailFx(int client)
 		}
 	}
 
-	// Constant green glow sprite — parented to the player for per-frame smooth movement.
+	// Constant green glow sprite — world space.
 	int glow = g_PlayerFx[client].glow;
 	if (glow <= MaxClients || !IsValidEntity(glow))
 	{
-		glow = AJB_CreateParentedGlow(client, "50 255 50", "ajb_fd");
+		glow = AJB_CreateGlow(client, "50 255 50", "ajb_fd");
 		if (glow != -1)
 		{
 			g_PlayerFx[client].glow = glow;
+			anchorCreated = true;
 		}
 	}
 
@@ -466,6 +479,10 @@ void AJB_Freeday_EnsureTrailFx(int client)
 	if (anchor > MaxClients && IsValidEntity(anchor))
 	{
 		TeleportEntity(anchor, mid, NULL_VECTOR, NULL_VECTOR);
+	}
+	if (glow > MaxClients && IsValidEntity(glow))
+	{
+		TeleportEntity(glow, mid, NULL_VECTOR, NULL_VECTOR);
 	}
 
 	g_PlayerFx[client].lastMid = mid;
@@ -496,17 +513,39 @@ void AJB_Rebel_EnsureGlow(int client)
 		return;
 	}
 
+	float mid[3];
+	AJB_Freeday_GetMidBody(client, mid);
+
+	bool created = false;
 	int glow = g_PlayerFx[client].rebelGlow;
-	if (glow > MaxClients && IsValidEntity(glow))
+	if (glow <= MaxClients || !IsValidEntity(glow))
 	{
-		return; // already alive
+		glow = AJB_CreateGlow(client, "255 150 0", "ajb_rb");
+		if (glow != -1)
+		{
+			g_PlayerFx[client].rebelGlow = glow;
+			created = true;
+		}
 	}
 
-	glow = AJB_CreateParentedGlow(client, "255 150 0", "ajb_rb");
-	if (glow != -1)
+	if (!created && g_PlayerFx[client].hasMid)
 	{
-		g_PlayerFx[client].rebelGlow = glow;
+		float dx = mid[0] - g_PlayerFx[client].lastMid[0];
+		float dy = mid[1] - g_PlayerFx[client].lastMid[1];
+		float dz = mid[2] - g_PlayerFx[client].lastMid[2];
+		if (dx * dx + dy * dy + dz * dz < AJB_FREEDAY_MOVE_SQR)
+		{
+			return;
+		}
 	}
+
+	if (glow > MaxClients && IsValidEntity(glow))
+	{
+		TeleportEntity(glow, mid, NULL_VECTOR, NULL_VECTOR);
+	}
+
+	g_PlayerFx[client].lastMid = mid;
+	g_PlayerFx[client].hasMid = true;
 }
 
 void AJB_Rebel_KillGlow(int client)
@@ -522,13 +561,14 @@ void AJB_Rebel_KillGlow(int client)
 	{
 		AcceptEntityInput(ent, "Kill");
 	}
+
 }
 
 // =========================================================================================================
 // Shared: create a parented env_sprite glow at mid-body height
 // =========================================================================================================
 
-int AJB_CreateParentedGlow(int client, const char[] color, const char[] prefix)
+int AJB_CreateGlow(int client, const char[] color, const char[] prefix)
 {
 	int glow = CreateEntityByName("env_sprite");
 	if (glow == -1)
@@ -546,23 +586,6 @@ int AJB_CreateParentedGlow(int client, const char[] color, const char[] prefix)
 	DispatchKeyValue(glow, "GlowProxySize", "12.0");
 	DispatchSpawn(glow);
 	AcceptEntityInput(glow, "ShowSprite");
-
-	// Parent to the player so Source moves it every rendered frame.
-	float origin[3];
-	float eyes[3];
-	GetClientAbsOrigin(client, origin);
-	GetClientEyePosition(client, eyes);
-	float offset[3];
-	offset[0] = 0.0;
-	offset[1] = 0.0;
-	offset[2] = (eyes[2] - origin[2]) * 0.5;
-	TeleportEntity(glow, offset, NULL_VECTOR, NULL_VECTOR);
-
-	char targetName[32];
-	Format(targetName, sizeof(targetName), "%s_%d", prefix, client);
-	DispatchKeyValue(client, "targetname", targetName);
-	SetVariantString(targetName);
-	AcceptEntityInput(glow, "SetParent");
 
 	return glow;
 }
