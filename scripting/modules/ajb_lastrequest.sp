@@ -1,7 +1,7 @@
 // =========================================================================================================
 // Another Jailbreak — Last Request
 // Classic JB wishes (not melee duels): freeday, warday, class warfare, custom, hot reds,
-// suicide, low grav, hide and seek, hunger games.
+// suicide, low grav, hide and seek, hunger games, zombie mode.
 // =========================================================================================================
 
 #pragma semicolon 1
@@ -20,7 +20,7 @@
 
 #include <ajb/phrases>
 
-#define PLUGIN_VERSION "1.2.0"
+#define PLUGIN_VERSION "1.3.0"
 
 #define LR_SUICIDE_DELAY   5.0
 #define LR_HOT_DPS         8.0
@@ -36,6 +36,12 @@
 #define LR_REOPEN_RETRY       5.0
 #define LR_HG_GRACE_DEFAULT   30.0
 #define LR_HG_ROUND_DEFAULT   300.0
+#define LR_ZM_INFECT_DEFAULT  20.0
+#define LR_ZM_HITS_DEFAULT    2
+#define LR_ZM_RESPAWN_DEFAULT 5.0
+#define LR_ZM_PROTECT_DEFAULT 5.0
+#define LR_ZM_ROUND_DEFAULT   300.0
+#define LR_ZM_MATE_Z_OFFSET   8.0
 
 enum AJB_LRWish
 {
@@ -53,7 +59,9 @@ enum AJB_LRWish
 	LRWish_HungerGames,
 	LRWish_Sniper,
 	LRWish_SetAllClass,
-	LRWish_GuardMelee
+	LRWish_GuardMelee,
+	LRWish_ZombieMode,
+	LRWish_CellWars
 };
 
 enum AJB_SetAllClassTarget
@@ -81,6 +89,11 @@ ConVar g_cvHSHideTime;
 ConVar g_cvHSRoundTime;
 ConVar g_cvHGGraceTime;
 ConVar g_cvHGRoundTime;
+ConVar g_cvZMInfectDelay;
+ConVar g_cvZMHits;
+ConVar g_cvZMRespawn;
+ConVar g_cvZMSpawnProtect;
+ConVar g_cvZMRoundTime;
 ConVar g_cvSniperMin;
 ConVar g_cvSniperMax;
 ConVar g_cvSniperForce;
@@ -113,7 +126,31 @@ TFClassType g_HGClass;
 bool g_bHGEnding;          // true while we force the round end (ignore extra death checks)
 bool g_bHGOriginalBlu[MAXPLAYERS + 1];
 
-// Guard Melee: guards are stripped to melee only next round
+// Zombie Mode: everyone RED (humans); after grace one BLU patient-zero; 2 hits infect.
+// Team is the role: RED = human, BLU = zombie (combat day + balance skip keep this stable).
+bool g_bZombieMode;
+bool g_bZMGrace;           // true until patient zero is chosen
+bool g_bZMEnding;
+// Pre-mode team (2/3) so cleanup can put everyone back on their real side.
+int g_iZMOriginalTeam[MAXPLAYERS + 1];
+int g_iZMHits[MAXPLAYERS + 1];
+bool g_bZMPendingInfect[MAXPLAYERS + 1]; // RequestFrame in flight — avoid double infect
+	int g_iZMPendingInfectBy[MAXPLAYERS + 1]; // attacker userid for deferred infect announce
+	bool g_bZMTeamSwap[MAXPLAYERS + 1];       // ignore death events from intentional team moves
+	Handle g_hZMRespawnTimer[MAXPLAYERS + 1];
+	
+	// Cell Wars: everyone on RED locked in cells. FF on from start. Jump to teleport.
+	bool g_bCellWars;
+	bool g_bCWMeleeOnly;
+	bool g_bCWEnding;
+	bool g_bCWOriginalBlu[MAXPLAYERS + 1];
+	int g_iCWLastButtons[MAXPLAYERS + 1];
+	Handle g_hCWEndTimer;
+	bool g_PendingCWMeleeOnly;
+	bool g_bCWDraftMelee;
+	ConVar g_cvCWRoundTime;
+	
+	// Guard Melee: guards are stripped to melee only next round
 bool g_bGuardMeleeActive;
 
 // Set All Class: forced class for target team(s) next round
@@ -129,6 +166,8 @@ Handle g_hHSHideTimer;   // fires when the hide window ends → release seekers
 Handle g_hHSEndTimer;    // authoritative 5-minute round end (hiders win on timeout)
 Handle g_hHGGraceTimer;
 Handle g_hHGEndTimer;
+Handle g_hZMGraceTimer;  // fires → pick patient zero
+Handle g_hZMEndTimer;    // timeout → humans win if any RED alive
 
 // Freeday multi-pick (panel; chooser listed first, then other living prisoners)
 bool g_bPickedFreeday[MAXPLAYERS + 1];
@@ -379,6 +418,12 @@ void AJB_LR_ShowWishMenu(int prisoner)
 	Format(line, sizeof(line), "%T", "LR Wish HungerGames", prisoner);
 	menu.AddItem("hungergames", line);
 
+	Format(line, sizeof(line), "%T", "LR Wish ZombieMode", prisoner);
+	menu.AddItem("zombiemode", line);
+
+	Format(line, sizeof(line), "%T", "LR Wish CellWars", prisoner);
+	menu.AddItem("cellwars", line);
+
 	Format(line, sizeof(line), "%T", "LR Wish Sniper", prisoner);
 	menu.AddItem("sniper", line);
 
@@ -462,6 +507,14 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 	{
 		AJB_LR_StartHungerGamesConfig(client);
 	}
+	else if (StrEqual(info, "zombiemode"))
+	{
+		AJB_LR_DoZombieMode(client);
+	}
+	else if (StrEqual(info, "cellwars"))
+	{
+		AJB_LR_StartCellWarsConfig(client);
+	}
 	else if (StrEqual(info, "sniper"))
 	{
 		AJB_LR_DoSniper(client);
@@ -525,6 +578,14 @@ public MRESReturn Detour_SetWinningTeam(DHookReturn hReturn, DHookParam hParams)
 	{
 		return MRES_Supercede;
 	}
+	if (g_bZombieMode && !g_bZMEnding)
+	{
+		return MRES_Supercede;
+	}
+	if (g_bCellWars && !g_bCWEnding)
+	{
+		return MRES_Supercede;
+	}
 	return MRES_Ignored;
 }
 
@@ -540,6 +601,12 @@ public void OnPluginStart()
 	g_cvHSRoundTime = CreateConVar("sm_ajb_lr_hs_round_time", "300", "Hide and Seek: total round duration in seconds (hiders win on timeout).", _, true, 60.0, true, 900.0);
 	g_cvHGGraceTime = CreateConVar("sm_ajb_lr_hg_grace_time", "30", "Hunger Games: seconds after live round begin before friendly fire turns on.", _, true, 5.0, true, 120.0);
 	g_cvHGRoundTime = CreateConVar("sm_ajb_lr_hg_round_time", "300", "Hunger Games: total round duration in seconds (survivors win on timeout).", _, true, 60.0, true, 900.0);
+	g_cvZMInfectDelay = CreateConVar("sm_ajb_lr_zm_infect_delay", "20", "Zombie Mode: seconds after live round begin before the first random zombie is chosen.", _, true, 5.0, true, 60.0);
+	g_cvZMHits = CreateConVar("sm_ajb_lr_zm_hits", "2", "Zombie Mode: damaging hits from zombies required to infect a human.", _, true, 1.0, true, 10.0);
+	g_cvZMRespawn = CreateConVar("sm_ajb_lr_zm_respawn", "5", "Zombie Mode: seconds before a dead zombie respawns.", _, true, 1.0, true, 30.0);
+	g_cvZMSpawnProtect = CreateConVar("sm_ajb_lr_zm_spawn_protect", "5", "Zombie Mode: invulnerability seconds after a zombie respawns (spawn-camp protection).", _, true, 0.0, true, 30.0);
+	g_cvZMRoundTime = CreateConVar("sm_ajb_lr_zm_round_time", "300", "Zombie Mode: total round duration in seconds (humans win on timeout if any remain).", _, true, 60.0, true, 900.0);
+	g_cvCWRoundTime = CreateConVar("sm_ajb_lr_cw_round_time", "300", "Cell Wars: total round duration in seconds (survivors win on timeout).", _, true, 60.0, true, 900.0);
 	g_cvSniperMin = CreateConVar("sm_ajb_lr_sniper_min", "10.0", "Sniper: minimum interval in seconds between sniper shots.", _, true, 2.0, true, 300.0);
 	g_cvSniperMax = CreateConVar("sm_ajb_lr_sniper_max", "25.0", "Sniper: maximum interval in seconds between sniper shots.", _, true, 5.0, true, 600.0);
 	g_cvSniperForce = CreateConVar("sm_ajb_lr_sniper_force", "800.0", "Sniper: ragdoll / impact force impulse.", _, true, 100.0, true, 3000.0);
@@ -624,10 +691,16 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_StartTouch, AJB_LR_OnStartTouch);
 	SDKHook(client, SDKHook_OnTakeDamage, AJB_LR_OnTakeDamage);
 	g_bPickedFreeday[client] = false;
+	g_iCWLastButtons[client] = 0;
 }
 
 public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
 {
+	if (g_bZombieMode)
+	{
+		return AJB_LR_ZM_OnTakeDamage(victim, attacker, damage);
+	}
+
 	if (!g_bHungerGames)
 	{
 		return Plugin_Continue;
@@ -653,6 +726,13 @@ public void OnClientDisconnect(int client)
 {
 	g_bPickedFreeday[client] = false;
 	g_bHGOriginalBlu[client] = false;
+	g_bCWOriginalBlu[client] = false;
+	g_iZMOriginalTeam[client] = 0;
+	g_iZMHits[client] = 0;
+	g_bZMPendingInfect[client] = false;
+	g_iZMPendingInfectBy[client] = 0;
+	g_bZMTeamSwap[client] = false;
+	AJB_LR_ZM_KillRespawnTimer(client);
 
 	if (client == g_iPrisoner)
 	{
@@ -661,6 +741,12 @@ public void OnClientDisconnect(int client)
 			g_bAwaitingCustom = false;
 		}
 		AJB_LR_Cleanup(true);
+		return;
+	}
+
+	if (g_bZombieMode && !g_bZMEnding)
+	{
+		RequestFrame(Frame_ZMCheckWinner);
 	}
 }
 
@@ -751,14 +837,28 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 // Post hooks (including our cleanup) must still run.
 Action Event_RoundWinPre(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!g_bHungerGames || g_bHGEnding)
+	if (g_bHungerGames && !g_bHGEnding)
 	{
-		return Plugin_Continue;
+		event.BroadcastDisabled = true;
+		LogMessage("[AJB-LR] Unexpected teamplay_round_win during Hunger Games (not plugin-ended); suppressed broadcast.");
+		return Plugin_Changed;
 	}
 
-	event.BroadcastDisabled = true;
-	LogMessage("[AJB-LR] Unexpected teamplay_round_win during Hunger Games (not plugin-ended); suppressed broadcast.");
-	return Plugin_Changed;
+	if (g_bZombieMode && !g_bZMEnding)
+	{
+		event.BroadcastDisabled = true;
+		LogMessage("[AJB-LR] Unexpected teamplay_round_win during Zombie Mode (not plugin-ended); suppressed broadcast.");
+		return Plugin_Changed;
+	}
+
+	if (g_bCellWars && !g_bCWEnding)
+	{
+		event.BroadcastDisabled = true;
+		LogMessage("[AJB-LR] Unexpected teamplay_round_win during Cell Wars (not plugin-ended); suppressed broadcast.");
+		return Plugin_Changed;
+	}
+
+	return Plugin_Continue;
 }
 
 void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
@@ -780,6 +880,18 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 	if (g_bHungerGames)
 	{
 		AJB_LR_HG_OnPlayerSpawn(client);
+		return;
+	}
+
+	if (g_bZombieMode)
+	{
+		AJB_LR_ZM_OnPlayerSpawn(client);
+		return;
+	}
+
+	if (g_bCellWars)
+	{
+		AJB_LR_CW_OnPlayerSpawn(client);
 		return;
 	}
 
@@ -860,6 +972,7 @@ void AJB_LR_ClearPendingWish()
 	g_PendingHGClass = TFClass_Unknown;
 	g_PendingSetAllClassTarget = SetAllClass_All;
 	g_PendingSetAllClassType = TFClass_Scout;
+	g_PendingCWMeleeOnly = false;
 }
 
 void AJB_LR_ClearClassWarfareActive()
@@ -947,6 +1060,7 @@ void AJB_LR_ApplyPendingWish()
 	bool meleeOnly = g_PendingHGMeleeOnly;
 	bool classRandom = g_PendingHGClassRandom;
 	TFClassType hgClass = g_PendingHGClass;
+	bool meleeOnlyCW = g_PendingCWMeleeOnly;
 	AJB_SetAllClassTarget setAllTarget = g_PendingSetAllClassTarget;
 	TFClassType setAllClass = g_PendingSetAllClassType;
 	char chooser[64];
@@ -1044,6 +1158,14 @@ void AJB_LR_ApplyPendingWish()
 		case LRWish_HungerGames:
 		{
 			AJB_LR_ApplyHungerGames(chooser, meleeOnly, classRandom, hgClass);
+		}
+		case LRWish_ZombieMode:
+		{
+			AJB_LR_ApplyZombieMode(chooser);
+		}
+		case LRWish_CellWars:
+		{
+			AJB_LR_ApplyCellWars(chooser, meleeOnlyCW);
 		}
 		case LRWish_Sniper:
 		{
@@ -2201,6 +2323,630 @@ void AJB_LR_ChatAllHungerGamesApplied(const char[] chooserName, bool meleeOnly, 
 }
 
 // =========================================================================================================
+// Zombie Mode
+// =========================================================================================================
+// Humans = RED, zombies = BLU. Grace → patient zero → 2 hits infect. Dead zombies respawn with uber.
+
+void AJB_LR_DoZombieMode(int prisoner)
+{
+	AJB_LR_QueueWish(prisoner, LRWish_ZombieMode, "LR Chose ZombieMode");
+}
+
+void AJB_LR_ApplyZombieMode(const char[] chooser)
+{
+	g_bZombieMode = true;
+	g_bZMGrace = true;
+	g_bZMEnding = false;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_iZMHits[i] = 0;
+		g_bZMPendingInfect[i] = false;
+		g_iZMPendingInfectBy[i] = 0;
+		g_bZMTeamSwap[i] = false;
+		g_iZMOriginalTeam[i] = 0;
+		AJB_LR_ZM_KillRespawnTimer(i);
+	}
+
+	AJB_BeginCombatDay();
+	AJB_ClearWarden();
+	AJB_SetRebelOnHit(false);
+	AJB_ClearPhaseTimer();
+
+	AJB_OpenCells();
+	if (g_bHasCore)
+	{
+		AJB_SetRoundState(AJBState_SpecialDay);
+	}
+
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	int blueTeam = AJB_LR_GetGuardsTeam();
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		int team = GetClientTeam(i);
+		// Snapshot real side before we fold everyone onto RED for the infection round.
+		if (team == redTeam || team == blueTeam)
+		{
+			g_iZMOriginalTeam[i] = team;
+		}
+
+		if (team == blueTeam)
+		{
+			g_bZMTeamSwap[i] = true;
+			ChangeClientTeam(i, 1);
+			ChangeClientTeam(i, redTeam);
+			g_bZMTeamSwap[i] = false;
+		}
+
+		if (!IsPlayerAlive(i) && GetClientTeam(i) == redTeam)
+		{
+			TF2_RespawnPlayer(i);
+		}
+	}
+
+	RequestFrame(Frame_ZMArmHumans);
+
+	float grace = g_cvZMInfectDelay.FloatValue;
+	if (grace < 5.0)
+	{
+		grace = LR_ZM_INFECT_DEFAULT;
+	}
+
+	float roundTime = g_cvZMRoundTime.FloatValue;
+	if (roundTime < 60.0)
+	{
+		roundTime = LR_ZM_ROUND_DEFAULT;
+	}
+
+	AJB_SetPhaseTimer(roundTime);
+	AJB_LR_KillZMTimers();
+	g_hZMGraceTimer = CreateTimer(grace, Timer_ZMGraceEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+	g_hZMEndTimer = CreateTimer(roundTime, Timer_ZMEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	AJB_LR_ChatAllZombieApplied(chooser, grace);
+}
+
+void Frame_ZMArmHumans(any data)
+{
+	if (!g_bZombieMode)
+	{
+		return;
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && AJB_IsPrisoner(i))
+		{
+			AJB_LR_ZM_ArmHuman(i);
+		}
+	}
+}
+
+void AJB_LR_ZM_ArmHuman(int client)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	TF2_RegeneratePlayer(client);
+}
+
+void AJB_LR_ZM_ArmZombie(int client)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	TF2_RegeneratePlayer(client);
+	AJB_LR_HG_StripToMelee(client);
+}
+
+void AJB_LR_ZM_OnPlayerSpawn(int client)
+{
+	if (!g_bZombieMode || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	int team = GetClientTeam(client);
+	if (team < 2)
+	{
+		return;
+	}
+
+	RequestFrame(Frame_ZMArmClient, GetClientUserId(client));
+}
+
+void Frame_ZMArmClient(int userid)
+{
+	if (!g_bZombieMode)
+	{
+		return;
+	}
+
+	int client = GetClientOfUserId(userid);
+	if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	if (AJB_IsGuard(client))
+	{
+		AJB_LR_ZM_ArmZombie(client);
+	}
+	else if (AJB_IsPrisoner(client) && g_bZMGrace)
+	{
+		// Only re-arm humans during the pre-infection scatter window.
+		AJB_LR_ZM_ArmHuman(client);
+	}
+}
+
+Action AJB_LR_ZM_OnTakeDamage(int victim, int attacker, float damage)
+{
+	if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients)
+	{
+		return Plugin_Continue;
+	}
+
+	if (g_bZMGrace || g_bZMEnding)
+	{
+		return Plugin_Handled;
+	}
+
+	if (damage <= 0.0 || attacker == victim)
+	{
+		return Plugin_Continue;
+	}
+
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	int blueTeam = AJB_LR_GetGuardsTeam();
+
+	// Only zombie → human hits count toward infection.
+	if (GetClientTeam(attacker) != blueTeam || GetClientTeam(victim) != redTeam)
+	{
+		return Plugin_Continue;
+	}
+
+	if (g_bZMPendingInfect[victim])
+	{
+		return Plugin_Continue;
+	}
+
+	g_iZMHits[victim]++;
+	int need = g_cvZMHits.IntValue;
+	if (need < 1)
+	{
+		need = LR_ZM_HITS_DEFAULT;
+	}
+
+	if (g_iZMHits[victim] >= need)
+	{
+		g_bZMPendingInfect[victim] = true;
+		g_iZMPendingInfectBy[victim] = GetClientUserId(attacker);
+		// Defer so a lethal hit can finish before team swap / respawn.
+		RequestFrame(Frame_ZMInfect, GetClientUserId(victim));
+	}
+
+	return Plugin_Continue;
+}
+
+void Frame_ZMInfect(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client < 1)
+	{
+		return;
+	}
+
+	int attacker = GetClientOfUserId(g_iZMPendingInfectBy[client]);
+	g_bZMPendingInfect[client] = false;
+	g_iZMPendingInfectBy[client] = 0;
+
+	if (!g_bZombieMode || g_bZMEnding || !IsClientInGame(client))
+	{
+		return;
+	}
+
+	// Still human, or already dead on RED/spec after a lethal infect hit.
+	int team = GetClientTeam(client);
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	if (team == AJB_LR_GetGuardsTeam())
+	{
+		return;
+	}
+	if (team != redTeam && IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	AJB_LR_ZM_Infect(client, attacker, false);
+}
+
+// patientZero = first random pick (announces differently). attacker is optional (0 = none).
+void AJB_LR_ZM_Infect(int client, int attacker, bool patientZero)
+{
+	if (!g_bZombieMode || g_bZMEnding || client < 1 || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	int blueTeam = AJB_LR_GetGuardsTeam();
+	if (GetClientTeam(client) == blueTeam)
+	{
+		return;
+	}
+
+	g_iZMHits[client] = 0;
+	g_bZMPendingInfect[client] = false;
+	g_iZMPendingInfectBy[client] = 0;
+	AJB_LR_ZM_KillRespawnTimer(client);
+
+	float origin[3];
+	float angles[3];
+	bool hadPos = IsPlayerAlive(client);
+	if (hadPos)
+	{
+		GetClientAbsOrigin(client, origin);
+		GetClientEyeAngles(client, angles);
+	}
+
+	// Spectator transit avoids a direct cross-team death event mid-infect.
+	g_bZMTeamSwap[client] = true;
+	ChangeClientTeam(client, 1);
+	ChangeClientTeam(client, blueTeam);
+	g_bZMTeamSwap[client] = false;
+
+	if (!IsPlayerAlive(client))
+	{
+		TF2_RespawnPlayer(client);
+	}
+
+	if (IsPlayerAlive(client))
+	{
+		AJB_LR_ZM_ArmZombie(client);
+		if (hadPos)
+		{
+			float noVel[3];
+			TeleportEntity(client, origin, angles, noVel);
+		}
+	}
+
+	if (patientZero)
+	{
+		AJB_LR_ChatAll1N("LR ZM Patient Zero", client);
+	}
+	else if (attacker > 0 && IsClientInGame(attacker))
+	{
+		AJB_LR_ChatAll2N("LR ZM Infected", attacker, client);
+	}
+	else
+	{
+		AJB_LR_ChatAll1N("LR ZM Infected Solo", client);
+	}
+
+	RequestFrame(Frame_ZMCheckWinner);
+}
+
+void AJB_LR_ZM_OnPlayerDeath(int victim)
+{
+	if (!g_bZombieMode || g_bZMEnding || victim < 1 || victim > MaxClients)
+	{
+		return;
+	}
+
+	// Intentional team moves (gather / infect) kill via spectator transit — ignore those.
+	if (g_bZMTeamSwap[victim])
+	{
+		return;
+	}
+
+	g_iZMHits[victim] = 0;
+
+	int blueTeam = AJB_LR_GetGuardsTeam();
+	// Event is post: team may already be spectator. Prefer "was zombie" via pending infect
+	// (still human converting) vs schedule respawn only when still/on BLU or dead as guard role.
+	// Use attacker-side role before death: if they had a pending infect, conversion frame owns them.
+	if (g_bZMPendingInfect[victim])
+	{
+		return;
+	}
+
+	// Dead ringer already filtered. If they died as BLU zombie, respawn; else human wipe check.
+	// Post-death GetClientTeam is often still the pre-death team in TF2.
+	if (GetClientTeam(victim) == blueTeam)
+	{
+		AJB_LR_ZM_ScheduleRespawn(victim);
+		return;
+	}
+
+	// Human death: no respawn — check if zombies wiped the living RED side.
+	RequestFrame(Frame_ZMCheckWinner);
+}
+
+void AJB_LR_ZM_ScheduleRespawn(int client)
+{
+	if (client < 1 || client > MaxClients)
+	{
+		return;
+	}
+
+	AJB_LR_ZM_KillRespawnTimer(client);
+
+	float delay = g_cvZMRespawn.FloatValue;
+	if (delay < 1.0)
+	{
+		delay = LR_ZM_RESPAWN_DEFAULT;
+	}
+
+	g_hZMRespawnTimer[client] = CreateTimer(delay, Timer_ZMRespawn, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+}
+
+void AJB_LR_ZM_KillRespawnTimer(int client)
+{
+	if (client < 1 || client > MaxClients)
+	{
+		return;
+	}
+
+	if (g_hZMRespawnTimer[client] != null)
+	{
+		delete g_hZMRespawnTimer[client];
+		g_hZMRespawnTimer[client] = null;
+	}
+}
+
+void AJB_LR_ZM_KillAllRespawnTimers()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		AJB_LR_ZM_KillRespawnTimer(i);
+	}
+}
+
+Action Timer_ZMRespawn(Handle timer, int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && client <= MaxClients)
+	{
+		g_hZMRespawnTimer[client] = null;
+	}
+
+	if (!g_bZombieMode || g_bZMEnding)
+	{
+		return Plugin_Stop;
+	}
+
+	if (client < 1 || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return Plugin_Stop;
+	}
+
+	int blueTeam = AJB_LR_GetGuardsTeam();
+	if (GetClientTeam(client) != blueTeam)
+	{
+		return Plugin_Stop;
+	}
+
+	if (IsPlayerAlive(client))
+	{
+		return Plugin_Stop;
+	}
+
+	TF2_RespawnPlayer(client);
+	if (!IsPlayerAlive(client))
+	{
+		return Plugin_Stop;
+	}
+
+	AJB_LR_ZM_ArmZombie(client);
+	AJB_LR_ZM_TeleportRespawn(client);
+
+	float protect = g_cvZMSpawnProtect.FloatValue;
+	if (protect > 0.0)
+	{
+		TF2_AddCondition(client, TFCond_Ubercharged, protect);
+	}
+
+	return Plugin_Stop;
+}
+
+void AJB_LR_ZM_TeleportRespawn(int client)
+{
+	float origin[3];
+	float angles[3];
+	float noVel[3];
+
+	int mate = AJB_LR_ZM_PickAliveTeammate(client);
+	if (mate > 0)
+	{
+		GetClientAbsOrigin(mate, origin);
+		GetClientEyeAngles(mate, angles);
+		origin[2] += LR_ZM_MATE_Z_OFFSET;
+		TeleportEntity(client, origin, angles, noVel);
+		return;
+	}
+
+	int spawn = AJB_LR_FindGuardSpawn();
+	if (spawn != -1)
+	{
+		GetEntPropVector(spawn, Prop_Data, "m_vecOrigin", origin);
+		GetEntPropVector(spawn, Prop_Data, "m_angRotation", angles);
+		TeleportEntity(client, origin, angles, noVel);
+	}
+}
+
+int AJB_LR_ZM_PickAliveTeammate(int self)
+{
+	int blueTeam = AJB_LR_GetGuardsTeam();
+	int list[MAXPLAYERS];
+	int count = 0;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (i == self || !IsClientInGame(i) || !IsPlayerAlive(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+		if (GetClientTeam(i) == blueTeam)
+		{
+			list[count++] = i;
+		}
+	}
+
+	if (count <= 0)
+	{
+		return 0;
+	}
+
+	return list[GetRandomInt(0, count - 1)];
+}
+
+Action Timer_ZMGraceEnd(Handle timer)
+{
+	g_hZMGraceTimer = null;
+
+	if (!g_bZombieMode || g_bZMEnding)
+	{
+		return Plugin_Stop;
+	}
+
+	g_bZMGrace = false;
+
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	int candidates[MAXPLAYERS];
+	int count = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
+		{
+			candidates[count++] = i;
+		}
+	}
+
+	if (count < 1)
+	{
+		g_bZMEnding = true;
+		AJB_ChatAll("LR ZM NoHumans");
+		if (g_bHasCore)
+		{
+			AJB_ForceTeamWin(AJB_LR_GetGuardsTeam());
+		}
+		return Plugin_Stop;
+	}
+
+	int pick = candidates[GetRandomInt(0, count - 1)];
+	AJB_LR_ZM_Infect(pick, 0, true);
+	AJB_ChatAll("LR ZM Grace End");
+	return Plugin_Stop;
+}
+
+Action Timer_ZMEnd(Handle timer)
+{
+	g_hZMEndTimer = null;
+
+	if (!g_bZombieMode || !g_bHasCore || g_bZMEnding)
+	{
+		return Plugin_Stop;
+	}
+
+	g_bZMEnding = true;
+
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	bool anyHuman = false;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
+		{
+			anyHuman = true;
+			break;
+		}
+	}
+
+	if (anyHuman)
+	{
+		AJB_ChatAll("LR ZM Humans Win");
+		AJB_ForceTeamWin(redTeam);
+	}
+	else
+	{
+		AJB_ChatAll("LR ZM Zombies Win");
+		AJB_ForceTeamWin(AJB_LR_GetGuardsTeam());
+	}
+
+	return Plugin_Stop;
+}
+
+void Frame_ZMCheckWinner(any data)
+{
+	if (!g_bZombieMode || g_bZMEnding || !g_bHasCore)
+	{
+		return;
+	}
+
+	// Patient zero not out yet — do not end on early deaths during scatter.
+	if (g_bZMGrace)
+	{
+		return;
+	}
+
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	int aliveHumans = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
+		{
+			aliveHumans++;
+		}
+	}
+
+	if (aliveHumans <= 0)
+	{
+		g_bZMEnding = true;
+		AJB_ChatAll("LR ZM Zombies Win");
+		AJB_ForceTeamWin(AJB_LR_GetGuardsTeam());
+	}
+}
+
+void AJB_LR_KillZMTimers()
+{
+	if (g_hZMGraceTimer != null)
+	{
+		delete g_hZMGraceTimer;
+		g_hZMGraceTimer = null;
+	}
+	if (g_hZMEndTimer != null)
+	{
+		delete g_hZMEndTimer;
+		g_hZMEndTimer = null;
+	}
+}
+
+void AJB_LR_ChatAllZombieApplied(const char[] chooserName, float grace)
+{
+	int graceSec = RoundToFloor(grace);
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		char prefix[32];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+		CPrintToChat(i, "%T", "LR Applied ZombieMode", i, prefix,
+			chooserName[0] != '\0' ? chooserName : "LR", graceSec);
+	}
+}
+
+// =========================================================================================================
 // Hide and Seek
 // =========================================================================================================
 
@@ -2532,7 +3278,7 @@ void AJB_LR_KillSniperTimer()
 
 void AJB_LR_Cleanup(bool announce)
 {
-	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bSniper);
+	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bZombieMode || g_bSniper || g_bCellWars);
 	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
 
 	AJB_LR_KillMenuTimer();
@@ -2540,7 +3286,10 @@ void AJB_LR_Cleanup(bool announce)
 	AJB_LR_KillHotTimer();
 	AJB_LR_KillHSTimers();
 	AJB_LR_KillHGTimers();
+	AJB_LR_KillZMTimers();
+	AJB_LR_ZM_KillAllRespawnTimers();
 	AJB_LR_KillSniperTimer();
+	AJB_LR_KillCWTimers();
 
 	g_iPrisoner = 0;
 	g_bMenuOpen = false;
@@ -2549,6 +3298,7 @@ void AJB_LR_Cleanup(bool announce)
 	g_bHGDraftMelee = false;
 	g_bHGDraftClassRandom = false;
 	g_HGDraftClass = TFClass_Unknown;
+	g_bCWDraftMelee = false;
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -2616,6 +3366,55 @@ void AJB_LR_Cleanup(bool announce)
 			if (g_bHGOriginalBlu[i])
 			{
 				g_bHGOriginalBlu[i] = false;
+				if (IsClientInGame(i) && GetClientTeam(i) != blueTeam)
+				{
+					TF2_ChangeClientTeam(i, view_as<TFTeam>(blueTeam));
+				}
+			}
+		}
+	}
+
+	if (g_bZombieMode)
+	{
+		g_bZombieMode = false;
+		g_bZMGrace = false;
+		g_bZMEnding = false;
+
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			g_iZMHits[i] = 0;
+			g_bZMPendingInfect[i] = false;
+			g_iZMPendingInfectBy[i] = 0;
+			g_bZMTeamSwap[i] = false;
+
+			int want = g_iZMOriginalTeam[i];
+			g_iZMOriginalTeam[i] = 0;
+			if (want < 2 || !IsClientInGame(i))
+			{
+				continue;
+			}
+
+			// Put every participant back on the team they had before Zombie Mode started.
+			if (GetClientTeam(i) != want)
+			{
+				TF2_ChangeClientTeam(i, view_as<TFTeam>(want));
+			}
+		}
+	}
+
+	if (g_bCellWars)
+	{
+		g_bCellWars = false;
+		g_bCWMeleeOnly = false;
+		g_bCWEnding = false;
+		AJB_LR_HG_SetFriendlyFire(false);
+
+		int blueTeam = AJB_LR_GetGuardsTeam();
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (g_bCWOriginalBlu[i])
+			{
+				g_bCWOriginalBlu[i] = false;
 				if (IsClientInGame(i) && GetClientTeam(i) != blueTeam)
 				{
 					TF2_ChangeClientTeam(i, view_as<TFTeam>(blueTeam));
@@ -3241,6 +4040,16 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 		AJB_LR_HG_OnPlayerDeath(victim);
 	}
 
+	if (g_bZombieMode)
+	{
+		AJB_LR_ZM_OnPlayerDeath(victim);
+	}
+
+	if (g_bCellWars)
+	{
+		AJB_LR_CW_OnPlayerDeath(victim);
+	}
+
 	if (victim == g_iPrisoner)
 	{
 		if (g_bAwaitingCustom)
@@ -3248,5 +4057,311 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 			g_bAwaitingCustom = false;
 		}
 		AJB_LR_Cleanup(true);
+	}
+}
+
+// =========================================================================================================
+// Cell Wars
+// =========================================================================================================
+
+void AJB_LR_StartCellWarsConfig(int prisoner)
+{
+	g_bCWDraftMelee = false;
+	g_bMenuOpen = true;
+	AJB_LR_ShowCellWarsMenu(prisoner);
+	AJB_LR_StartMenuTimers(prisoner);
+}
+
+void AJB_LR_ShowCellWarsMenu(int prisoner)
+{
+	if (prisoner < 1 || !IsClientInGame(prisoner)) return;
+
+	Menu menu = new Menu(MenuHandler_CellWars);
+	char title[64], line[96];
+
+	Format(title, sizeof(title), "%T", "LR CW Menu Title", prisoner);
+	menu.SetTitle(title);
+
+	Format(line, sizeof(line), "%T", g_bCWDraftMelee ? "LR HG Opt Melee On" : "LR HG Opt Melee Off", prisoner);
+	menu.AddItem("melee", line);
+
+	Format(line, sizeof(line), "%T", "LR CW Opt Confirm", prisoner);
+	menu.AddItem("confirm", line);
+
+	Format(line, sizeof(line), "%T", "LR HG Opt Back", prisoner);
+	menu.AddItem("back", line);
+
+	menu.ExitButton = false;
+	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+public int MenuHandler_CellWars(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+	if (action != MenuAction_Select) return 0;
+
+	int client = param1;
+	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client)) return 0;
+
+	char info[16];
+	menu.GetItem(param2, info, sizeof(info));
+
+	if (StrEqual(info, "melee"))
+	{
+		g_bCWDraftMelee = !g_bCWDraftMelee;
+		AJB_LR_ShowCellWarsMenu(client);
+		return 0;
+	}
+	if (StrEqual(info, "back"))
+	{
+		AJB_LR_ShowWishMenu(client);
+		return 0;
+	}
+	if (StrEqual(info, "confirm"))
+	{
+		AJB_LR_KillMenuTimer();
+		g_bMenuOpen = false;
+
+		AJB_LR_ClearPendingWish();
+		g_PendingWish = LRWish_CellWars;
+		g_PendingCWMeleeOnly = g_bCWDraftMelee;
+		AJB_LR_RememberChooser(client);
+		AJB_LR_ChatAllCellWarsChose(client, g_bCWDraftMelee);
+		AJB_LR_CloseMenuState();
+		AJB_LR_MarkWishChosen();
+	}
+	return 0;
+}
+
+void AJB_LR_ChatAllCellWarsChose(int chooser, bool meleeOnly)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i)) continue;
+		char prefix[32];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+		char locWeapons[32];
+		Format(locWeapons, sizeof(locWeapons), "%T", meleeOnly ? "LR HG Weapons Melee" : "LR HG Weapons Full", i);
+		CPrintToChat(i, "%T", "LR Chose CellWars", i, prefix, chooser, locWeapons);
+	}
+}
+
+void AJB_LR_ApplyCellWars(const char[] chooser, bool meleeOnly)
+{
+	g_bCellWars = true;
+	g_bCWEnding = false;
+	g_bCWMeleeOnly = meleeOnly;
+
+	AJB_BeginCombatDay();
+	AJB_ClearWarden();
+	AJB_SetRebelOnHit(false);
+
+	AJB_LR_HG_SetFriendlyFire(true);
+
+	AJB_ClearPhaseTimer();
+
+	// Cells must be closed for cell wars
+	AJB_CloseCells();
+	if (g_bHasCore)
+	{
+		AJB_SetRoundState(AJBState_SpecialDay);
+	}
+
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	int blueTeam = AJB_LR_GetGuardsTeam();
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bCWOriginalBlu[i] = false;
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			if (GetClientTeam(i) == blueTeam)
+			{
+				g_bCWOriginalBlu[i] = true;
+				ChangeClientTeam(i, 1);
+				ChangeClientTeam(i, redTeam);
+			}
+
+			if (!IsPlayerAlive(i) && GetClientTeam(i) == redTeam)
+			{
+				TF2_RespawnPlayer(i);
+			}
+		}
+	}
+
+	RequestFrame(Frame_CWArmAll);
+
+	float roundTime = g_cvCWRoundTime.FloatValue;
+	if (roundTime < 60.0) roundTime = LR_HG_ROUND_DEFAULT;
+
+	AJB_SetPhaseTimer(roundTime);
+	AJB_LR_KillCWTimers();
+	g_hCWEndTimer = CreateTimer(roundTime, Timer_CWEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	AJB_LR_ChatAllCellWarsApplied(chooser, meleeOnly);
+}
+
+void Frame_CWArmAll(any data)
+{
+	if (!g_bCellWars) return;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && AJB_IsPrisoner(i))
+		{
+			AJB_LR_CW_ArmPlayer(i);
+		}
+	}
+}
+
+void AJB_LR_CW_OnPlayerSpawn(int client)
+{
+	if (!g_bCellWars || !IsClientInGame(client) || IsFakeClient(client)) return;
+	if (GetClientTeam(client) < 2) return;
+	RequestFrame(Frame_CWArmClient, GetClientUserId(client));
+}
+
+void Frame_CWArmClient(int userid)
+{
+	if (!g_bCellWars) return;
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && IsClientInGame(client) && IsPlayerAlive(client) && AJB_IsPrisoner(client))
+	{
+		AJB_LR_CW_ArmPlayer(client);
+	}
+}
+
+void AJB_LR_CW_ArmPlayer(int client)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client)) return;
+	TF2_RegeneratePlayer(client);
+	if (g_bCWMeleeOnly)
+	{
+		AJB_LR_HG_StripToMelee(client);
+	}
+}
+
+Action Timer_CWEnd(Handle timer)
+{
+	g_hCWEndTimer = null;
+	if (!g_bCellWars || !g_bHasCore || g_bCWEnding) return Plugin_Stop;
+
+	g_bCWEnding = true;
+	AJB_ChatAll("LR CW TimeUp");
+	AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+	return Plugin_Stop;
+}
+
+void AJB_LR_CW_OnPlayerDeath(int victim)
+{
+	if (!g_bCellWars || g_bCWEnding) return;
+	if (victim > 0 && victim <= MaxClients && g_bCWOriginalBlu[victim])
+	{
+		RequestFrame(Frame_CWRestoreBluTeam, GetClientUserId(victim));
+	}
+	RequestFrame(Frame_CWCheckWinner);
+}
+
+void Frame_CWRestoreBluTeam(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && IsClientInGame(client) && g_bCWOriginalBlu[client])
+	{
+		g_bCWOriginalBlu[client] = false;
+		int blueTeam = AJB_LR_GetGuardsTeam();
+		if (GetClientTeam(client) != blueTeam)
+		{
+			TF2_ChangeClientTeam(client, view_as<TFTeam>(blueTeam));
+		}
+	}
+}
+
+void Frame_CWCheckWinner(any data)
+{
+	if (!g_bCellWars || g_bCWEnding || !g_bHasCore) return;
+
+	int alive = 0, last = 0;
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
+		{
+			alive++;
+			last = i;
+		}
+	}
+
+	if (alive == 1 && last > 0)
+	{
+		g_bCWEnding = true;
+		AJB_LR_ChatAll1N("LR CW Winner", last);
+		AJB_ForceTeamWin(GetClientTeam(last));
+	}
+	else if (alive <= 0)
+	{
+		g_bCWEnding = true;
+		AJB_ChatAll("LR CW NoWinner");
+		AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+	}
+}
+
+void AJB_LR_KillCWTimers()
+{
+	if (g_hCWEndTimer != null)
+	{
+		delete g_hCWEndTimer;
+		g_hCWEndTimer = null;
+	}
+}
+
+void AJB_LR_ChatAllCellWarsApplied(const char[] chooserName, bool meleeOnly)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i)) continue;
+		char prefix[32];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+		char locWeapons[32];
+		Format(locWeapons, sizeof(locWeapons), "%T", meleeOnly ? "LR HG Weapons Melee" : "LR HG Weapons Full", i);
+		CPrintToChat(i, "%T", "LR Applied CellWars", i, prefix, chooserName[0] != '\0' ? chooserName : "LR", locWeapons);
+	}
+}
+
+public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
+{
+	if (g_bCellWars && !g_bCWEnding && IsPlayerAlive(client) && GetClientTeam(client) == AJB_LR_GetPrisonersTeam())
+	{
+		if ((buttons & IN_JUMP) && !(g_iCWLastButtons[client] & IN_JUMP))
+		{
+			AJB_LR_CW_TeleportToRandomSpawn(client);
+		}
+	}
+	g_iCWLastButtons[client] = buttons;
+	return Plugin_Continue;
+}
+
+void AJB_LR_CW_TeleportToRandomSpawn(int client)
+{
+	int count = 0;
+	float spawns[64][3];
+	int redTeam = AJB_LR_GetPrisonersTeam();
+	int ent = -1;
+	while (count < sizeof(spawns) && (ent = FindEntityByClassname(ent, "info_player_teamspawn")) != -1)
+	{
+		if (HasEntProp(ent, Prop_Data, "m_iTeamNum") && GetEntProp(ent, Prop_Data, "m_iTeamNum") != redTeam)
+		{
+			continue;
+		}
+		GetEntPropVector(ent, Prop_Data, "m_vecOrigin", spawns[count]);
+		count++;
+	}
+	
+	if (count > 0)
+	{
+		int pick = GetRandomInt(0, count - 1);
+		float noVel[3];
+		TeleportEntity(client, spawns[pick], NULL_VECTOR, noVel);
 	}
 }

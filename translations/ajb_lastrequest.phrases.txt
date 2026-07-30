@@ -425,6 +425,17 @@
 		"ru"		"Hunger Games"
 	}
 
+	"LR Wish ZombieMode"
+	{
+		"en"		"Zombie Mode"
+		"es"		"Modo Zombi"
+		"las"		"Modo Zombi"
+		"de"		"Zombie-Modus"
+		"fr"		"Mode Zombie"
+		"pt"		"Modo Zumbi"
+		"ru"		"Режим зомби"
+	}
+
 	"LR HG Menu Title"
 	{
 		"en"		"Hunger Games — options"
@@ -827,6 +838,18 @@
 		"ru"		"{1} {2} выбрал Hunger Games (класс: {3}, оружие: {4})."
 	}
 
+	"LR Chose ZombieMode"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Zombie Mode."
+		"es"		"{1} {2} eligió Modo Zombi."
+		"las"		"{1} {2} eligió Modo Zombi."
+		"de"		"{1} {2} hat Zombie-Modus gewählt."
+		"fr"		"{1} {2} a choisi Mode Zombie."
+		"pt"		"{1} {2} escolheu Modo Zumbi."
+		"ru"		"{1} {2} выбрал Режим зомби."
+	}
+
 	"LR Applied Freeday"
 	{
 		"#format"	"{1:s},{2:s}"
@@ -1031,6 +1054,102 @@
 		"ru"		"{1} Hunger Games — никто не выжил."
 	}
 
+	"LR Applied ZombieMode"
+	{
+		"#format"	"{1:s},{2:s},{3:d}"
+		"en"		"{1} Zombie Mode ({2})! Everyone is human (RED). First zombie in {3}s — 2 hits infect!"
+		"es"		"{1} ¡Modo Zombi ({2})! Todos son humanos (RED). Primer zombi en {3}s — ¡2 golpes infectan!"
+		"las"		"{1} ¡Modo Zombi ({2})! Todos son humanos (RED). Primer zombi en {3}s — ¡2 golpes infectan!"
+		"de"		"{1} Zombie-Modus ({2})! Alle sind Menschen (RED). Erster Zombie in {3}s — 2 Treffer infizieren!"
+		"fr"		"{1} Mode Zombie ({2}) ! Tout le monde est humain (RED). Premier zombie dans {3}s — 2 coups infectent !"
+		"pt"		"{1} Modo Zumbi ({2})! Todos são humanos (RED). Primeiro zumbi em {3}s — 2 hits infectam!"
+		"ru"		"{1} Режим зомби ({2})! Все люди (RED). Первый зомби через {3}с — 2 удара заражают!"
+	}
+
+	"LR ZM Grace End"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Zombie Mode — infection is live! Zombies: melee only. 2 hits to infect."
+		"es"		"{1} Modo Zombi — ¡la infección está activa! Zombis: solo melee. 2 golpes para infectar."
+		"las"		"{1} Modo Zombi — ¡la infección está activa! Zombis: solo melee. 2 golpes para infectar."
+		"de"		"{1} Zombie-Modus — Infektion aktiv! Zombies: nur Nahkampf. 2 Treffer zum Infizieren."
+		"fr"		"{1} Mode Zombie — infection active ! Zombies : mêlée uniquement. 2 coups pour infecter."
+		"pt"		"{1} Modo Zumbi — infecção ativa! Zumbis: apenas melee. 2 hits para infectar."
+		"ru"		"{1} Режим зомби — заражение активно! Зомби: только ближний бой. 2 удара для заражения."
+	}
+
+	"LR ZM Patient Zero"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} is Patient Zero — the first zombie!"
+		"es"		"{1} ¡{2} es el Paciente Cero — el primer zombi!"
+		"las"		"{1} ¡{2} es el Paciente Cero — el primer zombi!"
+		"de"		"{1} {2} ist Patient Null — der erste Zombie!"
+		"fr"		"{1} {2} est le Patient Zéro — le premier zombie !"
+		"pt"		"{1} {2} é o Paciente Zero — o primeiro zumbi!"
+		"ru"		"{1} {2} — нулевой пациент, первый зомби!"
+	}
+
+	"LR ZM Infected"
+	{
+		"#format"	"{1:s},{2:N},{3:N}"
+		"en"		"{1} {2} infected {3} — they joined the undead!"
+		"es"		"{1} {2} infectó a {3} — ¡se unió a los no-muertos!"
+		"las"		"{1} {2} infectó a {3} — ¡se unió a los no-muertos!"
+		"de"		"{1} {2} hat {3} infiziert — sie sind untot!"
+		"fr"		"{1} {2} a infecté {3} — ils rejoignent les morts-vivants !"
+		"pt"		"{1} {2} infectou {3} — entrou para os mortos-vivos!"
+		"ru"		"{1} {2} заразил(а) {3} — теперь зомби!"
+	}
+
+	"LR ZM Infected Solo"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} has been infected!"
+		"es"		"{1} ¡{2} ha sido infectado!"
+		"las"		"{1} ¡{2} ha sido infectado!"
+		"de"		"{1} {2} wurde infiziert!"
+		"fr"		"{1} {2} a été infecté !"
+		"pt"		"{1} {2} foi infectado!"
+		"ru"		"{1} {2} заражён!"
+	}
+
+	"LR ZM Humans Win"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Zombie Mode — time's up! The humans survived!"
+		"es"		"{1} Modo Zombi — ¡se acabó el tiempo! ¡Los humanos sobrevivieron!"
+		"las"		"{1} Modo Zombi — ¡se acabó el tiempo! ¡Los humanos sobrevivieron!"
+		"de"		"{1} Zombie-Modus — Zeit abgelaufen! Die Menschen haben überlebt!"
+		"fr"		"{1} Mode Zombie — temps écoulé ! Les humains ont survécu !"
+		"pt"		"{1} Modo Zumbi — tempo esgotado! Os humanos sobreviveram!"
+		"ru"		"{1} Режим зомби — время вышло! Люди выжили!"
+	}
+
+	"LR ZM Zombies Win"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Zombie Mode — the undead win! No humans left."
+		"es"		"{1} Modo Zombi — ¡ganan los no-muertos! No quedan humanos."
+		"las"		"{1} Modo Zombi — ¡ganan los no-muertos! No quedan humanos."
+		"de"		"{1} Zombie-Modus — die Untoten gewinnen! Keine Menschen mehr."
+		"fr"		"{1} Mode Zombie — les morts-vivants gagnent ! Plus d'humains."
+		"pt"		"{1} Modo Zumbi — os mortos-vivos vencem! Sem humanos restantes."
+		"ru"		"{1} Режим зомби — зомби победили! Людей не осталось."
+	}
+
+	"LR ZM NoHumans"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Zombie Mode — no living humans to infect. Round ends."
+		"es"		"{1} Modo Zombi — no hay humanos vivos para infectar. Fin de ronda."
+		"las"		"{1} Modo Zombi — no hay humanos vivos para infectar. Fin de ronda."
+		"de"		"{1} Zombie-Modus — keine lebenden Menschen zum Infizieren. Runde endet."
+		"fr"		"{1} Mode Zombie — aucun humain vivant à infecter. Fin de round."
+		"pt"		"{1} Modo Zumbi — sem humanos vivos para infectar. Fim da rodada."
+		"ru"		"{1} Режим зомби — нет живых людей. Раунд окончен."
+	}
+
 	"LR Freeday Others Title"
 	{
 		"#format"	"{1:d},{2:d}"
@@ -1215,5 +1334,97 @@
 		"fr"		"{1} BANG ! {2} a été abattu por un sniper !"
 		"pt"		"{1} BANG! {2} foi atingido por um sniper do nada!"
 		"ru"		"{1} БАМ! {2} был застрелен снайпером из ниоткуда!"
+	}
+	"LR Wish CellWars"
+	{
+		"en"		"Cell Wars"
+		"es"		"Cell Wars"
+		"las"		"Cell Wars"
+		"de"		"Cell Wars"
+		"fr"		"Cell Wars"
+		"pt"		"Cell Wars"
+		"ru"		"Cell Wars"
+	}
+
+	"LR CW Menu Title"
+	{
+		"en"		"Cell Wars — options"
+		"es"		"Cell Wars — opciones"
+		"las"		"Cell Wars — opciones"
+		"de"		"Cell Wars — Optionen"
+		"fr"		"Cell Wars — options"
+		"pt"		"Cell Wars — opções"
+		"ru"		"Cell Wars — опции"
+	}
+
+	"LR CW Opt Confirm"
+	{
+		"en"		"Confirm Cell Wars"
+		"es"		"Confirmar Cell Wars"
+		"las"		"Confirmar Cell Wars"
+		"de"		"Cell Wars bestätigen"
+		"fr"		"Confirmer Cell Wars"
+		"pt"		"Confirmar Cell Wars"
+		"ru"		"Подтвердить Cell Wars"
+	}
+
+	"LR Chose CellWars"
+	{
+		"#format"	"{1:s},{2:N},{3:s}"
+		"en"		"{1} {2} chose Cell Wars (weapons: {3})."
+		"es"		"{1} {2} eligió Cell Wars (armas: {3})."
+		"las"		"{1} {2} eligió Cell Wars (armas: {3})."
+		"de"		"{1} {2} hat Cell Wars gewählt (Waffen: {3})."
+		"fr"		"{1} {2} a choisi Cell Wars (armes : {3})."
+		"pt"		"{1} {2} escolheu Cell Wars (armas: {3})."
+		"ru"		"{1} {2} выбрал Cell Wars (оружие: {3})."
+	}
+
+	"LR Applied CellWars"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"{1} Cell Wars ({2})! Weapons: {3}. Friendly fire is ON — everyone is RED! Jump to teleport."
+		"es"		"{1} ¡Cell Wars ({2})! Armas: {3}. Fuego amigo ACTIVADO — ¡todos a RED! Salta para teletransportarte."
+		"las"		"{1} ¡Cell Wars ({2})! Armas: {3}. Fuego amigo ACTIVADO — ¡todos a RED! Salta para teletransportarte."
+		"de"		"{1} Cell Wars ({2})! Waffen: {3}. Friendly Fire ist AN — alle sind RED! Springe, um dich zu teleportieren."
+		"fr"		"{1} Cell Wars ({2}) ! Armes : {3}. Le tir allié est ACTIVÉ — tout le monde est RED ! Sautez pour vous téléporter."
+		"pt"		"{1} Cell Wars ({2})! Armas: {3}. Fogo amigo ATIVADO — todos no RED! Pule para se teletransportar."
+		"ru"		"{1} Cell Wars ({2})! Оружие: {3}. Friendly fire ВКЛ — все в RED! Прыгайте для телепортации."
+	}
+
+	"LR CW TimeUp"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Cell Wars — time's up! Survivors win."
+		"es"		"{1} Cell Wars — ¡se acabó el tiempo! Ganan los supervivientes."
+		"las"		"{1} Cell Wars — ¡se acabó el tiempo! Ganan los supervivientes."
+		"de"		"{1} Cell Wars — Zeit abgelaufen! Überlebende gewinnen."
+		"fr"		"{1} Cell Wars — temps écoulé ! Les survivants gagnent."
+		"pt"		"{1} Cell Wars — tempo esgotado! Os sobreviventes vencem."
+		"ru"		"{1} Cell Wars — время вышло! Побеждают выжившие."
+	}
+
+	"LR CW Winner"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} Cell Wars — {2} is the last one standing!"
+		"es"		"{1} Cell Wars — ¡{2} es el último en pie!"
+		"las"		"{1} Cell Wars — ¡{2} es el último en pie!"
+		"de"		"{1} Cell Wars — {2} ist der letzte Überlebende!"
+		"fr"		"{1} Cell Wars — {2} est le dernier survivant !"
+		"pt"		"{1} Cell Wars — {2} é o último de pé!"
+		"ru"		"{1} Cell Wars — {2} — последний выживший!"
+	}
+
+	"LR CW NoWinner"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Cell Wars — no one left standing."
+		"es"		"{1} Cell Wars — no queda nadie en pie."
+		"las"		"{1} Cell Wars — no queda nadie en pie."
+		"de"		"{1} Cell Wars — niemand steht mehr."
+		"fr"		"{1} Cell Wars — plus personne debout."
+		"pt"		"{1} Cell Wars — ninguém restou de pé."
+		"ru"		"{1} Cell Wars — никто не выжил."
 	}
 }
