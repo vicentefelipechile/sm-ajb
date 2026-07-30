@@ -12,15 +12,19 @@
 			{
 				"library"	"server"
 				"windows"	"\x56\x8B\xF1\x8A\x86\x76\x01\x00\x00\x3C\x0A\x0F\x84\x2A\x2A\x2A\x2A\x3C\x08\x0F\x84\x2A\x2A\x2A\x2A\x8B\x0D\x2A\x2A\x2A\x2A"
+				"windows64"	"\x40\x53\x48\x83\xEC\x20\x0F\xB6\x81\x36\x02\x00\x00\x48\x8B\xD9\x2C\x08\xA8\xFD\x0F\x84\x2A\x2A\x2A\x2A\x48\x8B\x15\x2A"
 				"linux"		"@_ZNK9CTFPlayer13CanPlayerMoveEv"
+				"linux64"	"@_ZNK9CTFPlayer13CanPlayerMoveEv"
 			}
 
 			// bool CObjectSentrygun::FindTarget()
 			"CObjectSentrygun::FindTarget"
 			{
 				"library"	"server"
-				"linux"		"@_ZN16CObjectSentrygun10FindTargetEv"
 				"windows"	"\x55\x8B\xEC\x81\xEC\xD0\x00\x00\x00\x53\x56\x57\x8B\xF9\x80\xBF\x30\x0B\x00\x00\x00\x8D\x9F\x30\x0B\x00\x00\x74\x23\xA1\x2A\x2A\x2A\x2A\x53\xF3\x0F\x10\x40\x0C"
+				"windows64"	"\x40\x55\x53\x56\x48\x8D\x6C\x24\x90\x48\x81\xEC\x70\x01\x00\x00\x48\x8B\xD9\xE8\x2A\x2A\x2A\x2A\x80\xBB\xF0\x09\x00\x00"
+				"linux"		"@_ZN16CObjectSentrygun10FindTargetEv"
+				"linux64"	"@_ZN16CObjectSentrygun10FindTargetEv"
 			}
 		}
 
@@ -29,10 +33,16 @@
 			"CTFPlayerShared::m_flInvisibility"
 			{
 				"windows"	"320"
+				"linux"		"320"
+				"windows64"	"352"
+				"linux64"	"352"
 			}
 			"CTFPlayerShared::m_nPlayerCond_offset"
 			{
 				"windows"	"204"
+				"linux"		"204"
+				"windows64"	"236"
+				"linux64"	"236"
 			}
 
 			// virtual void SetWinningTeam(int team, int iWinReason, bool bForceMapReset = true, bool bSwitchTeams = false, bool bDontAddScore = false)
