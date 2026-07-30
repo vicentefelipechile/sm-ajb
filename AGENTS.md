@@ -256,6 +256,11 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_lr_hs_round_time` | `300` | Hide and Seek LR: total round duration in seconds, hiders win on timeout (60–900) |
 | `sm_ajb_lr_hg_grace_time` | `30` | Hunger Games: seconds after live round begin before friendly fire turns on (5–120) |
 | `sm_ajb_lr_hg_round_time` | `300` | Hunger Games: total round duration in seconds, survivors win on timeout (60–900) |
+| `sm_ajb_lr_zm_infect_delay` | `20` | Zombie Mode: seconds after live round begin before the first random zombie is chosen (5–60) |
+| `sm_ajb_lr_zm_hits` | `2` | Zombie Mode: damaging hits from zombies required to infect a human (1–10) |
+| `sm_ajb_lr_zm_respawn` | `5` | Zombie Mode: seconds before a dead zombie respawns (1–30) |
+| `sm_ajb_lr_zm_spawn_protect` | `5` | Zombie Mode: invulnerability seconds after a zombie respawns (0–30) |
+| `sm_ajb_lr_zm_round_time` | `300` | Zombie Mode: total round duration in seconds, humans win on timeout if any remain (60–900) |
 
 **Module — `ajb_mutes.sp`**
 
