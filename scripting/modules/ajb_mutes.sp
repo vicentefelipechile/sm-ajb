@@ -551,7 +551,8 @@ void AJB_Voice_DoRefreshAll()
 				else
 				{
 					// Living hear living.
-					override = Listen_Default;
+					// Use Listen_Yes to bypass Source engine caching bug where a previous Listen_No (from death) gets stuck.
+					override = Listen_Yes;
 				}
 			}
 
