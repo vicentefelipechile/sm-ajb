@@ -60,6 +60,7 @@ void AJB_Settings_OnPluginStart()
 
 void AJB_Settings_OnMapStart()
 {
+	g_hPlayerFxTimer = null;
 	g_iFreedayBeamSprite = PrecacheModel("materials/sprites/laserbeam.vmt", true);
 	PrecacheModel("materials/sprites/glow01.vmt", true);
 	AJB_Settings_Load();

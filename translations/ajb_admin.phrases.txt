@@ -166,6 +166,17 @@
 		"ru"		"Принудительный Last Request"
 	}
 
+	"Admin Menu Pick Wish"
+	{
+		"en"		"Pick wish (admin)"
+		"es"		"Elegir deseo (admin)"
+		"las"		"Elegir deseo (admin)"
+		"de"		"Wunsch wählen (Admin)"
+		"fr"		"Choisir un souhait (admin)"
+		"pt"		"Escolher desejo (admin)"
+		"ru"		"Выбрать желание (админ)"
+	}
+
 	"Admin Menu Guard Ban"
 	{
 		"en"		"Ban from guards (BLU)"
@@ -627,6 +638,17 @@
 		"fr"		"a annulé le Freeday pour {1}"
 		"pt"		"cancelou o Freeday para {1}"
 		"ru"		"отменил Freeday для {1}"
+	}
+
+	"Activity Admin Pick Wish"
+	{
+		"en"		"is picking a Last Request wish"
+		"es"		"está eligiendo un Último Deseo"
+		"las"		"está eligiendo un Último Deseo"
+		"de"		"wählt einen Last-Request-Wunsch"
+		"fr"		"choisit un souhait Last Request"
+		"pt"		"está escolhendo um Último Desejo"
+		"ru"		"выбирает желание Last Request"
 	}
 
 	"Activity Forced LR"

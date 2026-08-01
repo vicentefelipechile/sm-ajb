@@ -135,22 +135,26 @@ bool g_bZMEnding;
 int g_iZMOriginalTeam[MAXPLAYERS + 1];
 int g_iZMHits[MAXPLAYERS + 1];
 bool g_bZMPendingInfect[MAXPLAYERS + 1]; // RequestFrame in flight — avoid double infect
-	int g_iZMPendingInfectBy[MAXPLAYERS + 1]; // attacker userid for deferred infect announce
-	bool g_bZMTeamSwap[MAXPLAYERS + 1];       // ignore death events from intentional team moves
-	Handle g_hZMRespawnTimer[MAXPLAYERS + 1];
-	
-	// Cell Wars: everyone on RED locked in cells. FF on from start. Jump to teleport.
-	bool g_bCellWars;
-	bool g_bCWMeleeOnly;
-	bool g_bCWEnding;
-	bool g_bCWOriginalBlu[MAXPLAYERS + 1];
-	int g_iCWLastButtons[MAXPLAYERS + 1];
-	Handle g_hCWEndTimer;
-	bool g_PendingCWMeleeOnly;
-	bool g_bCWDraftMelee;
-	ConVar g_cvCWRoundTime;
-	
-	// Guard Melee: guards are stripped to melee only next round
+int g_iZMPendingInfectBy[MAXPLAYERS + 1]; // attacker userid for deferred infect announce
+bool g_bZMTeamSwap[MAXPLAYERS + 1];       // ignore death events from intentional team moves
+Handle g_hZMRespawnTimer[MAXPLAYERS + 1];
+
+// Cell Wars: everyone on RED locked in cells. FF on from start. Jump to teleport.
+bool g_bCellWars;
+bool g_bCWMeleeOnly;
+bool g_bCWEnding;
+bool g_bCWOriginalBlu[MAXPLAYERS + 1];
+int g_iCWLastButtons[MAXPLAYERS + 1];
+Handle g_hCWEndTimer;
+bool g_PendingCWMeleeOnly;
+bool g_bCWDraftMelee;
+ConVar g_cvCWRoundTime;
+
+// Admin self-pick: open the full wish menu regardless of team/alive state.
+bool g_bAdminForcingWish;
+int g_iAdminClient;
+
+// Guard Melee: guards are stripped to melee only next round
 bool g_bGuardMeleeActive;
 
 // Set All Class: forced class for target team(s) next round
@@ -216,11 +220,27 @@ bool AJB_LR_IsGrantBlocked()
 	return (g_PendingWish != LRWish_None || g_bMenuOpen || g_bAwaitingCustom || g_iPrisoner > 0);
 }
 
+// True while this client may drive wish menus (living LR prisoner, or admin self-pick).
+bool AJB_LR_IsMenuAllowed(int client)
+{
+	if (client < 1 || !IsClientInGame(client))
+	{
+		return false;
+	}
+	if (g_bAdminForcingWish && client == g_iAdminClient)
+	{
+		return true;
+	}
+	return (client == g_iPrisoner && IsPlayerAlive(client));
+}
+
 void AJB_LR_CloseMenuState()
 {
 	g_bMenuOpen = false;
 	g_bAwaitingCustom = false;
 	g_iPrisoner = 0;
+	g_bAdminForcingWish = false;
+	g_iAdminClient = 0;
 	AJB_LR_KillMenuTimer();
 }
 
@@ -372,7 +392,11 @@ void AJB_LR_OpenForPrisoner(int prisoner)
 
 void AJB_LR_ShowWishMenu(int prisoner)
 {
-	if (prisoner < 1 || !IsClientInGame(prisoner) || !IsPlayerAlive(prisoner))
+	if (prisoner < 1 || !IsClientInGame(prisoner))
+	{
+		return;
+	}
+	if (!g_bAdminForcingWish && !IsPlayerAlive(prisoner))
 	{
 		return;
 	}
@@ -448,7 +472,7 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 	}
 
 	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if (!IsClientInGame(client) || !AJB_LR_IsMenuAllowed(client))
 	{
 		return 0;
 	}
@@ -650,6 +674,8 @@ public void OnPluginStart()
 	RegAdminCmd("sm_ajb_lr_force", Command_ForceLR, ADMFLAG_GENERIC, "Force LR menu for a living prisoner.");
 	RegConsoleCmd("sm_reopenlr", Command_ReopenLR, "Prisoner: reopen your Last Request menu if it got closed (e.g. by a map vote).");
 	RegConsoleCmd("sm_ajb_reopenlr", Command_ReopenLR, "Prisoner: reopen your Last Request menu if it got closed (e.g. by a map vote).");
+
+	RegAdminCmd("sm_ajb_lr_force_admin", Command_ForceAdminLR, ADMFLAG_GENERIC, "Open LR menu as admin to force a wish.");
 
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
@@ -1292,7 +1318,7 @@ public int PanelHandler_FreedayOthers(Menu menu, MenuAction action, int param1, 
 	}
 
 	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client))
+	if (!AJB_LR_IsMenuAllowed(client))
 	{
 		return 0;
 	}
@@ -1411,7 +1437,7 @@ public int PanelHandler_FreedayReview(Menu menu, MenuAction action, int param1, 
 	}
 
 	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client))
+	if (!AJB_LR_IsMenuAllowed(client))
 	{
 		return 0;
 	}
@@ -1518,13 +1544,14 @@ Action Timer_CustomTimeout(Handle timer, int userid)
 	{
 		AJB_LR_ChatAll1N("LR Timeout", client);
 	}
-	g_iPrisoner = 0;
+	AJB_LR_Cleanup(false);
 	return Plugin_Stop;
 }
 
 Action Listener_Say(int client, const char[] command, int argc)
 {
-	if (!g_bAwaitingCustom || client != g_iPrisoner || client < 1)
+	// Admin self-pick may type custom text while dead / off RED.
+	if (!g_bAwaitingCustom || client < 1 || !AJB_LR_IsMenuAllowed(client))
 	{
 		return Plugin_Continue;
 	}
@@ -1818,7 +1845,7 @@ public int MenuHandler_HungerGames(Menu menu, MenuAction action, int param1, int
 	}
 
 	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if (!AJB_LR_IsMenuAllowed(client))
 	{
 		return 0;
 	}
@@ -1908,7 +1935,7 @@ public int MenuHandler_HungerGamesClass(Menu menu, MenuAction action, int param1
 	}
 
 	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if (!AJB_LR_IsMenuAllowed(client))
 	{
 		return 0;
 	}
@@ -3292,6 +3319,8 @@ void AJB_LR_Cleanup(bool announce)
 	AJB_LR_KillCWTimers();
 
 	g_iPrisoner = 0;
+	g_bAdminForcingWish = false;
+	g_iAdminClient = 0;
 	g_bMenuOpen = false;
 	g_bAwaitingCustom = false;
 	g_iFreedayPickCount = 0;
@@ -3677,7 +3706,7 @@ public int MenuHandler_SetAllClass(Menu menu, MenuAction action, int param1, int
 	}
 
 	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if (!AJB_LR_IsMenuAllowed(client))
 	{
 		return 0;
 	}
@@ -3754,7 +3783,7 @@ public int MenuHandler_SetAllClassTarget(Menu menu, MenuAction action, int param
 	}
 
 	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if (!AJB_LR_IsMenuAllowed(client))
 	{
 		return 0;
 	}
@@ -3806,7 +3835,7 @@ public int MenuHandler_SetAllClassType(Menu menu, MenuAction action, int param1,
 	}
 
 	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if (!AJB_LR_IsMenuAllowed(client))
 	{
 		return 0;
 	}
@@ -3999,6 +4028,48 @@ public Action Command_ForceLR(int client, int args)
 	return Plugin_Handled;
 }
 
+// Admin opens the same wish menu a prisoner would — no team / alive gate.
+public Action Command_ForceAdminLR(int client, int args)
+{
+	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	{
+		return Plugin_Handled;
+	}
+
+	if (client < 1 || !IsClientInGame(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if (AJB_LR_IsGrantBlocked())
+	{
+		AJB_Reply(client, "LR Already Active");
+		return Plugin_Handled;
+	}
+
+	g_bAdminForcingWish = true;
+	g_iAdminClient = client;
+	// Reuse chooser slot so queue/announce paths keep a single owner.
+	g_iPrisoner = client;
+	g_bMenuOpen = true;
+	g_bAwaitingCustom = false;
+
+	if (g_bHasCore)
+	{
+		AJB_SetRoundState(AJBState_LRChoosing);
+	}
+
+	AJB_LR_ShowWishMenu(client);
+	AJB_LR_StartMenuTimers(client);
+
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+	StrCat(prefix, sizeof(prefix), " ");
+	CShowActivity2(client, prefix, "%t", "Activity Admin Pick Wish");
+	LogAction(client, -1, "\"%L\" opened admin self-pick Last Request menu", client);
+	return Plugin_Handled;
+}
+
 public Action Command_ReopenLR(int client, int args)
 {
 	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
@@ -4050,7 +4121,8 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 		AJB_LR_CW_OnPlayerDeath(victim);
 	}
 
-	if (victim == g_iPrisoner)
+	// Admin self-pick survives death; normal LR chooser does not.
+	if (victim == g_iPrisoner && !g_bAdminForcingWish)
 	{
 		if (g_bAwaitingCustom)
 		{
@@ -4105,7 +4177,7 @@ public int MenuHandler_CellWars(Menu menu, MenuAction action, int param1, int pa
 	if (action != MenuAction_Select) return 0;
 
 	int client = param1;
-	if (client != g_iPrisoner || !IsClientInGame(client) || !IsPlayerAlive(client)) return 0;
+	if (!IsClientInGame(client) || !AJB_LR_IsMenuAllowed(client)) return 0;
 
 	char info[16];
 	menu.GetItem(param2, info, sizeof(info));

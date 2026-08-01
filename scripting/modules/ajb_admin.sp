@@ -462,6 +462,9 @@ void AJB_Admin_ShowCategory(int client, const char[] cat, bool fromAdminTopMenu)
 		menu.AddItem("clearw", line);
 		Format(line, sizeof(line), "%T", "Admin Menu Force LR", client);
 		menu.AddItem("forcelr", line);
+		// Admin picks the wish themselves (any team / alive or dead).
+		Format(line, sizeof(line), "%T", "Admin Menu Pick Wish", client);
+		menu.AddItem("pickwish", line);
 	}
 	else if (StrEqual(cat, "players"))
 	{
@@ -572,6 +575,12 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 	else if (StrEqual(info, "forcelr"))
 	{
 		AJB_Admin_ShowPlayerPick(client, "forcelr", fromTop);
+	}
+	else if (StrEqual(info, "pickwish"))
+	{
+		// Opens the full LR wish menu on the admin (ajb_lastrequest — no team/alive gate).
+		FakeClientCommand(client, "sm_ajb_lr_force_admin");
+		LogAction(client, -1, "\"%L\" opened admin self-pick Last Request via menu", client);
 	}
 	else if (StrEqual(info, "guardban"))
 	{

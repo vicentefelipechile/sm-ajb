@@ -470,13 +470,14 @@ void AJB_Voice_RefreshAll()
 	}
 
 	g_bVoiceRefreshQueued = true;
-	RequestFrame(Frame_VoiceRefresh);
+	CreateTimer(0.1, Timer_VoiceRefresh, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-void Frame_VoiceRefresh(any data)
+Action Timer_VoiceRefresh(Handle timer)
 {
 	g_bVoiceRefreshQueued = false;
 	AJB_Voice_DoRefreshAll();
+	return Plugin_Stop;
 }
 
 void AJB_Voice_DoRefreshAll()
