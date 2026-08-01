@@ -58,3 +58,26 @@ stock void AJB_ChatAll(const char[] phrase)
 		CPrintToChat(i, "%T", phrase, i, prefix);
 	}
 }
+
+stock void AJB_AdminBroadcast(int client, const char[] phrase, int target = -1)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		char prefix[64];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+
+		if (target == -1)
+		{
+			CPrintToChat(i, "%T", phrase, i, prefix, client);
+		}
+		else
+		{
+			CPrintToChat(i, "%T", phrase, i, prefix, client, target);
+		}
+	}
+}

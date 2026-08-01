@@ -1256,5 +1256,52 @@
 		"pt"		"{1} {green}DIA LIVRE PARA TODOS!{default} A primeira rodada é um dia livre — aproveite 5 minutos de liberdade!"
 		"ru"		"{1} {green}СВОБОДНЫЙ ДЕНЬ ДЛЯ ВСЕХ!{default} Первый раунд — свободный день. Наслаждайтесь 5 минутами свободы!"
 	}
-}
 
+	"Repeat Prisoners Only"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Only living prisoners can use this."
+		"es"		"{1} Solo los prisioneros vivos pueden usar esto."
+		"las"		"{1} Solo los prisioneros vivos pueden usar esto."
+		"de"		"{1} Nur lebende Gefangene können dies nutzen."
+		"fr"		"{1} Seuls les prisonniers vivants peuvent utiliser cela."
+		"pt"		"{1} Apenas prisioneiros vivos podem usar isso."
+		"ru"		"{1} Только живые заключенные могут использовать это."
+	}
+
+	"Repeat No Warden"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} There is no warden right now."
+		"es"		"{1} No hay warden en este momento."
+		"las"		"{1} No hay warden en este momento."
+		"de"		"{1} Momentan gibt es keinen Warden."
+		"fr"		"{1} Il n'y a pas de warden actuellement."
+		"pt"		"{1} Não há warden no momento."
+		"ru"		"{1} В данный момент нет warden."
+	}
+
+	"Repeat Cooldown"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} You must wait {lightgreen}{2}{default} seconds before using this again."
+		"es"		"{1} Debes esperar {lightgreen}{2}{default} segundos antes de volver a usar esto."
+		"las"		"{1} Debes esperar {lightgreen}{2}{default} segundos antes de volver a usar esto."
+		"de"		"{1} Du musst {lightgreen}{2}{default} Sekunden warten, bevor du das wieder nutzen kannst."
+		"fr"		"{1} Vous devez attendre {lightgreen}{2}{default} secondes avant d'utiliser à nouveau."
+		"pt"		"{1} Você deve esperar {lightgreen}{2}{default} segundos antes de usar isso de novo."
+		"ru"		"{1} Вы должны подождать {lightgreen}{2}{default} секунд перед повторным использованием."
+	}
+
+	"Repeat Requested"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} requested the warden to {lightred}repeat{default} the last order!"
+		"es"		"{1} ¡{2} solicitó que el warden {lightred}repita{default} la última orden!"
+		"las"		"{1} ¡{2} solicitó que el warden {lightred}repita{default} la última orden!"
+		"de"		"{1} {2} hat den Warden gebeten, den letzten Befehl zu {lightred}wiederholen{default}!"
+		"fr"		"{1} {2} a demandé au warden de {lightred}répéter{default} le dernier ordre !"
+		"pt"		"{1} {2} solicitou que o warden {lightred}repita{default} a última ordem!"
+		"ru"		"{1} {2} попросил warden {lightred}повторить{default} последний приказ!"
+	}
+}

@@ -319,7 +319,7 @@ Action Command_Freeday(int client, int args)
 	{
 		int target = targetList[i];
 		AJB_SetPlayerFreeday(target, setFd);
-		CShowActivity2(client, prefix, "%t", setFd ? "Activity Freeday On" : "Activity Freeday Off", target);
+		AJB_AdminBroadcast(client, setFd ? "Activity Freeday On" : "Activity Freeday Off", target);
 		LogAction(client, target, "\"%L\" %s freeday for \"%L\"", client, setFd ? "queued" : "cleared", target);
 	}
 
@@ -338,7 +338,7 @@ Action Command_ClearWarden(int client, int args)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CShowActivity2(client, prefix, "%t", "Activity Cleared Warden");
+	AJB_AdminBroadcast(client, "Activity Cleared Warden");
 	LogAction(client, -1, "\"%L\" cleared warden via command", client);
 	return Plugin_Handled;
 }
@@ -542,21 +542,21 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 	else if (StrEqual(info, "open"))
 	{
 		AJB_OpenCells();
-		CShowActivity2(client, prefix, "%t", "Activity Opened Cells");
+		AJB_AdminBroadcast(client, "Activity Opened Cells");
 		LogAction(client, -1, "\"%L\" opened cell doors via admin menu", client);
 		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "close"))
 	{
 		AJB_CloseCells();
-		CShowActivity2(client, prefix, "%t", "Activity Closed Cells");
+		AJB_AdminBroadcast(client, "Activity Closed Cells");
 		LogAction(client, -1, "\"%L\" closed cell doors via admin menu", client);
 		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 	else if (StrEqual(info, "clearw"))
 	{
 		AJB_ClearWarden();
-		CShowActivity2(client, prefix, "%t", "Activity Cleared Warden");
+		AJB_AdminBroadcast(client, "Activity Cleared Warden");
 		LogAction(client, -1, "\"%L\" cleared warden via admin menu", client);
 		AJB_Admin_ReturnToCat(client, fromTop);
 	}
@@ -706,7 +706,7 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 			char cmd[64];
 			Format(cmd, sizeof(cmd), "sm_ajb_setwarden #%d", GetClientUserId(target));
 			FakeClientCommand(client, cmd);
-			CShowActivity2(client, prefix, "%t", "Activity Set Warden", target);
+			AJB_AdminBroadcast(client, "Activity Set Warden", target);
 			LogAction(client, target, "\"%L\" set warden on \"%L\"", client, target);
 		}
 	}
@@ -714,14 +714,14 @@ public int MenuHandler_PlayerPick(Menu menu, MenuAction action, int param1, int 
 	{
 		bool next = !AJB_IsRebel(target);
 		AJB_SetRebel(target, next);
-		CShowActivity2(client, prefix, "%t", next ? "Activity Rebel On" : "Activity Rebel Off", target);
+		AJB_AdminBroadcast(client, next ? "Activity Rebel On" : "Activity Rebel Off", target);
 		LogAction(client, target, "\"%L\" %s rebel status on \"%L\"", client, next ? "set" : "cleared", target);
 	}
 	else if (StrEqual(parts[0], "freeday"))
 	{
 		bool next = !AJB_IsFreedayPending(target);
 		AJB_SetPlayerFreeday(target, next);
-		CShowActivity2(client, prefix, "%t", next ? "Activity Freeday On" : "Activity Freeday Off", target);
+		AJB_AdminBroadcast(client, next ? "Activity Freeday On" : "Activity Freeday Off", target);
 		LogAction(client, target, "\"%L\" %s freeday status for \"%L\"", client, next ? "queued" : "cleared", target);
 	}
 	else if (StrEqual(parts[0], "forcelr"))
@@ -1428,4 +1428,3 @@ void AJB_ExtractReason(const char[] full, int skip, char[] out, int maxlen)
 		strcopy(out, maxlen, full[i]);
 	}
 }
-

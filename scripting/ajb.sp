@@ -67,6 +67,13 @@ ConVar g_cvGenConfig;
 ConVar g_cvPrepTime;
 ConVar g_cvRoundTime;
 
+ConVar g_cvRepeatEnabled;
+ConVar g_cvRepeatCooldown;
+ConVar g_cvRepeatMarkerTime;
+float g_fNextRepeatTime[MAXPLAYERS + 1];
+int g_iRepeatAnnId;
+int g_iRepeatAnnSerial;
+
 // =========================================================================================================
 // Runtime state
 // =========================================================================================================
@@ -213,6 +220,10 @@ public void OnPluginStart()
 	g_cvPrepTime = CreateConVar("sm_ajb_prep_time", "10", "Preparation seconds at round start: BLU can move, RED stay frozen in cells (0 = off).", _, true, 0.0, true, 60.0);
 	g_cvRoundTime = CreateConVar("sm_ajb_round_time", "600", "Main round HUD duration in seconds (0 = no main clock). Does not force engine wins.", _, true, 0.0);
 
+	g_cvRepeatEnabled = CreateConVar("sm_ajb_repeat_enabled", "1", "1 = Enable !repeat command for prisoners.", _, true, 0.0, true, 1.0);
+	g_cvRepeatCooldown = CreateConVar("sm_ajb_repeat_cooldown", "15.0", "Cooldown in seconds for a player to use !repeat again.", _, true, 0.0);
+	g_cvRepeatMarkerTime = CreateConVar("sm_ajb_repeat_marker_time", "8.0", "How long the repeat marker stays over the prisoner.", _, true, 2.0, true, 30.0);
+
 	AJB_WardenHealth_OnPluginStart();
 	AJB_Marker_OnPluginStart();
 	AJB_Label_OnPluginStart();
@@ -250,6 +261,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ajb_close", Command_CloseCells, "Close cell doors (warden or admin).");
 	RegConsoleCmd("sm_markrebel", Command_GuardMarkRebel, "Guard: Mark a prisoner as rebel.");
 	RegConsoleCmd("sm_ajb_markrebel", Command_GuardMarkRebel, "Guard: Mark a prisoner as rebel.");
+
+	RegConsoleCmd("sm_repeat", Command_Repeat, "Request warden to repeat order.");
+	RegConsoleCmd("sm_r", Command_Repeat, "Request warden to repeat order.");
 
 	AJB_Freekill_RegisterCommands();
 
@@ -373,6 +387,9 @@ public void OnMapStart()
 	AJB_Weapons_OnMapStart();
 	AJB_Weapons_OnMapStartLoadout();
 	AJB_Marker_OnMapStart();
+	
+	PrecacheSound("ui/hint.wav", true);
+	
 	g_iDoorNameCount = 0;
 	// Per-map first-round freedsay (g_iWardenRoundSerial == 1 in Event_RoundStart).
 	g_iWardenRoundSerial = 0;
@@ -435,6 +452,8 @@ public void OnClientDisconnect(int client)
 	AJB_ResetClientFlags(client);
 	AJB_FlagSet(client, AJB_PF_FREEDAY_PENDING, false);
 	AJB_UnhookClient(client);
+	
+	g_fNextRepeatTime[client] = 0.0;
 
 	// Disconnect can decide last-prisoner / round end without a death event.
 	if (g_bModeActive)

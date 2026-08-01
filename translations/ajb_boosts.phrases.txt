@@ -420,12 +420,12 @@
 	"Boosts Revived"
 	{
 		"#format"	"{1:s},{2:N},{3:N}"
-		"en"		"{1} Warden {2} revived {3}."
+		"en"		"{1} {2} revived {3}."
 		"es"		"{1} El Warden {2} revivió a {3}."
 		"las"		"{1} El Warden {2} revivió a {3}."
-		"de"		"{1} Warden {2} hat {3} wiederbelebt."
+		"de"		"{1} {2} hat {3} wiederbelebt."
 		"fr"		"{1} Le Warden {2} a ranimé {3}."
-		"pt"		"{1} O Warden {2} reviveu {3}."
+		"pt"		"{1} {2} reviveu {3}."
 		"ru"		"{1} Warden {2} воскресил {3}."
 	}
 

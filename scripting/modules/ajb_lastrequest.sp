@@ -1554,7 +1554,7 @@ public Action Command_ForceLR(int client, int args)
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
 	StrCat(prefix, sizeof(prefix), " ");
-	CShowActivity2(client, prefix, "%t", "Activity Forced LR", target);
+	AJB_AdminBroadcast(client, "Activity Forced LR", target);
 	return Plugin_Handled;
 }
 
@@ -1595,7 +1595,7 @@ public Action Command_ForceAdminLR(int client, int args)
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
 	StrCat(prefix, sizeof(prefix), " ");
-	CShowActivity2(client, prefix, "%t", "Activity Admin Pick Wish");
+	AJB_AdminBroadcast(client, "Activity Admin Pick Wish");
 	LogAction(client, -1, "\"%L\" opened admin self-pick Last Request menu", client);
 	return Plugin_Handled;
 }
@@ -1680,4 +1680,3 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 #include "lastrequest/wish_zombie_mode.sp"
 #include "lastrequest/wish_cell_wars.sp"
 #include "lastrequest/wish_sniper.sp"
-

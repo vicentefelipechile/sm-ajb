@@ -1091,3 +1091,89 @@ public int MenuHandler_GuardRebel(Menu menu, MenuAction action, int param1, int 
 	return 0;
 }
 
+// =========================================================================================================
+// Repeat Order command
+// =========================================================================================================
+
+Action Command_Repeat(int client, int args)
+{
+	if (!g_cvRepeatEnabled.BoolValue)
+	{
+		return Plugin_Handled;
+	}
+
+	if (client <= 0 || !IsClientInGame(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if (!g_bModeActive)
+	{
+		return Plugin_Handled;
+	}
+
+	if (!AJB_ClientIsPrisoner(client) || !IsPlayerAlive(client))
+	{
+		AJB_Reply(client, "Repeat Prisoners Only");
+		return Plugin_Handled;
+	}
+
+	if (g_iWarden <= 0)
+	{
+		AJB_Reply(client, "Repeat No Warden");
+		return Plugin_Handled;
+	}
+	
+	float now = GetGameTime();
+	if (now < g_fNextRepeatTime[client])
+	{
+		int remaining = RoundToCeil(g_fNextRepeatTime[client] - now);
+		char prefix[32];
+		AJB_GetPrefix(client, prefix, sizeof(prefix));
+		CReplyToCommand(client, "%T", "Repeat Cooldown", client, prefix, remaining);
+		return Plugin_Handled;
+	}
+	
+	g_fNextRepeatTime[client] = now + g_cvRepeatCooldown.FloatValue;
+	
+	// Chat message
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			char prefix[32];
+			AJB_GetPrefix(i, prefix, sizeof(prefix));
+			CPrintToChat(i, "%T", "Repeat Requested", i, prefix, client);
+		}
+	}
+	
+	// Annotation over player
+	AJB_Repeat_ShowAnnotation(client, g_cvRepeatMarkerTime.FloatValue);
+	
+	// Sound
+	EmitSoundToAll("ui/hint.wav", client, SNDCHAN_AUTO, SNDLEVEL_NORMAL);
+
+	return Plugin_Handled;
+}
+
+void AJB_Repeat_ShowAnnotation(int target, float life)
+{
+	Event ev = CreateEvent("show_annotation", true);
+	if (ev == null)
+	{
+		return;
+	}
+
+	char text[64];
+	Format(text, sizeof(text), "Repeat Order!");
+	
+	g_iRepeatAnnId = ++g_iRepeatAnnSerial;
+
+	ev.SetInt("follow_entindex", target);
+	ev.SetInt("id", g_iRepeatAnnId);
+	ev.SetString("text", text);
+	ev.SetFloat("lifetime", life);
+	ev.SetInt("visibilityBitfield", 0);
+	ev.Fire();
+}
+
