@@ -16,6 +16,7 @@ projects/ajb/
 │   ├── ajb.sp                 # core plugin entry (single compilation unit)
 │   ├── ajb/core_*.sp          # core fragments #included by ajb.sp
 │   ├── modules/ajb_*.sp       # standalone plugins that consume the core API
+│   ├── modules/lastrequest/   # LR wish fragments #included by ajb_lastrequest.sp
 │   └── include/ajb/*.inc      # shared api / enums / constants / phrases
 ├── translations/*.phrases.txt
 ├── configs/                   # settings, prisoner loadout, per-map configs
@@ -58,7 +59,8 @@ Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in the SourceMod tree. Inclu
 
 `ajb.sp` is compiled explicitly; every `modules/*.sp` is compiled to its own `.smx`. The
 core fragments (`ajb/core_*.sp`) are **not** compiled directly — they are included by
-`ajb.sp`.
+`ajb.sp`. Same for Last Request: `modules/lastrequest/wish_*.sp` are included by
+`ajb_lastrequest.sp` only (do not compile them on their own).
 
 ### Preferred: the `sourcemod` MCP tools
 
