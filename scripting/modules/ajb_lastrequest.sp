@@ -511,79 +511,31 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 		return 0;
 	}
 
-	char info[32];
-	menu.GetItem(param2, info, sizeof(info));
-
-	if (StrEqual(info, "freeday_me"))
+	switch (param2)
 	{
-		AJB_LR_DoFreedayMe(client);
-	}
-	else if (StrEqual(info, "freeday_others"))
-	{
-		g_iFreedayMenuPage = 0;
-		g_iFreedayPickCount = 0;
-		for (int i = 1; i <= MaxClients; i++) g_bPickedFreeday[i] = false;
-		AJB_LR_ShowFreedayOthersMenu(client);
-	}
-	else if (StrEqual(info, "freeday_all"))
-	{
-		AJB_LR_DoFreedayAll(client);
-	}
-	else if (StrEqual(info, "warday"))
-	{
-		AJB_LR_DoWarDay(client);
-	}
-	else if (StrEqual(info, "classwarfare"))
-	{
-		AJB_LR_DoClassWarfare(client);
-	}
-	else if (StrEqual(info, "setallclass"))
-	{
-		AJB_LR_StartSetAllClassConfig(client);
-	}
-	else if (StrEqual(info, "guardmelee"))
-	{
-		AJB_LR_DoGuardMelee(client);
-	}
-	else if (StrEqual(info, "custom"))
-	{
-		AJB_LR_StartCustom(client);
-	}
-	else if (StrEqual(info, "hotreds"))
-	{
-		AJB_LR_DoHotReds(client);
-	}
-	else if (StrEqual(info, "lowgravity"))
-	{
-		AJB_LR_DoLowGravity(client);
-	}
-	else if (StrEqual(info, "hideseek"))
-	{
-		AJB_LR_DoHideSeek(client);
-	}
-	else if (StrEqual(info, "hungergames"))
-	{
-		AJB_LR_StartHungerGamesConfig(client);
-	}
-	else if (StrEqual(info, "zombiemode"))
-	{
-		AJB_LR_DoZombieMode(client);
-	}
-	else if (StrEqual(info, "cellwars"))
-	{
-		AJB_LR_StartCellWarsConfig(client);
-	}
-	else if (StrEqual(info, "sniper"))
-	{
-		AJB_LR_DoSniper(client);
-	}
-	else if (StrEqual(info, "dodgeball"))
-	{
-		AJB_LR_DoDodgeball(client);
-	}
-	else if (StrEqual(info, "suicide"))
-	{
-		AJB_LR_DoSuicide(client);
+		case 0: AJB_LR_DoFreedayMe(client);
+		case 1:
+		{
+			g_iFreedayMenuPage = 0;
+			g_iFreedayPickCount = 0;
+			for (int i = 1; i <= MaxClients; i++) g_bPickedFreeday[i] = false;
+			AJB_LR_ShowFreedayOthersMenu(client);
+		}
+		case 2: AJB_LR_DoFreedayAll(client);
+		case 3: AJB_LR_DoWarDay(client);
+		case 4: AJB_LR_DoClassWarfare(client);
+		case 5: AJB_LR_StartSetAllClassConfig(client);
+		case 6: AJB_LR_DoGuardMelee(client);
+		case 7: AJB_LR_StartCustom(client);
+		case 8: AJB_LR_DoHotReds(client);
+		case 9: AJB_LR_DoLowGravity(client);
+		case 10: AJB_LR_DoHideSeek(client);
+		case 11: AJB_LR_StartHungerGamesConfig(client);
+		case 12: AJB_LR_DoZombieMode(client);
+		case 13: AJB_LR_StartCellWarsConfig(client);
+		case 14: AJB_LR_DoSniper(client);
+		case 15: AJB_LR_DoDodgeball(client);
+		case 16: AJB_LR_DoSuicide(client);
 	}
 
 	return 0;
@@ -750,7 +702,7 @@ public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, flo
 			return Plugin_Handled;
 		}
 
-		int redTeam = AJB_LR_GetPrisonersTeam();
+		int redTeam = AJB_GetPrisonersTeam();
 		if (GetClientTeam(attacker) != redTeam || GetClientTeam(victim) != redTeam)
 		{
 			return Plugin_Handled;
@@ -1126,42 +1078,6 @@ void AJB_LR_ApplyPendingWish()
 	}
 }
 
-
-void AJB_LR_HG_StripToMelee(int client)
-{
-	if (!IsClientInGame(client) || !IsPlayerAlive(client))
-	{
-		return;
-	}
-
-	// Hard melee-only (no prisoner allowlist) so HG is fair for everyone.
-	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Primary);
-	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Secondary);
-	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Grenade);
-	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Building);
-	TF2_RemoveWeaponSlot(client, TFWeaponSlot_PDA);
-	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Item1);
-	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Item2);
-
-	if (TF2_GetPlayerClass(client) == TFClass_Spy)
-	{
-		if (TF2_IsPlayerInCondition(client, TFCond_Stealthed))
-		{
-			TF2_RemoveCondition(client, TFCond_Stealthed);
-		}
-		if (TF2_IsPlayerInCondition(client, TFCond_Disguised))
-		{
-			TF2_RemoveCondition(client, TFCond_Disguised);
-		}
-	}
-
-	int melee = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-	if (melee != -1 && IsValidEntity(melee))
-	{
-		SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", melee);
-	}
-}
-
 void AJB_LR_HG_SetFriendlyFire(bool enabled)
 {
 	if (g_cvEngineFriendlyFire == null)
@@ -1190,9 +1106,16 @@ void AJB_LR_HG_SetFriendlyFire(bool enabled)
 
 
 // First info_player_teamspawn of the guards' team (fallback: first spawn of any team).
+int g_iCachedGuardSpawn = -1;
+
 int AJB_LR_FindGuardSpawn()
 {
-	int guardTeam = AJB_LR_GetGuardsTeam();
+	if (g_iCachedGuardSpawn != -1 && IsValidEntity(g_iCachedGuardSpawn))
+	{
+		return g_iCachedGuardSpawn;
+	}
+
+	int guardTeam = AJB_GetGuardsTeam();
 	int ent = -1;
 	int first = -1;
 
@@ -1211,37 +1134,14 @@ int AJB_LR_FindGuardSpawn()
 		if (HasEntProp(ent, Prop_Data, "m_iTeamNum")
 			&& GetEntProp(ent, Prop_Data, "m_iTeamNum") == guardTeam)
 		{
+			g_iCachedGuardSpawn = ent;
 			return ent;
 		}
 	}
 
+	g_iCachedGuardSpawn = first;
 	return first;
 }
-
-int AJB_LR_GetGuardsTeam()
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && AJB_IsGuard(i))
-		{
-			return GetClientTeam(i);
-		}
-	}
-	return 3; // BLU default
-}
-
-int AJB_LR_GetPrisonersTeam()
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && AJB_IsPrisoner(i))
-		{
-			return GetClientTeam(i);
-		}
-	}
-	return 2; // RED default
-}
-
 
 // =========================================================================================================
 // Cleanup
@@ -1339,7 +1239,7 @@ void AJB_LR_Cleanup(bool announce)
 		g_bHGEnding = false;
 		AJB_LR_HG_SetFriendlyFire(false);
 
-		int blueTeam = AJB_LR_GetGuardsTeam();
+		int blueTeam = AJB_GetGuardsTeam();
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (g_bHGOriginalBlu[i])
@@ -1388,7 +1288,7 @@ void AJB_LR_Cleanup(bool announce)
 		g_bCWEnding = false;
 		AJB_LR_HG_SetFriendlyFire(false);
 
-		int blueTeam = AJB_LR_GetGuardsTeam();
+		int blueTeam = AJB_GetGuardsTeam();
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (g_bCWOriginalBlu[i])
@@ -1474,8 +1374,8 @@ void AJB_LR_ChatAllClassApplied(const char[] chooserName, TFClassType redCls, TF
 {
 	char redName[32];
 	char bluName[32];
-	AJB_LR_ClassName(redCls, redName, sizeof(redName));
-	AJB_LR_ClassName(bluCls, bluName, sizeof(bluName));
+	AJB_TFClassName(redCls, redName, sizeof(redName));
+	AJB_TFClassName(bluCls, bluName, sizeof(bluName));
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -1520,24 +1420,6 @@ void AJB_LR_ChatAllCustom(int chooser, const char[] text)
 		CPrintToChat(i, "%T", "LR Chose Custom", i, prefix, chooser, text);
 	}
 }
-
-void AJB_LR_ClassName(TFClassType cls, char[] buffer, int maxlen)
-{
-	switch (cls)
-	{
-		case TFClass_Scout:    strcopy(buffer, maxlen, "Scout");
-		case TFClass_Sniper:   strcopy(buffer, maxlen, "Sniper");
-		case TFClass_Soldier:  strcopy(buffer, maxlen, "Soldier");
-		case TFClass_DemoMan:  strcopy(buffer, maxlen, "Demoman");
-		case TFClass_Medic:    strcopy(buffer, maxlen, "Medic");
-		case TFClass_Heavy:    strcopy(buffer, maxlen, "Heavy");
-		case TFClass_Pyro:     strcopy(buffer, maxlen, "Pyro");
-		case TFClass_Spy:      strcopy(buffer, maxlen, "Spy");
-		case TFClass_Engineer: strcopy(buffer, maxlen, "Engineer");
-		default:               strcopy(buffer, maxlen, "Class");
-	}
-}
-
 
 void AJB_LR_ChatAll2N(const char[] phrase, int player1, int player2)
 {

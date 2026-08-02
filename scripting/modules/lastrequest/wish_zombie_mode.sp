@@ -39,8 +39,8 @@ void AJB_LR_ApplyZombieMode(const char[] chooser)
 		AJB_SetRoundState(AJBState_SpecialDay);
 	}
 
-	int redTeam = AJB_LR_GetPrisonersTeam();
-	int blueTeam = AJB_LR_GetGuardsTeam();
+	int redTeam = AJB_GetPrisonersTeam();
+	int blueTeam = AJB_GetGuardsTeam();
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || IsFakeClient(i))
@@ -125,7 +125,7 @@ void AJB_LR_ZM_ArmZombie(int client)
 	}
 
 	TF2_RegeneratePlayer(client);
-	AJB_LR_HG_StripToMelee(client);
+	AJB_StripToMelee(client);
 }
 
 void AJB_LR_ZM_OnPlayerSpawn(int client)
@@ -185,8 +185,8 @@ Action AJB_LR_ZM_OnTakeDamage(int victim, int attacker, float damage)
 		return Plugin_Continue;
 	}
 
-	int redTeam = AJB_LR_GetPrisonersTeam();
-	int blueTeam = AJB_LR_GetGuardsTeam();
+	int redTeam = AJB_GetPrisonersTeam();
+	int blueTeam = AJB_GetGuardsTeam();
 
 	// Only zombie -> human hits count toward infection.
 	if (GetClientTeam(attacker) != blueTeam || GetClientTeam(victim) != redTeam)
@@ -236,8 +236,8 @@ void Frame_ZMInfect(int userid)
 
 	// Still human, or already dead on RED/spec after a lethal infect hit.
 	int team = GetClientTeam(client);
-	int redTeam = AJB_LR_GetPrisonersTeam();
-	if (team == AJB_LR_GetGuardsTeam())
+	int redTeam = AJB_GetPrisonersTeam();
+	if (team == AJB_GetGuardsTeam())
 	{
 		return;
 	}
@@ -257,7 +257,7 @@ void AJB_LR_ZM_Infect(int client, int attacker, bool patientZero)
 		return;
 	}
 
-	int blueTeam = AJB_LR_GetGuardsTeam();
+	int blueTeam = AJB_GetGuardsTeam();
 	if (GetClientTeam(client) == blueTeam)
 	{
 		return;
@@ -329,7 +329,7 @@ void AJB_LR_ZM_OnPlayerDeath(int victim)
 
 	g_iZMHits[victim] = 0;
 
-	int blueTeam = AJB_LR_GetGuardsTeam();
+	int blueTeam = AJB_GetGuardsTeam();
 	// Event is post: team may already be spectator. Prefer "was zombie" via pending infect
 	// (still human converting) vs schedule respawn only when still/on BLU or dead as guard role.
 	// Use attacker-side role before death: if they had a pending infect, conversion frame owns them.
@@ -408,7 +408,7 @@ Action Timer_ZMRespawn(Handle timer, int userid)
 		return Plugin_Stop;
 	}
 
-	int blueTeam = AJB_LR_GetGuardsTeam();
+	int blueTeam = AJB_GetGuardsTeam();
 	if (GetClientTeam(client) != blueTeam)
 	{
 		return Plugin_Stop;
@@ -464,7 +464,7 @@ void AJB_LR_ZM_TeleportRespawn(int client)
 
 int AJB_LR_ZM_PickAliveTeammate(int self)
 {
-	int blueTeam = AJB_LR_GetGuardsTeam();
+	int blueTeam = AJB_GetGuardsTeam();
 	int list[MAXPLAYERS];
 	int count = 0;
 
@@ -499,7 +499,7 @@ Action Timer_ZMGraceEnd(Handle timer)
 
 	g_bZMGrace = false;
 
-	int redTeam = AJB_LR_GetPrisonersTeam();
+	int redTeam = AJB_GetPrisonersTeam();
 	int candidates[MAXPLAYERS];
 	int count = 0;
 	for (int i = 1; i <= MaxClients; i++)
@@ -516,7 +516,7 @@ Action Timer_ZMGraceEnd(Handle timer)
 		AJB_ChatAll("LR ZM NoHumans");
 		if (g_bHasCore)
 		{
-			AJB_ForceTeamWin(AJB_LR_GetGuardsTeam());
+			AJB_ForceTeamWin(AJB_GetGuardsTeam());
 		}
 		return Plugin_Stop;
 	}
@@ -538,7 +538,7 @@ Action Timer_ZMEnd(Handle timer)
 
 	g_bZMEnding = true;
 
-	int redTeam = AJB_LR_GetPrisonersTeam();
+	int redTeam = AJB_GetPrisonersTeam();
 	bool anyHuman = false;
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -557,7 +557,7 @@ Action Timer_ZMEnd(Handle timer)
 	else
 	{
 		AJB_ChatAll("LR ZM Zombies Win");
-		AJB_ForceTeamWin(AJB_LR_GetGuardsTeam());
+		AJB_ForceTeamWin(AJB_GetGuardsTeam());
 	}
 
 	return Plugin_Stop;
@@ -576,7 +576,7 @@ void Frame_ZMCheckWinner(any data)
 		return;
 	}
 
-	int redTeam = AJB_LR_GetPrisonersTeam();
+	int redTeam = AJB_GetPrisonersTeam();
 	int aliveHumans = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -590,7 +590,7 @@ void Frame_ZMCheckWinner(any data)
 	{
 		g_bZMEnding = true;
 		AJB_ChatAll("LR ZM Zombies Win");
-		AJB_ForceTeamWin(AJB_LR_GetGuardsTeam());
+		AJB_ForceTeamWin(AJB_GetGuardsTeam());
 	}
 }
 

@@ -457,7 +457,7 @@ void AJB_Freeday_EnsureTrailFx(int client)
 	int glow = g_PlayerFx[client].glow;
 	if (glow <= MaxClients || !IsValidEntity(glow))
 	{
-		glow = AJB_CreateGlow(client, "50 255 50", "ajb_fd");
+		glow = AJB_CreateGlow("50 255 50");
 		if (glow != -1)
 		{
 			g_PlayerFx[client].glow = glow;
@@ -521,7 +521,7 @@ void AJB_Rebel_EnsureGlow(int client)
 	int glow = g_PlayerFx[client].rebelGlow;
 	if (glow <= MaxClients || !IsValidEntity(glow))
 	{
-		glow = AJB_CreateGlow(client, "255 150 0", "ajb_rb");
+		glow = AJB_CreateGlow("255 150 0");
 		if (glow != -1)
 		{
 			g_PlayerFx[client].rebelGlow = glow;
@@ -569,7 +569,7 @@ void AJB_Rebel_KillGlow(int client)
 // Shared: create a parented env_sprite glow at mid-body height
 // =========================================================================================================
 
-int AJB_CreateGlow(int client, const char[] color, const char[] prefix)
+int AJB_CreateGlow(const char[] color)
 {
 	int glow = CreateEntityByName("env_sprite");
 	if (glow == -1)

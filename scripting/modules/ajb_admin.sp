@@ -241,7 +241,7 @@ Action Command_Status(int client, int args)
 	}
 
 	char stateName[32];
-	AJB_Admin_StateName(AJB_GetRoundState(), stateName, sizeof(stateName));
+	AJB_GetStateName(AJB_GetRoundState(), stateName, sizeof(stateName));
 
 	int warden = AJB_GetWarden();
 	char wardenName[64];
@@ -887,22 +887,6 @@ public int MenuHandler_BoostAmount(Menu menu, MenuAction action, int param1, int
 // Helpers
 // =========================================================================================================
 
-void AJB_Admin_StateName(AJBRoundState state, char[] buffer, int maxlen)
-{
-	switch (state)
-	{
-		case AJBState_Disabled:     strcopy(buffer, maxlen, "Off");
-		case AJBState_Waiting:      strcopy(buffer, maxlen, "Waiting");
-		case AJBState_CellsLocked:  strcopy(buffer, maxlen, "CellsLocked");
-		case AJBState_CellsOpen:    strcopy(buffer, maxlen, "CellsOpen");
-		case AJBState_LRChoosing:   strcopy(buffer, maxlen, "LRChoosing");
-		case AJBState_LRChosen:     strcopy(buffer, maxlen, "LRChosen");
-		case AJBState_SpecialDay:   strcopy(buffer, maxlen, "SpecialDay");
-		case AJBState_RoundEnd:     strcopy(buffer, maxlen, "RoundEnd");
-		default:                    strcopy(buffer, maxlen, "?");
-	}
-}
-
 // =========================================================================================================
 // Guard bans (SQL-backed) — block a player from joining the guards / BLU team
 // =========================================================================================================
@@ -1095,18 +1079,6 @@ bool AJB_RemoveGuardBan(const char[] steamid)
 	return had;
 }
 
-int AJB_GuardsTeam()
-{
-	ConVar cv = FindConVar("sm_ajb_guards_team");
-	return (cv == null) ? 3 : cv.IntValue;
-}
-
-int AJB_PrisonersTeam()
-{
-	ConVar cv = FindConVar("sm_ajb_prisoners_team");
-	return (cv == null) ? 2 : cv.IntValue;
-}
-
 // Resolve a command argument (#userid / name / raw SteamID64) to a SteamID64 string.
 // Returns the resolved client (>0) when it matched a connected player, 0 for a raw
 // SteamID64 (offline), or -1 when it could not be resolved (error already replied).
@@ -1175,7 +1147,7 @@ void AJB_EnforceGuardBan(int client)
 		return;
 	}
 
-	if (GetClientTeam(client) != AJB_GuardsTeam())
+	if (GetClientTeam(client) != AJB_GetGuardsTeam())
 	{
 		return;
 	}
@@ -1191,7 +1163,7 @@ void AJB_EnforceGuardBan(int client)
 		return;
 	}
 
-	TF2_ChangeClientTeam(client, view_as<TFTeam>(AJB_PrisonersTeam()));
+	TF2_ChangeClientTeam(client, view_as<TFTeam>(AJB_GetPrisonersTeam()));
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
@@ -1206,7 +1178,7 @@ void Event_PlayerTeam_GuardBan(Event event, const char[] name, bool dontBroadcas
 		return;
 	}
 
-	if (event.GetInt("team") != AJB_GuardsTeam())
+	if (event.GetInt("team") != AJB_GetGuardsTeam())
 	{
 		return;
 	}

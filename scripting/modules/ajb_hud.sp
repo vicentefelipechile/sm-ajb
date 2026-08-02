@@ -185,7 +185,7 @@ void AJB_Hud_BuildLine(char[] buffer, int maxlen)
 	int warden = AJB_GetWarden();
 
 	char stateName[32];
-	AJB_Hud_StateName(state, stateName, sizeof(stateName));
+	AJB_GetStateName(state, stateName, sizeof(stateName));
 
 	char wardenName[64];
 	if (warden > 0 && IsClientInGame(warden))
@@ -207,20 +207,4 @@ void AJB_Hud_BuildLine(char[] buffer, int maxlen)
 	}
 
 	Format(buffer, maxlen, "AJB | %s | Warden: %s | Rebels: %d", stateName, wardenName, rebels);
-}
-
-void AJB_Hud_StateName(AJBRoundState state, char[] buffer, int maxlen)
-{
-	switch (state)
-	{
-		case AJBState_Disabled:     strcopy(buffer, maxlen, "Off");
-		case AJBState_Waiting:      strcopy(buffer, maxlen, "Waiting");
-		case AJBState_CellsLocked:  strcopy(buffer, maxlen, "Cells Locked");
-		case AJBState_CellsOpen:    strcopy(buffer, maxlen, "Cells Open");
-		case AJBState_LRChoosing:   strcopy(buffer, maxlen, "Choosing LR");
-		case AJBState_LRChosen:     strcopy(buffer, maxlen, "LR Chosen");
-		case AJBState_SpecialDay:   strcopy(buffer, maxlen, "Special Day");
-		case AJBState_RoundEnd:     strcopy(buffer, maxlen, "Round End");
-		default:                    strcopy(buffer, maxlen, "?");
-	}
 }

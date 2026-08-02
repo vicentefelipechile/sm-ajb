@@ -92,6 +92,10 @@ void AJB_LR_ChatAllCellWarsChose(int chooser, bool meleeOnly)
 	}
 }
 
+int g_iCWRedTeam = 2;
+float g_vecCWSpawns[64][3];
+int g_iCWSpawnCount = 0;
+
 void AJB_LR_ApplyCellWars(const char[] chooser, bool meleeOnly)
 {
 	g_bCellWars = true;
@@ -113,8 +117,21 @@ void AJB_LR_ApplyCellWars(const char[] chooser, bool meleeOnly)
 		AJB_SetRoundState(AJBState_SpecialDay);
 	}
 
-	int redTeam = AJB_LR_GetPrisonersTeam();
-	int blueTeam = AJB_LR_GetGuardsTeam();
+	g_iCWRedTeam = AJB_GetPrisonersTeam();
+	int blueTeam = AJB_GetGuardsTeam();
+
+	g_iCWSpawnCount = 0;
+	int ent = -1;
+	while (g_iCWSpawnCount < sizeof(g_vecCWSpawns) && (ent = FindEntityByClassname(ent, "info_player_teamspawn")) != -1)
+	{
+		if (HasEntProp(ent, Prop_Data, "m_iTeamNum") && GetEntProp(ent, Prop_Data, "m_iTeamNum") != g_iCWRedTeam)
+		{
+			continue;
+		}
+		GetEntPropVector(ent, Prop_Data, "m_vecOrigin", g_vecCWSpawns[g_iCWSpawnCount]);
+		g_iCWSpawnCount++;
+	}
+
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_bCWOriginalBlu[i] = false;
@@ -124,10 +141,10 @@ void AJB_LR_ApplyCellWars(const char[] chooser, bool meleeOnly)
 			{
 				g_bCWOriginalBlu[i] = true;
 				ChangeClientTeam(i, 1);
-				ChangeClientTeam(i, redTeam);
+				ChangeClientTeam(i, g_iCWRedTeam);
 			}
 
-			if (!IsPlayerAlive(i) && GetClientTeam(i) == redTeam)
+			if (!IsPlayerAlive(i) && GetClientTeam(i) == g_iCWRedTeam)
 			{
 				TF2_RespawnPlayer(i);
 			}
@@ -181,7 +198,7 @@ void AJB_LR_CW_ArmPlayer(int client)
 	TF2_RegeneratePlayer(client);
 	if (g_bCWMeleeOnly)
 	{
-		AJB_LR_HG_StripToMelee(client);
+		AJB_StripToMelee(client);
 	}
 }
 
@@ -192,7 +209,7 @@ Action Timer_CWEnd(Handle timer)
 
 	g_bCWEnding = true;
 	AJB_ChatAll("LR CW TimeUp");
-	AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+	AJB_ForceTeamWin(AJB_GetPrisonersTeam());
 	return Plugin_Stop;
 }
 
@@ -212,7 +229,7 @@ void Frame_CWRestoreBluTeam(int userid)
 	if (client > 0 && IsClientInGame(client) && g_bCWOriginalBlu[client])
 	{
 		g_bCWOriginalBlu[client] = false;
-		int blueTeam = AJB_LR_GetGuardsTeam();
+		int blueTeam = AJB_GetGuardsTeam();
 		if (GetClientTeam(client) != blueTeam)
 		{
 			TF2_ChangeClientTeam(client, view_as<TFTeam>(blueTeam));
@@ -225,7 +242,7 @@ void Frame_CWCheckWinner(any data)
 	if (!g_bCellWars || g_bCWEnding || !g_bHasCore) return;
 
 	int alive = 0, last = 0;
-	int redTeam = AJB_LR_GetPrisonersTeam();
+	int redTeam = AJB_GetPrisonersTeam();
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
@@ -245,7 +262,7 @@ void Frame_CWCheckWinner(any data)
 	{
 		g_bCWEnding = true;
 		AJB_ChatAll("LR CW NoWinner");
-		AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+		AJB_ForceTeamWin(AJB_GetPrisonersTeam());
 	}
 }
 
@@ -273,9 +290,15 @@ void AJB_LR_ChatAllCellWarsApplied(const char[] chooserName, bool meleeOnly)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
-	if (g_bCellWars && !g_bCWEnding && IsClientInGame(client) && IsPlayerAlive(client))
+	if (!g_bCellWars || g_bCWEnding)
 	{
-		if (GetClientTeam(client) == AJB_LR_GetPrisonersTeam())
+		g_iCWLastButtons[client] = buttons;
+		return Plugin_Continue;
+	}
+
+	if (IsClientInGame(client) && IsPlayerAlive(client))
+	{
+		if (GetClientTeam(client) == g_iCWRedTeam)
 		{
 			if ((buttons & IN_JUMP) && !(g_iCWLastButtons[client] & IN_JUMP))
 			{
@@ -289,25 +312,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 void AJB_LR_CW_TeleportToRandomSpawn(int client)
 {
-	int count = 0;
-	float spawns[64][3];
-	int redTeam = AJB_LR_GetPrisonersTeam();
-	int ent = -1;
-	while (count < sizeof(spawns) && (ent = FindEntityByClassname(ent, "info_player_teamspawn")) != -1)
+	if (g_iCWSpawnCount > 0)
 	{
-		if (HasEntProp(ent, Prop_Data, "m_iTeamNum") && GetEntProp(ent, Prop_Data, "m_iTeamNum") != redTeam)
-		{
-			continue;
-		}
-		GetEntPropVector(ent, Prop_Data, "m_vecOrigin", spawns[count]);
-		count++;
-	}
-	
-	if (count > 0)
-	{
-		int pick = GetRandomInt(0, count - 1);
+		int pick = GetRandomInt(0, g_iCWSpawnCount - 1);
 		float noVel[3];
-		TeleportEntity(client, spawns[pick], NULL_VECTOR, noVel);
+		TeleportEntity(client, g_vecCWSpawns[pick], NULL_VECTOR, noVel);
 	}
 }
 

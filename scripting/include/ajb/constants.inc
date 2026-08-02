@@ -7,6 +7,8 @@
 #endif
 #define _ajb_constants_included
 
+#include <tf2_stocks>
+
 #define AJB_LIBRARY             "ajb"
 
 // SourceMod convention: every plugin exposes a version ConVar (sm_ajb_version).
@@ -37,3 +39,20 @@
 
 #define AJB_CONFIG_DIR          "configs/ajb"
 #define AJB_MAP_CONFIG_DIR      "configs/ajb/maps"
+
+stock void AJB_TFClassName(TFClassType cls, char[] buffer, int maxlen)
+{
+	switch (cls)
+	{
+		case TFClass_Scout:    strcopy(buffer, maxlen, "Scout");
+		case TFClass_Sniper:   strcopy(buffer, maxlen, "Sniper");
+		case TFClass_Soldier:  strcopy(buffer, maxlen, "Soldier");
+		case TFClass_DemoMan:  strcopy(buffer, maxlen, "Demoman");
+		case TFClass_Medic:    strcopy(buffer, maxlen, "Medic");
+		case TFClass_Heavy:    strcopy(buffer, maxlen, "Heavy");
+		case TFClass_Pyro:     strcopy(buffer, maxlen, "Pyro");
+		case TFClass_Spy:      strcopy(buffer, maxlen, "Spy");
+		case TFClass_Engineer: strcopy(buffer, maxlen, "Engineer");
+		default:               strcopy(buffer, maxlen, "Class");
+	}
+}

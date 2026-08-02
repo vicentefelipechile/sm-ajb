@@ -133,7 +133,7 @@ Action Timer_HSEnd(Handle timer)
 
 	// Time up: the hiders (RED) survived -> prisoners win.
 	AJB_ChatAll("LR HideSeek TimeUp");
-	AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+	AJB_ForceTeamWin(AJB_GetPrisonersTeam());
 	return Plugin_Stop;
 }
 

@@ -29,7 +29,7 @@ void AJB_LR_ShowSetAllClassMenu(int prisoner)
 	char classLabel[32];
 
 	AJB_LR_SetAllClassTargetLabel(prisoner, g_DraftSetAllClassTarget, targetLabel, sizeof(targetLabel));
-	AJB_LR_ClassName(g_DraftSetAllClassType, classLabel, sizeof(classLabel));
+	AJB_TFClassName(g_DraftSetAllClassType, classLabel, sizeof(classLabel));
 
 	Format(title, sizeof(title), "%T", "LR SetAllClass Menu Title", prisoner);
 	menu.SetTitle(title);
@@ -181,7 +181,7 @@ void AJB_LR_ShowSetAllClassTypeMenu(int prisoner)
 	{
 		char info[8];
 		IntToString(view_as<int>(kClasses[i]), info, sizeof(info));
-		AJB_LR_ClassName(kClasses[i], line, sizeof(line));
+		AJB_TFClassName(kClasses[i], line, sizeof(line));
 		menu.AddItem(info, line);
 	}
 
@@ -279,7 +279,7 @@ void AJB_LR_ForceSetAllClass(int client)
 void AJB_LR_ChatAllSetAllClassChose(int chooser, AJB_SetAllClassTarget target, TFClassType cls)
 {
 	char className[32];
-	AJB_LR_ClassName(cls, className, sizeof(className));
+	AJB_TFClassName(cls, className, sizeof(className));
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -300,7 +300,7 @@ void AJB_LR_ChatAllSetAllClassChose(int chooser, AJB_SetAllClassTarget target, T
 void AJB_LR_ChatAllSetAllClassApplied(const char[] chooserName, AJB_SetAllClassTarget target, TFClassType cls)
 {
 	char className[32];
-	AJB_LR_ClassName(cls, className, sizeof(className));
+	AJB_TFClassName(cls, className, sizeof(className));
 
 	for (int i = 1; i <= MaxClients; i++)
 	{

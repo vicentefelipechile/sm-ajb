@@ -23,7 +23,7 @@ void Frame_HGRestoreBluTeam(int userid)
 	if (client > 0 && IsClientInGame(client) && g_bHGOriginalBlu[client])
 	{
 		g_bHGOriginalBlu[client] = false;
-		int blueTeam = AJB_LR_GetGuardsTeam();
+		int blueTeam = AJB_GetGuardsTeam();
 		if (GetClientTeam(client) != blueTeam)
 		{
 			TF2_ChangeClientTeam(client, view_as<TFTeam>(blueTeam));
@@ -94,7 +94,7 @@ void AJB_LR_HG_ClassOptionLabel(int client, char[] buffer, int maxlen)
 	}
 
 	char name[32];
-	AJB_LR_ClassName(g_HGDraftClass, name, sizeof(name));
+	AJB_TFClassName(g_HGDraftClass, name, sizeof(name));
 	strcopy(buffer, maxlen, name);
 }
 
@@ -180,7 +180,7 @@ void AJB_LR_ShowHungerGamesClassMenu(int prisoner)
 	{
 		char info[8];
 		IntToString(view_as<int>(kClasses[i]), info, sizeof(info));
-		AJB_LR_ClassName(kClasses[i], line, sizeof(line));
+		AJB_TFClassName(kClasses[i], line, sizeof(line));
 		menu.AddItem(info, line);
 	}
 
@@ -235,7 +235,7 @@ void AJB_LR_ChatAllHungerGamesChose(int chooser, bool meleeOnly, bool classRando
 	char fixedClass[32];
 	if (!classRandom && cls != TFClass_Unknown)
 	{
-		AJB_LR_ClassName(cls, fixedClass, sizeof(fixedClass));
+		AJB_TFClassName(cls, fixedClass, sizeof(fixedClass));
 	}
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -314,8 +314,8 @@ void AJB_LR_ApplyHungerGames(const char[] chooser, bool meleeOnly, bool classRan
 	// Move guards to RED without killing them: route through Spectator first.
 	// TF2_ChangeClientTeam from BLU->RED kills a live player and fires player_death,
 	// which would trigger Frame_HGRestoreBluTeam and move them back to BLU.
-	int redTeam = AJB_LR_GetPrisonersTeam();
-	int blueTeam = AJB_LR_GetGuardsTeam();
+	int redTeam = AJB_GetPrisonersTeam();
+	int blueTeam = AJB_GetGuardsTeam();
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_bHGOriginalBlu[i] = false;
@@ -426,7 +426,7 @@ void AJB_LR_HG_ArmPlayer(int client)
 
 	if (g_bHGMeleeOnly)
 	{
-		AJB_LR_HG_StripToMelee(client);
+		AJB_StripToMelee(client);
 	}
 }
 
@@ -456,7 +456,7 @@ Action Timer_HGEnd(Handle timer)
 
 	g_bHGEnding = true;
 	AJB_ChatAll("LR HG TimeUp");
-	AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+	AJB_ForceTeamWin(AJB_GetPrisonersTeam());
 	return Plugin_Stop;
 }
 
@@ -475,7 +475,7 @@ void Frame_HGCheckWinner(any data)
 
 	int alive = 0;
 	int last = 0;
-	int redTeam = AJB_LR_GetPrisonersTeam();
+	int redTeam = AJB_GetPrisonersTeam();
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
@@ -495,7 +495,7 @@ void Frame_HGCheckWinner(any data)
 	{
 		g_bHGEnding = true;
 		AJB_ChatAll("LR HG NoWinner");
-		AJB_ForceTeamWin(AJB_LR_GetPrisonersTeam());
+		AJB_ForceTeamWin(AJB_GetPrisonersTeam());
 	}
 }
 
@@ -522,7 +522,7 @@ void AJB_LR_ChatAllHungerGamesApplied(const char[] chooserName, bool meleeOnly, 
 	}
 	else
 	{
-		AJB_LR_ClassName(cls, classLabel, sizeof(classLabel));
+		AJB_TFClassName(cls, classLabel, sizeof(classLabel));
 	}
 
 	int graceSec = RoundToFloor(grace);

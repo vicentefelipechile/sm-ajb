@@ -148,6 +148,9 @@ void AJB_RegisterNatives()
 	CreateNative("AJB_BeginFreedayAllCosmetic", Native_BeginFreedayAllCosmetic);
 	CreateNative("AJB_IsCombatDay", Native_IsCombatDay);
 	CreateNative("AJB_IsFreedayAllCosmetic", Native_IsFreedayAllCosmetic);
+	CreateNative("AJB_GetGuardsTeam", Native_GetGuardsTeam);
+	CreateNative("AJB_GetPrisonersTeam", Native_GetPrisonersTeam);
+	CreateNative("AJB_StripToMelee", Native_StripToMelee);
 }
 
 public int Native_IsEnabled(Handle plugin, int numParams)
@@ -328,4 +331,21 @@ public int Native_IsCombatDay(Handle plugin, int numParams)
 public int Native_IsFreedayAllCosmetic(Handle plugin, int numParams)
 {
 	return AJB_IsFreedayAllCosmetic() ? 1 : 0;
+}
+
+public int Native_GetGuardsTeam(Handle plugin, int numParams)
+{
+	return AJB_GetGuardsTeam();
+}
+
+public int Native_GetPrisonersTeam(Handle plugin, int numParams)
+{
+	return AJB_GetPrisonersTeam();
+}
+
+public int Native_StripToMelee(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	AJB_StripToMelee(client);
+	return 0;
 }

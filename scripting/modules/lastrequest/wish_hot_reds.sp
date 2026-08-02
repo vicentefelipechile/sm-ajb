@@ -54,7 +54,7 @@ Action Timer_HotReds(Handle timer)
 
 		for (int g = 0; g < guardCount; g++)
 		{
-			if (GetVectorDistance(rPos, guardPos[g]) <= 80.0)
+			if (GetVectorDistance(rPos, guardPos[g], true) <= 6400.0)
 			{
 				SDKHooks_TakeDamage(guards[g], 0, 0, dmg, DMG_BURN);
 			}

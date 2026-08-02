@@ -94,6 +94,22 @@ in `plugins/`; it loads on next server start or a later `reload_plugin`.
 - Memory: no leaked Handles. Timers that fire once and return `Plugin_Stop` are freed
   automatically; stored Handles (`g_h*`) must be `delete`d. Prefer stack arrays over
   `ArrayList`/`StringMap` for short-lived per-player scans.
+- **Shared utilities — check before writing**: Before adding a helper, loop, or validator
+  inline, review the shared includes under `scripting/include/ajb/` and the core team helpers
+  in `ajb/core_teams.sp`. Common utilities already exist there:
+  - **Client validation**: `AJB_IsValidClient(client, aliveOnly)` → `core_teams.sp`
+  - **Team queries**: `AJB_GetGuardsTeam()` / `AJB_GetPrisonersTeam()` → `core_mode.sp`
+    (exposed as natives for modules via `ajb.inc`)
+  - **Team helpers**: `AJB_ClientIsGuard`, `AJB_ClientIsPrisoner`, `AJB_CountAliveOnTeam`,
+    `AJB_FindFirstAliveOnTeam`, `AJB_PickRandomAliveOnTeam` → `core_teams.sp`
+  - **Chat with prefix**: `AJB_GetPrefix`, `AJB_ChatAll`, `AJB_Reply` → `phrases.inc`
+  - **State name**: `AJB_GetStateName(state, buf, maxlen)` → `enums.inc`
+  - **Class name**: `AJB_TFClassName(cls, buf, maxlen)` → `constants.inc`
+  - **Safe team swap**: `AJB_ChangeTeamSafe(client, team)` → `ajb.inc` (transit via Spectator)
+  - **Distance squared**: `AJB_GetDistanceSqr(v1, v2)` → shared math stock
+
+  If a helper does not exist yet, add it to the appropriate shared include rather than
+  writing it inline in a single module. This avoids the drift of duplicated functions.
 
 ## Database
 

@@ -103,6 +103,15 @@ native void AJB_BeginCombatDay();
 native void AJB_BeginFreedayAllCosmetic();
 native bool AJB_IsCombatDay();
 native bool AJB_IsFreedayAllCosmetic();
+native int AJB_GetGuardsTeam();
+native int AJB_GetPrisonersTeam();
+native void AJB_StripToMelee(int client);
+
+stock void AJB_ChangeTeamSafe(int client, int team)
+{
+	ChangeClientTeam(client, 1);
+	ChangeClientTeam(client, team);
+}
 
 public SharedPlugin __pl_ajb =
 {
@@ -143,5 +152,8 @@ public void __pl_ajb_SetNTVOptional()
 	MarkNativeAsOptional("AJB_BeginFreedayAllCosmetic");
 	MarkNativeAsOptional("AJB_IsCombatDay");
 	MarkNativeAsOptional("AJB_IsFreedayAllCosmetic");
+	MarkNativeAsOptional("AJB_GetGuardsTeam");
+	MarkNativeAsOptional("AJB_GetPrisonersTeam");
+	MarkNativeAsOptional("AJB_StripToMelee");
 }
 #endif

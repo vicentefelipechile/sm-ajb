@@ -15,6 +15,7 @@
 #define DB_ZONE_POST_WIDTH  5.0
 
 bool g_bDB1v1Mode;
+float g_fDBArenaRadiusSq;
 
 void AJB_LR_KillDBTimers()
 {
@@ -240,6 +241,7 @@ public Action Cmd_SetDBSpawn(int client, int args)
 		kv.SetFloat("radius", radius);
 		g_vecDBArenaCenter = origin;
 		g_fDBArenaRadius = radius;
+		g_fDBArenaRadiusSq = radius * radius;
 		ReplyToCommand(client, "Set Arena Center to %.1f %.1f %.1f with Radius %.1f", origin[0], origin[1], origin[2], radius);
 	}
 	else
@@ -287,6 +289,7 @@ void AJB_LR_DB_LoadConfig()
 		kv.GetVector("rocket", g_vecDBRocketSpawn);
 		kv.GetVector("center", g_vecDBArenaCenter, g_vecDBRocketSpawn); // default to rocket spawn if unset
 		g_fDBArenaRadius = kv.GetFloat("radius", 1500.0);
+		g_fDBArenaRadiusSq = g_fDBArenaRadius * g_fDBArenaRadius;
 
 		// Require all three spawn vectors to be non-zero.
 		if (GetVectorLength(g_vecDBRedSpawn) > 0.0 && GetVectorLength(g_vecDBBluSpawn) > 0.0 && GetVectorLength(g_vecDBRocketSpawn) > 0.0)
@@ -405,17 +408,16 @@ Action Timer_DBBarrierCheck(Handle timer)
 		float origin[3];
 		GetClientAbsOrigin(i, origin);
 
-		if (GetVectorDistance(origin, g_vecDBArenaCenter) > g_fDBArenaRadius)
+		// 2D (XY) distance — the visual ring is horizontal, so ignore Z.
+		float dx = origin[0] - g_vecDBArenaCenter[0];
+		float dy = origin[1] - g_vecDBArenaCenter[1];
+		float distSq = dx * dx + dy * dy;
+
+		if (distSq > g_fDBArenaRadiusSq)
 		{
-			for (int j = 1; j <= MaxClients; j++)
-			{
-				if (IsClientInGame(j) && !IsFakeClient(j) && j == i)
-				{
-					char prefix[32];
-					AJB_GetPrefix(j, prefix, sizeof(prefix));
-					CPrintToChat(j, "%T", "LR DB Out Of Bounds", j, prefix);
-				}
-			}
+			char prefix[32];
+			AJB_GetPrefix(i, prefix, sizeof(prefix));
+			CPrintToChat(i, "%T", "LR DB Out Of Bounds", i, prefix);
 			SDKHooks_TakeDamage(i, 0, 0, dmg, DMG_SHOCK, -1, NULL_VECTOR, g_vecDBArenaCenter);
 		}
 	}
@@ -627,34 +629,103 @@ void AJB_LR_DB_CheckRoundEnd()
 
 Action DB_RocketTouch(int entity, int other)
 {
-	// Invalidate stored reference so the think timer self-stops.
-	g_iDBRocketEnt = -1;
-	if (g_hDBRocketThinkTimer != null)
-	{
-		delete g_hDBRocketThinkTimer;
-		g_hDBRocketThinkTimer = null;
-	}
-
 	if (!g_bDodgeball)
 	{
+		g_iDBRocketEnt = -1;
+		if (g_hDBRocketThinkTimer != null)
+		{
+			delete g_hDBRocketThinkTimer;
+			g_hDBRocketThinkTimer = null;
+		}
 		return Plugin_Continue;
 	}
 
+	// Player hit — explode, deal damage, schedule next rocket.
 	if (other >= 1 && other <= MaxClients && IsClientInGame(other) && IsPlayerAlive(other))
 	{
-		// Attacker must be a valid client or 0 (world); passing a projectile entity
-		// crashes the engine inside EconItemInterface_OnOwnerKillEaterEvent_Batched.
+		g_iDBRocketEnt = -1;
+		if (g_hDBRocketThinkTimer != null)
+		{
+			delete g_hDBRocketThinkTimer;
+			g_hDBRocketThinkTimer = null;
+		}
+
 		int attacker = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 		if (attacker < 1 || attacker > MaxClients || !IsClientInGame(attacker))
 		{
 			attacker = 0;
 		}
 		SDKHooks_TakeDamage(other, entity, attacker, 270.0, DMG_BLAST | DMG_ALWAYSGIB);
+
+		CreateTimer(1.0, Timer_DBSpawnRocket, _, TIMER_FLAG_NO_MAPCHANGE);
+		return Plugin_Continue;
 	}
 
-	// Schedule next rocket only if both teams still have living players.
-	CreateTimer(1.0, Timer_DBSpawnRocket, _, TIMER_FLAG_NO_MAPCHANGE);
-	return Plugin_Continue;
+	// World/brush hit — bounce the rocket instead of exploding.
+	float rocketPos[3], velocity[3];
+	GetEntPropVector(entity, Prop_Data, "m_vecOrigin", rocketPos);
+	GetEntPropVector(entity, Prop_Data, "m_vecAbsVelocity", velocity);
+
+	// Trace a short ray in the direction of travel to find the surface normal.
+	float endPos[3];
+	float dir[3];
+	dir = velocity;
+	NormalizeVector(dir, dir);
+	endPos[0] = rocketPos[0] + dir[0] * 64.0;
+	endPos[1] = rocketPos[1] + dir[1] * 64.0;
+	endPos[2] = rocketPos[2] + dir[2] * 64.0;
+
+	Handle trace = TR_TraceRayFilterEx(rocketPos, endPos, MASK_SOLID, RayType_EndPoint, DB_TraceFilter_NoPlayers, entity);
+
+	float normal[3];
+	if (TR_DidHit(trace))
+	{
+		TR_GetPlaneNormal(trace, normal);
+	}
+	else
+	{
+		// Fallback: assume floor bounce (straight up).
+		normal[0] = 0.0;
+		normal[1] = 0.0;
+		normal[2] = 1.0;
+	}
+	delete trace;
+
+	// Reflect: v' = v - 2(v·n)n
+	float dot = GetVectorDotProduct(velocity, normal);
+	float reflected[3];
+	reflected[0] = velocity[0] - 2.0 * dot * normal[0];
+	reflected[1] = velocity[1] - 2.0 * dot * normal[1];
+	reflected[2] = velocity[2] - 2.0 * dot * normal[2];
+
+	// Nudge the rocket slightly off the surface so it doesn't re-trigger Touch.
+	float nudge[3];
+	nudge[0] = rocketPos[0] + normal[0] * 2.0;
+	nudge[1] = rocketPos[1] + normal[1] * 2.0;
+	nudge[2] = rocketPos[2] + normal[2] * 2.0;
+
+	float angles[3];
+	GetVectorAngles(reflected, angles);
+	NormalizeVector(reflected, reflected);
+	ScaleVector(reflected, g_fDBRocketSpeed);
+
+	TeleportEntity(entity, nudge, angles, reflected);
+
+	return Plugin_Handled;
+}
+
+bool DB_TraceFilter_NoPlayers(int entity, int contentsMask, any data)
+{
+	// Skip players and the rocket itself.
+	if (entity >= 1 && entity <= MaxClients)
+	{
+		return false;
+	}
+	if (entity == data)
+	{
+		return false;
+	}
+	return true;
 }
 
 // Called via RequestFrame after a player death so the death state is settled.
@@ -680,7 +751,10 @@ Action Timer_DBRocketThink(Handle timer, int ref)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			SetEntProp(i, Prop_Send, "m_iAmmo", 200, _, 1);
+			if (GetEntProp(i, Prop_Send, "m_iAmmo", _, 1) < 100)
+			{
+				SetEntProp(i, Prop_Send, "m_iAmmo", 200, _, 1);
+			}
 		}
 	}
 
