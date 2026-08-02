@@ -14,6 +14,10 @@
 #include <tf2_stocks>
 #include <dhooks>
 
+#undef REQUIRE_EXT
+#include <tf2attributes>
+#define REQUIRE_EXT
+
 #undef REQUIRE_PLUGIN
 #include <ajb/ajb>
 #define REQUIRE_PLUGIN
@@ -61,7 +65,8 @@ enum AJB_LRWish
 	LRWish_SetAllClass,
 	LRWish_GuardMelee,
 	LRWish_ZombieMode,
-	LRWish_CellWars
+	LRWish_CellWars,
+	LRWish_Dodgeball
 };
 
 enum AJB_SetAllClassTarget
@@ -105,6 +110,7 @@ bool g_bHasCore;
 
 int g_iPrisoner;
 bool g_bMenuOpen;
+bool g_bDodgeball;
 bool g_bAwaitingCustom;
 bool g_bHotReds;
 bool g_bLowGravity;
@@ -112,6 +118,32 @@ int g_iSavedGravity = -1;
 
 // Sniper wish: random kills during round with velocity push
 bool g_bSniper;
+
+// Dodgeball globals
+float g_vecDBRedSpawn[3];
+float g_vecDBBluSpawn[3];
+float g_vecDBRocketSpawn[3];
+float g_vecDBArenaCenter[3];
+float g_fDBArenaRadius;
+bool g_bDBMapReady;
+
+Handle g_hDBBarrierTimer;
+Handle g_hDBRocketThinkTimer;
+Handle g_hDBZoneTimer;
+
+int g_iDBRocketEnt = -1;
+int g_iDBRocketTarget = -1;
+int g_iDBRocketTeam = 0;
+float g_fDBRocketSpeed;
+
+// Arena boundary beam sprites (laser + halo), precached on map start.
+int g_iDBBeam = -1;
+int g_iDBHalo = -1;
+
+ConVar g_cvDBBaseSpeed;
+ConVar g_cvDBSpeedInc;
+ConVar g_cvDBTurnRate;
+ConVar g_cvDBBarrierDamage;
 Handle g_hSniperTimer;
 
 // Hide and Seek: BLU are frozen "seekers" for the hide window, RED run and hide.
@@ -450,6 +482,9 @@ void AJB_LR_ShowWishMenu(int prisoner)
 	Format(line, sizeof(line), "%T", "LR Wish Sniper", prisoner);
 	menu.AddItem("sniper", line);
 
+	Format(line, sizeof(line), "%T", "LR Wish Dodgeball", prisoner);
+	menu.AddItem("dodgeball", line, g_bDBMapReady ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+
 	Format(line, sizeof(line), "%T", "LR Wish Suicide", prisoner);
 	menu.AddItem("suicide", line);
 
@@ -542,6 +577,10 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 	{
 		AJB_LR_DoSniper(client);
 	}
+	else if (StrEqual(info, "dodgeball"))
+	{
+		AJB_LR_DoDodgeball(client);
+	}
 	else if (StrEqual(info, "suicide"))
 	{
 		AJB_LR_DoSuicide(client);
@@ -556,6 +595,9 @@ public void OnMapStart()
 	{
 		g_hSetWinningTeam.HookGamerules(Hook_Pre, Detour_SetWinningTeam);
 	}
+	PrecacheSound("ui/gamestartup1.mp3");
+	AJB_LR_DB_PrecacheVisuals();
+	AJB_LR_DB_LoadConfig();
 }
 
 public MRESReturn Detour_SetWinningTeam(DHookReturn hReturn, DHookParam hParams)
@@ -596,6 +638,13 @@ public void OnPluginStart()
 	g_cvSniperMin = CreateConVar("sm_ajb_lr_sniper_min", "10.0", "Sniper: minimum interval in seconds between sniper shots.", _, true, 2.0, true, 300.0);
 	g_cvSniperMax = CreateConVar("sm_ajb_lr_sniper_max", "25.0", "Sniper: maximum interval in seconds between sniper shots.", _, true, 5.0, true, 600.0);
 	g_cvSniperForce = CreateConVar("sm_ajb_lr_sniper_force", "800.0", "Sniper: ragdoll / impact force impulse.", _, true, 100.0, true, 3000.0);
+
+	g_cvDBBaseSpeed = CreateConVar("sm_ajb_lr_db_speed_base", "700.0", "Initial rocket speed (dodgeball)");
+	g_cvDBSpeedInc = CreateConVar("sm_ajb_lr_db_speed_inc", "70.0", "Speed increase per reflect (dodgeball)");
+	g_cvDBTurnRate = CreateConVar("sm_ajb_lr_db_turn_rate", "0.55", "Rocket turn rate (dodgeball)");
+	g_cvDBBarrierDamage = CreateConVar("sm_ajb_lr_db_barrier_dmg", "20.0", "Damage per tick outside barrier");
+
+	RegAdminCmd("sm_ajb_db_setspawn", Cmd_SetDBSpawn, ADMFLAG_CONFIG, "Set DB spawn points (red, blu, rocket, center) and radius");
 
 	g_cvEngineFriendlyFire = FindConVar("mp_friendlyfire");
 	g_cvEngineSvTags = FindConVar("sv_tags");
@@ -1067,6 +1116,10 @@ void AJB_LR_ApplyPendingWish()
 		{
 			AJB_LR_ApplySniper(chooser);
 		}
+		case LRWish_Dodgeball:
+		{
+			AJB_LR_ApplyDodgeball(chooser);
+		}
 		default:
 		{
 		}
@@ -1196,7 +1249,7 @@ int AJB_LR_GetPrisonersTeam()
 
 void AJB_LR_Cleanup(bool announce)
 {
-	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bZombieMode || g_bSniper || g_bCellWars);
+	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bZombieMode || g_bSniper || g_bCellWars || g_bDodgeball);
 	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
 
 	AJB_LR_KillMenuTimer();
@@ -1208,6 +1261,7 @@ void AJB_LR_Cleanup(bool announce)
 	AJB_LR_ZM_KillAllRespawnTimers();
 	AJB_LR_KillSniperTimer();
 	AJB_LR_KillCWTimers();
+	AJB_LR_KillDBTimers();
 
 	g_iPrisoner = 0;
 	g_bAdminForcingWish = false;
@@ -1239,6 +1293,11 @@ void AJB_LR_Cleanup(bool announce)
 	if (g_bSniper)
 	{
 		g_bSniper = false;
+	}
+
+	if (g_bDodgeball)
+	{
+		g_bDodgeball = false;
 	}
 
 	if (g_bLowGravity)
@@ -1651,6 +1710,13 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 		AJB_LR_CW_OnPlayerDeath(victim);
 	}
 
+	if (g_bDodgeball)
+	{
+		// Use RequestFrame so this runs after the death is fully processed.
+		RequestFrame(Frame_DBCheckRoundEnd);
+	}
+
+
 	// Admin self-pick survives death; normal LR chooser does not.
 	if (victim == g_iPrisoner && !g_bAdminForcingWish)
 	{
@@ -1680,3 +1746,4 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 #include "lastrequest/wish_zombie_mode.sp"
 #include "lastrequest/wish_cell_wars.sp"
 #include "lastrequest/wish_sniper.sp"
+#include "lastrequest/wish_dodgeball.sp"

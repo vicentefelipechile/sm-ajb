@@ -1427,4 +1427,87 @@
 		"pt"		"{1} Cell Wars — ninguém restou de pé."
 		"ru"		"{1} Cell Wars — никто не выжил."
 	}
+
+	"LR Wish Dodgeball"
+	{
+		"en"		"Dodgeball"
+		"es"		"Dodgeball"
+		"las"		"Dodgeball"
+		"de"		"Dodgeball"
+		"fr"		"Dodgeball"
+		"pt"		"Dodgeball"
+		"ru"		"Dodgeball"
+	}
+
+	"LR Chose Dodgeball"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} {2} chose Dodgeball for next round."
+		"es"		"{1} {2} eligió Dodgeball para la siguiente ronda."
+		"las"		"{1} {2} eligió Dodgeball para la siguiente ronda."
+		"de"		"{1} {2} hat Dodgeball für die nächste Runde gewählt."
+		"fr"		"{1} {2} a choisi Dodgeball pour le prochain round."
+		"pt"		"{1} {2} escolheu Dodgeball para a próxima rodada."
+		"ru"		"{1} {2} выбрал Dodgeball на следующий раунд."
+	}
+
+	"LR Applied Dodgeball"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Dodgeball ({2})! All players are Pyros. Airblast the rocket to survive!"
+		"es"		"{1} ¡Dodgeball ({2})! Todos son Pyros. ¡Usa el airblast para desviar el cohete!"
+		"las"		"{1} ¡Dodgeball ({2})! Todos son Pyros. ¡Usa el airblast para desviar el cohete!"
+		"de"		"{1} Dodgeball ({2})! Alle sind Pyros. Blasst die Rakete mit Airblast weg!"
+		"fr"		"{1} Dodgeball ({2}) ! Tout le monde est Pyro. Utilisez l'airblast pour dévier la roquette !"
+		"pt"		"{1} Dodgeball ({2})! Todos são Pyros. Use o airblast para desviar o foguete!"
+		"ru"		"{1} Dodgeball ({2})! Все — Пиро. Отбейте ракету с помощью airblast!"
+	}
+
+	"LR DB No Config"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Dodgeball is not configured for this map. An admin must run sm_ajb_db_setspawn."
+		"es"		"{1} Dodgeball no está configurado para este mapa. Un admin debe ejecutar sm_ajb_db_setspawn."
+		"las"		"{1} Dodgeball no está configurado para este mapa. Un admin debe ejecutar sm_ajb_db_setspawn."
+		"de"		"{1} Dodgeball ist für diese Map nicht konfiguriert. Ein Admin muss sm_ajb_db_setspawn ausführen."
+		"fr"		"{1} Dodgeball n'est pas configuré pour cette carte. Un admin doit exécuter sm_ajb_db_setspawn."
+		"pt"		"{1} Dodgeball não está configurado para este mapa. Um admin deve executar sm_ajb_db_setspawn."
+		"ru"		"{1} Dodgeball не настроен для этой карты. Администратор должен запустить sm_ajb_db_setspawn."
+	}
+
+	"LR DB Out Of Bounds"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} You are outside the arena! Return or take damage."
+		"es"		"{1} ¡Estás fuera de la arena! Regresa o recibirás daño."
+		"las"		"{1} ¡Estás fuera de la arena! Regresa o recibirás daño."
+		"de"		"{1} Du bist außerhalb der Arena! Kehre zurück oder nimm Schaden."
+		"fr"		"{1} Vous êtes hors de l'arène ! Revenez ou subissez des dégâts."
+		"pt"		"{1} Você está fora da arena! Volte ou sofrerá dano."
+		"ru"		"{1} Вы за пределами арены! Вернитесь или получайте урон."
+	}
+
+	"LR DB Red Wins"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Dodgeball — RED wins! BLU was eliminated."
+		"es"		"{1} Dodgeball — ¡RED gana! BLU fue eliminado."
+		"las"		"{1} Dodgeball — ¡RED gana! BLU fue eliminado."
+		"de"		"{1} Dodgeball — RED gewinnt! BLU wurde eliminiert."
+		"fr"		"{1} Dodgeball — RED gagne ! BLU a été éliminé."
+		"pt"		"{1} Dodgeball — RED vence! BLU foi eliminado."
+		"ru"		"{1} Dodgeball — RED побеждает! BLU был уничтожен."
+	}
+
+	"LR DB Blu Wins"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Dodgeball — BLU wins! RED was eliminated."
+		"es"		"{1} Dodgeball — ¡BLU gana! RED fue eliminado."
+		"las"		"{1} Dodgeball — ¡BLU gana! RED fue eliminado."
+		"de"		"{1} Dodgeball — BLU gewinnt! RED wurde eliminiert."
+		"fr"		"{1} Dodgeball — BLU gagne ! RED a été éliminé."
+		"pt"		"{1} Dodgeball — BLU vence! RED foi eliminado."
+		"ru"		"{1} Dodgeball — BLU побеждает! RED был уничтожен."
+	}
 }
