@@ -11,7 +11,7 @@
 #define DB_ZONE_RING_LIFE   0.55
 #define DB_ZONE_RING_WIDTH  10.0
 #define DB_ZONE_POST_COUNT  12
-#define DB_ZONE_POST_HEIGHT 96.0
+#define DB_ZONE_POST_HEIGHT 2048.0
 #define DB_ZONE_POST_WIDTH  5.0
 
 bool g_bDB1v1Mode;
@@ -109,63 +109,98 @@ void AJB_LR_DB_DrawZone()
 	center[1] = g_vecDBArenaCenter[1];
 	center[2] = g_vecDBArenaCenter[2];
 
-	// Near-static rings (start ≈ end) mark the damage radius at ground and head height.
-	TE_SetupBeamRingPoint(
-		center,
-		radius - 1.0,
-		radius,
-		g_iDBBeam,
-		halo,
-		0, 10,
-		DB_ZONE_RING_LIFE,
-		DB_ZONE_RING_WIDTH,
-		0.0,
-		color,
-		10,
-		0);
-	TE_SendToAll();
-
-	float high[3];
-	high[0] = center[0];
-	high[1] = center[1];
-	high[2] = center[2] + DB_ZONE_POST_HEIGHT;
-	TE_SetupBeamRingPoint(
-		high,
-		radius - 1.0,
-		radius,
-		g_iDBBeam,
-		halo,
-		0, 10,
-		DB_ZONE_RING_LIFE,
-		DB_ZONE_RING_WIDTH,
-		0.0,
-		color,
-		10,
-		0);
-	TE_SendToAll();
-
-	// Vertical posts around the circle so the wall is obvious from inside the arena.
+	// Vertical posts and horizontal connecting beams around the circle
 	for (int i = 0; i < DB_ZONE_POST_COUNT; i++)
 	{
-		float angle = (float(i) / float(DB_ZONE_POST_COUNT)) * (FLOAT_PI * 2.0);
-		float bottom[3];
-		float top[3];
-		bottom[0] = center[0] + Cosine(angle) * radius;
-		bottom[1] = center[1] + Sine(angle) * radius;
-		bottom[2] = center[2];
-		top[0] = bottom[0];
-		top[1] = bottom[1];
-		top[2] = bottom[2] + DB_ZONE_POST_HEIGHT;
+		float angle1 = (float(i) / float(DB_ZONE_POST_COUNT)) * (FLOAT_PI * 2.0);
+		float angle2 = (float(i + 1) / float(DB_ZONE_POST_COUNT)) * (FLOAT_PI * 2.0);
 
+		float bottom1[3], top1[3];
+		float bottom2[3], top2[3];
+
+		bottom1[0] = center[0] + Cosine(angle1) * radius;
+		bottom1[1] = center[1] + Sine(angle1) * radius;
+		bottom1[2] = center[2];
+
+		top1[0] = bottom1[0];
+		top1[1] = bottom1[1];
+		top1[2] = bottom1[2] + DB_ZONE_POST_HEIGHT;
+
+		bottom2[0] = center[0] + Cosine(angle2) * radius;
+		bottom2[1] = center[1] + Sine(angle2) * radius;
+		bottom2[2] = center[2];
+
+		top2[0] = bottom2[0];
+		top2[1] = bottom2[1];
+		top2[2] = bottom2[2] + DB_ZONE_POST_HEIGHT;
+
+		float mid1[3], mid2[3];
+		mid1[0] = bottom1[0];
+		mid1[1] = bottom1[1];
+		mid1[2] = bottom1[2] + (DB_ZONE_POST_HEIGHT / 2.0);
+		
+		mid2[0] = bottom2[0];
+		mid2[1] = bottom2[1];
+		mid2[2] = bottom2[2] + (DB_ZONE_POST_HEIGHT / 2.0);
+
+		// Vertical post
 		TE_SetupBeamPoints(
-			bottom,
-			top,
+			bottom1,
+			top1,
 			g_iDBBeam,
 			halo,
 			0, 10,
 			DB_ZONE_RING_LIFE,
 			DB_ZONE_POST_WIDTH,
 			DB_ZONE_POST_WIDTH,
+			1,
+			0.0,
+			color,
+			10);
+		TE_SendToAll();
+
+		// Horizontal bottom beam
+		TE_SetupBeamPoints(
+			bottom1,
+			bottom2,
+			g_iDBBeam,
+			halo,
+			0, 10,
+			DB_ZONE_RING_LIFE,
+			DB_ZONE_RING_WIDTH,
+			DB_ZONE_RING_WIDTH,
+			1,
+			0.0,
+			color,
+			10);
+		TE_SendToAll();
+
+		// Horizontal middle beam
+		TE_SetupBeamPoints(
+			mid1,
+			mid2,
+			g_iDBBeam,
+			halo,
+			0, 10,
+			DB_ZONE_RING_LIFE,
+			DB_ZONE_RING_WIDTH,
+			DB_ZONE_RING_WIDTH,
+			1,
+			0.0,
+			color,
+			10);
+		TE_SendToAll();
+
+		// Horizontal top beam
+		TE_SetupBeamPoints(
+			top1,
+			top2,
+			g_iDBBeam,
+			halo,
+			0, 10,
+			DB_ZONE_RING_LIFE,
+			DB_ZONE_RING_WIDTH,
+			DB_ZONE_RING_WIDTH,
 			1,
 			0.0,
 			color,
