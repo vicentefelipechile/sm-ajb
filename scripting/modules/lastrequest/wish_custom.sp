@@ -7,7 +7,7 @@ void AJB_LR_StartCustom(int prisoner)
 	g_bAwaitingCustom = true;
 	g_bMenuOpen = false;
 	AJB_Chat(prisoner, "LR Custom Prompt");
-	AJB_LR_ChatAll1N("LR Custom Waiting", prisoner);
+	AJB_ChatAll1N("LR Custom Waiting", prisoner);
 
 	// Same countdown + 15s warning while waiting for chat.
 	AJB_LR_StartMenuTimers(prisoner);
@@ -32,7 +32,7 @@ Action Timer_CustomTimeout(Handle timer, int userid)
 	int client = GetClientOfUserId(userid);
 	if (client > 0)
 	{
-		AJB_LR_ChatAll1N("LR Timeout", client);
+		AJB_ChatAll1N("LR Timeout", client);
 	}
 	AJB_LR_Cleanup(false);
 	return Plugin_Stop;

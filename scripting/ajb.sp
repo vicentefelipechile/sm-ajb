@@ -356,6 +356,8 @@ Action Timer_LateStartRoundClock(Handle timer)
 public void OnPluginEnd()
 {
 	AJB_Prep_Stop();
+	AJB_PlayerFx_StopTimer();
+	AJB_WardenHealth_OnPluginEnd();
 	AJB_ClearPhaseTimer();
 	AJB_KillRoundExpireTimer();
 	AJB_KillCellsAutoTimer();
@@ -371,6 +373,8 @@ public void OnPluginEnd()
 		AJB_FireModeChanged(false);
 	}
 	AJB_ApplyEngineMovementPolicy();
+	// Forwards last — nothing may fire after the plugin starts unloading.
+	AJB_DeleteForwards();
 }
 
 public void OnMapStart()
@@ -396,6 +400,7 @@ public void OnMapStart()
 
 	if (g_bModeActive)
 	{
+		AJB_Movement_RefreshEngineState();
 		AJB_LoadMapDoors();
 		AJB_SetRoundState(AJBState_Waiting);
 		AJB_HookAllClients();
@@ -417,6 +422,7 @@ public void OnConfigsExecuted()
 public void OnMapEnd()
 {
 	AJB_Prep_Stop();
+	AJB_PlayerFx_StopTimer();
 	AJB_KillCellsAutoTimer();
 	AJB_KillCellsResetRetries();
 	AJB_ClearPhaseTimer();
@@ -458,7 +464,7 @@ public void OnClientDisconnect(int client)
 	// Disconnect can decide last-prisoner / round end without a death event.
 	if (g_bModeActive)
 	{
-		CreateTimer(0.15, Timer_PostDeathChecks, _, TIMER_FLAG_NO_MAPCHANGE);
+		AJB_SchedulePostDeathChecks();
 	}
 }
 
@@ -482,6 +488,7 @@ void OnAjbCvarChanged(ConVar convar, const char[] oldValue, const char[] newValu
 	{
 		AJB_KillCellsAutoTimer();
 		AJB_ClearPhaseTimer();
+		AJB_PlayerFx_StopTimer();
 		AJB_ClearWarden(false);
 		AJB_SetRoundState(AJBState_Disabled);
 		AJB_UnhookAllClients();

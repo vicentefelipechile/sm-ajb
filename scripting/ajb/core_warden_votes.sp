@@ -149,9 +149,8 @@ public int MenuHandler_VoteAudience(Menu menu, MenuAction action, int param1, in
 		g_iVoteTargetAudience[client] = AJB_VOTE_AUDIENCE_ALL;
 	}
 
-	// Verify audience is not empty
-	int clients[MAXPLAYERS];
-	if (AJB_Votes_BuildAudienceEx(g_iVoteTargetAudience[client], clients, sizeof(clients)) < 1)
+	// Verify audience is not empty (count-only pass; the launch rebuilds the real list).
+	if (AJB_Votes_CountAudience(g_iVoteTargetAudience[client]) < 1)
 	{
 		AJB_Reply(client, "Warden Vote Target Empty");
 		return 0;
@@ -326,6 +325,53 @@ void AJB_Votes_Launch(int warden, const char[] question, const char[][] options,
 	AJB_Votes_AnnounceStart(warden, question);
 }
 
+// Count-only variant of BuildAudienceEx — used to validate a pick without allocating
+// the client list (the launch pass still builds the real array for DisplayVote).
+int AJB_Votes_CountAudience(int audienceType)
+{
+	int count = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		bool alive = IsPlayerAlive(i);
+		int team = GetClientTeam(i);
+
+		switch (audienceType)
+		{
+			case AJB_VOTE_AUDIENCE_REDS:
+			{
+				if (alive && team == AJB_TEAM_RED)
+				{
+					count++;
+				}
+			}
+			case AJB_VOTE_AUDIENCE_BLUS:
+			{
+				if (alive && team == AJB_TEAM_BLU)
+				{
+					count++;
+				}
+			}
+			case AJB_VOTE_AUDIENCE_DEAD:
+			{
+				if (!alive || team == AJB_TEAM_SPECTATOR || team == AJB_TEAM_UNASSIGNED)
+				{
+					count++;
+				}
+			}
+			case AJB_VOTE_AUDIENCE_ALL:
+			{
+				count++;
+			}
+		}
+	}
+	return count;
+}
+
 // Fill clients[] with the eligible audience based on target type; returns how many.
 int AJB_Votes_BuildAudienceEx(int audienceType, int[] clients, int maxClients)
 {
@@ -414,30 +460,10 @@ void AJB_Votes_AnnounceStart(int warden, const char[] question)
 	char name[MAX_NAME_LENGTH];
 	GetClientName(warden, name, sizeof(name));
 
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", "Warden Vote Started", i, prefix, name, question);
-	}
+	AJB_ChatAll2S("Warden Vote Started", name, question);
 }
 
 void AJB_Votes_AnnounceResult(const char[] winner, int votes, int total)
 {
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", "Warden Vote Result", i, prefix, winner, votes, total);
-	}
+	AJB_ChatAll1S2N("Warden Vote Result", winner, votes, total);
 }

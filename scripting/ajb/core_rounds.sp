@@ -135,9 +135,7 @@ void AJB_ApplyPendingFreedays()
 
 		if (!IsFakeClient(i))
 		{
-			char prefix[32];
-			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			CPrintToChat(i, "%T", "Freeday Active Now", i, prefix);
+			AJB_Chat(i, "Freeday Active Now");
 		}
 	}
 }
@@ -172,6 +170,7 @@ void Event_WaitingBegins(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
+	AJB_Movement_RefreshEngineState();
 	AJB_SetRoundState(AJBState_Waiting);
 }
 
@@ -186,6 +185,7 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 	g_iWardenRoundSerial++;
 
+	AJB_Movement_RefreshEngineState();
 	AJB_Teams_ApplyNames();
 	AJB_ApplyEngineMovementPolicy();
 
@@ -251,6 +251,8 @@ void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 
 	int team = event.GetInt("team");
 
+	AJB_Movement_RefreshEngineState();
+
 	if (g_iWarden != 0)
 	{
 		AJB_ClearWarden(true);
@@ -274,7 +276,12 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
-	if (g_cvStripPrisoners.BoolValue && AJB_ClientIsPrisoner(client))
+	// Defer the strip so the loadout settles, but skip the timer entirely in states
+	// where Timer_StripPrisoner would no-op (LR/special/combat days own the loadout).
+	if (g_cvStripPrisoners.BoolValue && AJB_ClientIsPrisoner(client)
+		&& !AJB_IsLRPhase(g_RoundState)
+		&& g_RoundState != AJBState_SpecialDay
+		&& !AJB_IsCombatDay())
 	{
 		CreateTimer(0.1, Timer_StripPrisoner, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 	}
@@ -328,7 +335,7 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	}
 
 	// Last-prisoner announce only (no forced round end).
-	CreateTimer(0.15, Timer_PostDeathChecks, _, TIMER_FLAG_NO_MAPCHANGE);
+	AJB_SchedulePostDeathChecks();
 }
 
 void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
@@ -379,8 +386,22 @@ void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 	AJB_TryRebelFromAttack(attacker, victim);
 }
 
+// A single pending timer: an explosion that kills several players (or a burst of
+// disconnects) coalesces into one last-prisoner check instead of N identical scans.
+Handle g_hPostDeathTimer;
+
+void AJB_SchedulePostDeathChecks()
+{
+	if (g_hPostDeathTimer == null)
+	{
+		g_hPostDeathTimer = CreateTimer(0.15, Timer_PostDeathChecks, _, TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
 Action Timer_PostDeathChecks(Handle timer)
 {
+	g_hPostDeathTimer = null;
+
 	if (!g_bModeActive)
 	{
 		return Plugin_Stop;
@@ -511,6 +532,13 @@ Action Timer_CellsAutoOpen(Handle timer)
 {
 	g_hCellsAutoTimer = null;
 	if (!g_bModeActive)
+	{
+		return Plugin_Stop;
+	}
+
+	// Auto-open only makes sense while the round is still in the locked-cell phase.
+	// A Special Day (Cell Wars, etc.) that closed the cells owns them; never fight it.
+	if (g_RoundState != AJBState_CellsLocked)
 	{
 		return Plugin_Stop;
 	}

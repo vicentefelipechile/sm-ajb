@@ -79,7 +79,7 @@ public int MenuHandler_CellWars(Menu menu, MenuAction action, int param1, int pa
 	return 0;
 }
 
-void AJB_LR_ChatAllCellWarsChose(int chooser, bool meleeOnly)
+void AJB_LR_ChatAllCellWarsImpl(const char[] phrase, bool usePlayer, int chooser, const char[] chooserName, bool meleeOnly)
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -87,9 +87,21 @@ void AJB_LR_ChatAllCellWarsChose(int chooser, bool meleeOnly)
 		char prefix[32];
 		AJB_GetPrefix(i, prefix, sizeof(prefix));
 		char locWeapons[32];
-		Format(locWeapons, sizeof(locWeapons), "%T", meleeOnly ? "LR HG Weapons Melee" : "LR HG Weapons Full", i);
-		CPrintToChat(i, "%T", "LR Chose CellWars", i, prefix, chooser, locWeapons);
+		AJB_LR_HG_WeaponsLabel(i, meleeOnly, locWeapons, sizeof(locWeapons));
+		if (usePlayer)
+		{
+			CPrintToChat(i, "%T", phrase, i, prefix, chooser, locWeapons);
+		}
+		else
+		{
+			CPrintToChat(i, "%T", phrase, i, prefix, chooserName[0] != '\0' ? chooserName : "LR", locWeapons);
+		}
 	}
+}
+
+void AJB_LR_ChatAllCellWarsChose(int chooser, bool meleeOnly)
+{
+	AJB_LR_ChatAllCellWarsImpl("LR Chose CellWars", true, chooser, "", meleeOnly);
 }
 
 int g_iCWRedTeam = 2;
@@ -102,13 +114,18 @@ void AJB_LR_ApplyCellWars(const char[] chooser, bool meleeOnly)
 	g_bCWEnding = false;
 	g_bCWMeleeOnly = meleeOnly;
 
-	AJB_BeginCombatDay();
-	AJB_ClearWarden();
-	AJB_SetRebelOnHit(false);
+	// The OnPlayerRunCmd jump detector was skipping writes outside Cell Wars, so the
+	// last-button state may be stale; re-seed it so the first jump is not misread.
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_iCWLastButtons[i] = 0;
+	}
+
+	// Cell Wars needs cells CLOSED; BeginCombatDay would force-open and announce them, so
+	// build the day manually. CloseCells first, then the custom state (AGENTS.md order).
+	AJB_SetupSpecialDay();
 
 	AJB_LR_HG_SetFriendlyFire(true);
-
-	AJB_ClearPhaseTimer();
 
 	// Cells must be closed for cell wars
 	AJB_CloseCells();
@@ -132,26 +149,14 @@ void AJB_LR_ApplyCellWars(const char[] chooser, bool meleeOnly)
 		g_iCWSpawnCount++;
 	}
 
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		g_bCWOriginalBlu[i] = false;
-		if (IsClientInGame(i) && !IsFakeClient(i))
-		{
-			if (GetClientTeam(i) == blueTeam)
-			{
-				g_bCWOriginalBlu[i] = true;
-				ChangeClientTeam(i, 1);
-				ChangeClientTeam(i, g_iCWRedTeam);
-			}
-
-			if (!IsPlayerAlive(i) && GetClientTeam(i) == g_iCWRedTeam)
-			{
-				TF2_RespawnPlayer(i);
-			}
-		}
-	}
+	AJB_LR_FoldAllToRed(g_iCWRedTeam, blueTeam, g_bCWOriginalBlu);
 
 	RequestFrame(Frame_CWArmAll);
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bCWArmedThisFrame[i] = false;
+	}
 
 	float roundTime = g_cvCWRoundTime.FloatValue;
 	if (roundTime < 60.0) roundTime = LR_HG_ROUND_DEFAULT;
@@ -170,8 +175,16 @@ void Frame_CWArmAll(any data)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i) && AJB_IsPrisoner(i))
 		{
-			AJB_LR_CW_ArmPlayer(i);
+			if (!g_bCWArmedThisFrame[i])
+			{
+				AJB_LR_CW_ArmPlayer(i);
+				g_bCWArmedThisFrame[i] = true;
+			}
 		}
+	}
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bCWArmedThisFrame[i] = false;
 	}
 }
 
@@ -179,6 +192,7 @@ void AJB_LR_CW_OnPlayerSpawn(int client)
 {
 	if (!g_bCellWars || !IsClientInGame(client) || IsFakeClient(client)) return;
 	if (GetClientTeam(client) < 2) return;
+	g_bCWArmedThisFrame[client] = true;
 	RequestFrame(Frame_CWArmClient, GetClientUserId(client));
 }
 
@@ -220,25 +234,22 @@ void AJB_LR_CW_OnPlayerDeath(int victim)
 	{
 		RequestFrame(Frame_CWRestoreBluTeam, GetClientUserId(victim));
 	}
-	RequestFrame(Frame_CWCheckWinner);
+	if (!g_bCWCheckQueued)
+	{
+		g_bCWCheckQueued = true;
+		RequestFrame(Frame_CWCheckWinner);
+	}
 }
 
 void Frame_CWRestoreBluTeam(int userid)
 {
-	int client = GetClientOfUserId(userid);
-	if (client > 0 && IsClientInGame(client) && g_bCWOriginalBlu[client])
-	{
-		g_bCWOriginalBlu[client] = false;
-		int blueTeam = AJB_GetGuardsTeam();
-		if (GetClientTeam(client) != blueTeam)
-		{
-			TF2_ChangeClientTeam(client, view_as<TFTeam>(blueTeam));
-		}
-	}
+	AJB_LR_RestoreBluOriginal(userid, g_bCWOriginalBlu);
 }
 
 void Frame_CWCheckWinner(any data)
 {
+	g_bCWCheckQueued = false;
+
 	if (!g_bCellWars || g_bCWEnding || !g_bHasCore) return;
 
 	int alive = 0, last = 0;
@@ -255,7 +266,7 @@ void Frame_CWCheckWinner(any data)
 	if (alive == 1 && last > 0)
 	{
 		g_bCWEnding = true;
-		AJB_LR_ChatAll1N("LR CW Winner", last);
+		AJB_ChatAll1N("LR CW Winner", last);
 		AJB_ForceTeamWin(GetClientTeam(last));
 	}
 	else if (alive <= 0)
@@ -277,22 +288,16 @@ void AJB_LR_KillCWTimers()
 
 void AJB_LR_ChatAllCellWarsApplied(const char[] chooserName, bool meleeOnly)
 {
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i)) continue;
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		char locWeapons[32];
-		Format(locWeapons, sizeof(locWeapons), "%T", meleeOnly ? "LR HG Weapons Melee" : "LR HG Weapons Full", i);
-		CPrintToChat(i, "%T", "LR Applied CellWars", i, prefix, chooserName[0] != '\0' ? chooserName : "LR", locWeapons);
-	}
+	AJB_LR_ChatAllCellWarsImpl("LR Applied CellWars", false, 0, chooserName, meleeOnly);
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
+	// Fast path: this callback runs for every user command of every player on the
+	// server; only Cell Wars needs it (jump-to-random-spawn). Leave without touching
+	// any state so the write is skipped on non-CW rounds.
 	if (!g_bCellWars || g_bCWEnding)
 	{
-		g_iCWLastButtons[client] = buttons;
 		return Plugin_Continue;
 	}
 

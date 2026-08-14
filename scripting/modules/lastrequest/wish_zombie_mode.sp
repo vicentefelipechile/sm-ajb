@@ -29,15 +29,7 @@ void AJB_LR_ApplyZombieMode(const char[] chooser)
 	}
 
 	AJB_BeginCombatDay();
-	AJB_ClearWarden();
-	AJB_SetRebelOnHit(false);
-	AJB_ClearPhaseTimer();
-
-	AJB_OpenCells();
-	if (g_bHasCore)
-	{
-		AJB_SetRoundState(AJBState_SpecialDay);
-	}
+	AJB_SetupSpecialDay();
 
 	int redTeam = AJB_GetPrisonersTeam();
 	int blueTeam = AJB_GetGuardsTeam();
@@ -71,6 +63,11 @@ void AJB_LR_ApplyZombieMode(const char[] chooser)
 
 	RequestFrame(Frame_ZMArmHumans);
 
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bZMArmedThisFrame[i] = false;
+	}
+
 	float grace = g_cvZMInfectDelay.FloatValue;
 	if (grace < 5.0)
 	{
@@ -102,8 +99,17 @@ void Frame_ZMArmHumans(any data)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && AJB_IsPrisoner(i))
 		{
-			AJB_LR_ZM_ArmHuman(i);
+			if (!g_bZMArmedThisFrame[i])
+			{
+				AJB_LR_ZM_ArmHuman(i);
+				g_bZMArmedThisFrame[i] = true;
+			}
 		}
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bZMArmedThisFrame[i] = false;
 	}
 }
 
@@ -141,6 +147,7 @@ void AJB_LR_ZM_OnPlayerSpawn(int client)
 		return;
 	}
 
+	g_bZMArmedThisFrame[client] = true;
 	RequestFrame(Frame_ZMArmClient, GetClientUserId(client));
 }
 
@@ -300,18 +307,22 @@ void AJB_LR_ZM_Infect(int client, int attacker, bool patientZero)
 
 	if (patientZero)
 	{
-		AJB_LR_ChatAll1N("LR ZM Patient Zero", client);
+		AJB_ChatAll1N("LR ZM Patient Zero", client);
 	}
 	else if (attacker > 0 && IsClientInGame(attacker))
 	{
-		AJB_LR_ChatAll2N("LR ZM Infected", attacker, client);
+		AJB_ChatAll2N("LR ZM Infected", attacker, client);
 	}
 	else
 	{
-		AJB_LR_ChatAll1N("LR ZM Infected Solo", client);
+		AJB_ChatAll1N("LR ZM Infected Solo", client);
 	}
 
-	RequestFrame(Frame_ZMCheckWinner);
+	if (!g_bZMCheckQueued)
+	{
+		g_bZMCheckQueued = true;
+		RequestFrame(Frame_ZMCheckWinner);
+	}
 }
 
 void AJB_LR_ZM_OnPlayerDeath(int victim)
@@ -347,7 +358,11 @@ void AJB_LR_ZM_OnPlayerDeath(int victim)
 	}
 
 	// Human death: no respawn - check if zombies wiped the living RED side.
-	RequestFrame(Frame_ZMCheckWinner);
+	if (!g_bZMCheckQueued)
+	{
+		g_bZMCheckQueued = true;
+		RequestFrame(Frame_ZMCheckWinner);
+	}
 }
 
 void AJB_LR_ZM_ScheduleRespawn(int client)
@@ -565,6 +580,8 @@ Action Timer_ZMEnd(Handle timer)
 
 void Frame_ZMCheckWinner(any data)
 {
+	g_bZMCheckQueued = false;
+
 	if (!g_bZombieMode || g_bZMEnding || !g_bHasCore)
 	{
 		return;
@@ -610,19 +627,7 @@ void AJB_LR_KillZMTimers()
 
 void AJB_LR_ChatAllZombieApplied(const char[] chooserName, float grace)
 {
-	int graceSec = RoundToFloor(grace);
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", "LR Applied ZombieMode", i, prefix,
-			chooserName[0] != '\0' ? chooserName : "LR", graceSec);
-	}
+	AJB_ChatAll1S1N("LR Applied ZombieMode",
+		chooserName[0] != '\0' ? chooserName : "LR", RoundToFloor(grace));
 }
 

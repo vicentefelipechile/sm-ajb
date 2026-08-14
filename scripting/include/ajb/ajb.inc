@@ -100,6 +100,8 @@ native bool AJB_GetRebelOnHit();
 
 // Round modes (War Day / Class Warfare / Freeday-all cosmetic).
 native void AJB_BeginCombatDay();
+// Common special-day setup: clears warden, disables auto-rebel, drops the jail clock.
+native void AJB_SetupSpecialDay();
 native void AJB_BeginFreedayAllCosmetic();
 native bool AJB_IsCombatDay();
 native bool AJB_IsFreedayAllCosmetic();
@@ -149,6 +151,7 @@ public void __pl_ajb_SetNTVOptional()
 	MarkNativeAsOptional("AJB_SetRebelOnHit");
 	MarkNativeAsOptional("AJB_GetRebelOnHit");
 	MarkNativeAsOptional("AJB_BeginCombatDay");
+	MarkNativeAsOptional("AJB_SetupSpecialDay");
 	MarkNativeAsOptional("AJB_BeginFreedayAllCosmetic");
 	MarkNativeAsOptional("AJB_IsCombatDay");
 	MarkNativeAsOptional("AJB_IsFreedayAllCosmetic");

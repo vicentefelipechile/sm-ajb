@@ -49,6 +49,9 @@ enum struct PlayerFx
 
 PlayerFx g_PlayerFx[MAXPLAYERS + 1];
 
+// Last time the freeday trail beam was re-sent per client (keepalive gating).
+float g_fFreedayBeamSent[MAXPLAYERS + 1];
+
 // Squared move threshold: below this the anchor is already close enough, skip the teleport.
 #define AJB_FREEDAY_MOVE_SQR  4.0
 
@@ -72,6 +75,12 @@ void AJB_Settings_ClearRoundModes()
 	g_bCombatDay = false;
 	g_bFreedayAllCosmetic = false;
 	AJB_PlayerFx_StopTimer();
+}
+
+// Kill every per-player FX entity (freeday anchor/glow + rebel glow). Safe to call with
+// clients in any state; the per-player killers already guard invalid clients.
+void AJB_PlayerFx_KillAll()
+{
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		AJB_Freeday_KillTrailFx(i);
@@ -330,6 +339,16 @@ void AJB_BeginFreedayAllCosmetic()
 	AJB_FireFreedayAllStart();
 }
 
+// Common setup for LR special-day rounds (HG/ZM/CW/FF2): no warden, no auto-rebel,
+// no jail clock. Order-independent of the cells; callers own cells + round state.
+// Exposed as a native for modules (ajb.inc) — core callers use it directly.
+void AJB_SetupSpecialDay()
+{
+	AJB_ClearWarden(true);
+	g_bRebelOnHit = false;
+	AJB_ClearPhaseTimer();
+}
+
 void AJB_CombatDay_ArmAndTeleport()
 {
 	for (int i = 1; i <= MaxClients; i++)
@@ -429,11 +448,12 @@ void AJB_Freeday_KillTrailFx(int client)
 
 // Parented beams often do not render for the local player, so the trail anchor stays world-space.
 // The glow sprite IS parented to the player so Source moves it every rendered frame (no jitter).
-void AJB_Freeday_EnsureTrailFx(int client)
+// Returns true when the anchor was created or moved this call (caller re-sends the beam).
+bool AJB_Freeday_EnsureTrailFx(int client)
 {
 	if (!AJB_IsValidClient(client, true))
 	{
-		return;
+		return false;
 	}
 
 	float mid[3];
@@ -473,7 +493,7 @@ void AJB_Freeday_EnsureTrailFx(int client)
 		float dz = mid[2] - g_PlayerFx[client].lastMid[2];
 		if (dx * dx + dy * dy + dz * dz < AJB_FREEDAY_MOVE_SQR)
 		{
-			return;
+			return false;
 		}
 	}
 
@@ -488,6 +508,7 @@ void AJB_Freeday_EnsureTrailFx(int client)
 
 	g_PlayerFx[client].lastMid = mid;
 	g_PlayerFx[client].hasMid = true;
+	return true;
 }
 
 // =========================================================================================================
@@ -620,6 +641,8 @@ void AJB_PlayerFx_StopTimer()
 		delete g_hPlayerFxTimer;
 		g_hPlayerFxTimer = null;
 	}
+
+	AJB_PlayerFx_KillAll();
 }
 
 Action Timer_PlayerFx(Handle timer)
@@ -627,6 +650,7 @@ Action Timer_PlayerFx(Handle timer)
 	if (!g_bModeActive)
 	{
 		g_hPlayerFxTimer = null;
+		AJB_PlayerFx_KillAll();
 		return Plugin_Stop;
 	}
 
@@ -648,11 +672,15 @@ Action Timer_PlayerFx(Handle timer)
 		// Freeday trail + glow
 		if (isFreeday && g_bFreedayTrail)
 		{
-			AJB_Freeday_EnsureTrailFx(i);
+			bool moved = AJB_Freeday_EnsureTrailFx(i);
 
+			// Beam follow fades after 3.5s; re-send on every move, otherwise a 3s
+			// keepalive keeps stationary trails alive (vs. re-sending all 64 every tick).
 			int anchor = g_PlayerFx[i].anchor;
-			if (g_iFreedayBeamSprite != -1 && anchor > MaxClients && IsValidEntity(anchor))
+			if (g_iFreedayBeamSprite != -1 && anchor > MaxClients && IsValidEntity(anchor)
+				&& (moved || GetGameTime() - g_fFreedayBeamSent[i] > 3.0))
 			{
+				g_fFreedayBeamSent[i] = GetGameTime();
 				TE_SetupBeamFollow(anchor, g_iFreedayBeamSprite, 0, 3.5, 18.0, 12.0, 8, trailColor);
 				TE_SendToAll();
 			}

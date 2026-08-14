@@ -58,7 +58,7 @@ void AJB_LR_DoClassWarfare(int prisoner)
 	g_PendingClassBlu = bluCls;
 	AJB_LR_RememberChooser(prisoner);
 	// Classes announced when applied next live round.
-	AJB_LR_ChatAll1N("LR Chose ClassWarfare", prisoner);
+	AJB_ChatAll1N("LR Chose ClassWarfare", prisoner);
 	AJB_LR_CloseMenuState();
 	AJB_LR_MarkWishChosen();
 }

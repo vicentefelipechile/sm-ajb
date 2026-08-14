@@ -22,14 +22,6 @@ $AjbRoot = $PSScriptRoot
 $SmRoot = Split-Path -Parent (Split-Path -Parent $AjbRoot)
 
 $Scripting = Join-Path $SmRoot "scripting"
-$Spcomp = Join-Path $Scripting "spcomp.exe"
-if (-not (Test-Path $Spcomp)) {
-    $Spcomp = Join-Path $Scripting "spcomp64.exe"
-}
-if (-not (Test-Path $Spcomp)) {
-    throw "spcomp not found under $Scripting"
-}
-
 $ProjScripting = Join-Path $AjbRoot "scripting"
 $ProjInclude = Join-Path $ProjScripting "include"
 $SmInclude = Join-Path $Scripting "include"
@@ -38,8 +30,10 @@ $LivePlugins = Join-Path $SmRoot "plugins"
 $TransDir = Join-Path $SmRoot "translations"
 $CfgMaps = Join-Path $SmRoot "configs\ajb\maps"
 $CfgAjb = Join-Path $SmRoot "configs\ajb"
+$CfgDb = Join-Path $CfgAjb "dodgeball"
+$GamedataDir = Join-Path $SmRoot "gamedata"
 
-New-Item -ItemType Directory -Force -Path $ProjPlugins, $LivePlugins, $CfgMaps, $CfgAjb | Out-Null
+New-Item -ItemType Directory -Force -Path $ProjPlugins, $LivePlugins, $CfgMaps, $CfgAjb, $CfgDb, $GamedataDir | Out-Null
 
 function Invoke-Compile {
     param(
@@ -71,10 +65,21 @@ function Sync-Assets {
     Write-Host "Syncing map configs..."
     Copy-Item -Force (Join-Path $AjbRoot "configs\maps\*") $CfgMaps
 
+    Write-Host "Syncing dodgeball configs..."
+    if (Test-Path (Join-Path $AjbRoot "configs\dodgeball")) {
+        Copy-Item -Force (Join-Path $AjbRoot "configs\dodgeball\*") $CfgDb
+    }
+
     Write-Host "Syncing AJB configs (prisoner_loadout, …)..."
     $projCfg = Join-Path $AjbRoot "configs"
     Get-ChildItem -Path $projCfg -File -ErrorAction SilentlyContinue | ForEach-Object {
         Copy-Item -Force $_.FullName (Join-Path $CfgAjb $_.Name)
+    }
+
+    Write-Host "Syncing gamedata..."
+    $projGamedata = Join-Path $AjbRoot "gamedata\ajb.games.txt"
+    if (Test-Path $projGamedata) {
+        Copy-Item -Force $projGamedata (Join-Path $GamedataDir "ajb.games.txt")
     }
 }
 
@@ -82,14 +87,31 @@ function Deploy-To-Live {
     Write-Host "Copying plugins -> $LivePlugins\*.smx"
     Copy-Item -Force (Join-Path $ProjPlugins "ajb.smx") (Join-Path $LivePlugins "ajb.smx")
     Copy-Item -Force (Join-Path $ProjPlugins "ajb_*.smx") $LivePlugins
+
+    # Sanity: per-plugin hash so a stale live binary is obvious in the output.
+    Get-ChildItem (Join-Path $ProjPlugins "ajb*.smx") | ForEach-Object {
+        $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.Substring(0, 12)
+        $dest = Join-Path $LivePlugins $_.Name
+        $same = (Test-Path $dest) -and ((Get-FileHash $dest -Algorithm SHA256).Hash.Substring(0, 12) -eq $hash)
+        $state = if ($same) { "live ok" } else { "MISMATCH" }
+        Write-Host ("  {0,-24} {1}  {2}" -f $_.Name, $hash, $state)
+    }
 }
 
 Write-Host "AJB project : $AjbRoot"
 Write-Host "SourceMod   : $SmRoot"
-Write-Host "Compiler    : $Spcomp"
 Write-Host "Project out : $ProjPlugins\*.smx"
 
 if (-not $SyncOnly) {
+    $Spcomp = Join-Path $Scripting "spcomp.exe"
+    if (-not (Test-Path $Spcomp)) {
+        $Spcomp = Join-Path $Scripting "spcomp64.exe"
+    }
+    if (-not (Test-Path $Spcomp)) {
+        throw "spcomp not found under $Scripting"
+    }
+    Write-Host "Compiler    : $Spcomp"
+
     Write-Host "Compiling into projects/ajb/plugins/..."
 
     Invoke-Compile `

@@ -12,7 +12,7 @@ void AJB_LR_DoSuicide(int prisoner)
 	g_iPrisoner = 0;
 	AJB_LR_MarkWishChosen();
 
-	AJB_LR_ChatAll1N("LR Chose Suicide", prisoner);
+	AJB_ChatAll1N("LR Chose Suicide", prisoner);
 
 	float delay = g_cvSuicideDelay.FloatValue;
 	if (delay < 1.0)

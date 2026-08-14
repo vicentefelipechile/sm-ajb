@@ -192,6 +192,9 @@ void AJB_Prep_SetMovable(int client, bool movable)
 		{
 			SetEntityMoveType(client, MOVETYPE_NONE);
 		}
-		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 1.0);
+		if (GetEntPropFloat(client, Prop_Send, "m_flMaxspeed") != 1.0)
+		{
+			SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 1.0);
+		}
 	}
 }

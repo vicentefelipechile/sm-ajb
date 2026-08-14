@@ -43,17 +43,7 @@ void AJB_SetWarden(int client, bool announce)
 		GetClientName(client, name, sizeof(name));
 		Format(nameTagged, sizeof(nameTagged), "{lightgreen}%s{default}", name);
 
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if (!IsClientInGame(i) || IsFakeClient(i))
-			{
-				continue;
-			}
-
-			char prefix[32];
-			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			CPrintToChat(i, "%T", "Warden Claimed", i, prefix, nameTagged);
-		}
+		AJB_ChatAll1S("Warden Claimed", nameTagged);
 	}
 
 	// Next frame: Display() during the same stack as claim often fails to show.
@@ -96,17 +86,7 @@ void AJB_ClearWarden(bool announce)
 
 	if (AJB_IsValidClient(old))
 	{
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if (!IsClientInGame(i) || IsFakeClient(i))
-			{
-				continue;
-			}
-
-			char prefix[32];
-			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			CPrintToChat(i, "%T", "Warden Cleared", i, prefix, old);
-		}
+		AJB_ChatAll1N("Warden Cleared", old);
 	}
 	else
 	{
@@ -1137,15 +1117,7 @@ Action Command_Repeat(int client, int args)
 	g_fNextRepeatTime[client] = now + g_cvRepeatCooldown.FloatValue;
 	
 	// Chat message
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && !IsFakeClient(i))
-		{
-			char prefix[32];
-			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			CPrintToChat(i, "%T", "Repeat Requested", i, prefix, client);
-		}
-	}
+	AJB_ChatAll1N("Repeat Requested", client);
 	
 	// Annotation over player
 	AJB_Repeat_ShowAnnotation(client, g_cvRepeatMarkerTime.FloatValue);

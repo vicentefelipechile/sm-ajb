@@ -37,31 +37,6 @@ bool AJB_ClientIsPrisoner(int client)
 	return GetClientTeam(client) == AJB_GetPrisonersTeam();
 }
 
-int AJB_CountAliveOnTeam(int team)
-{
-	int count = 0;
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == team)
-		{
-			count++;
-		}
-	}
-	return count;
-}
-
-int AJB_FindFirstAliveOnTeam(int team)
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == team)
-		{
-			return i;
-		}
-	}
-	return 0;
-}
-
 int AJB_PickRandomAliveOnTeam(int team)
 {
 	int candidates[MAXPLAYERS];
@@ -153,13 +128,19 @@ int AJB_CountOnTeam(int team)
 // allow at least one guard, so a near-empty server is never left with a prisoners-only team.
 int AJB_MaxGuards()
 {
+	return AJB_MaxGuardsFromCounts(AJB_CountOnTeam(AJB_GetGuardsTeam()), AJB_CountOnTeam(AJB_GetPrisonersTeam()));
+}
+
+// Counts passed in so callers that already scanned the teams do not re-scan them.
+int AJB_MaxGuardsFromCounts(int guards, int prisoners)
+{
 	int ratio = g_cvGuardRatio.IntValue;
 	if (ratio <= 0)
 	{
 		return MaxClients;
 	}
 
-	int total = AJB_CountOnTeam(AJB_GetGuardsTeam()) + AJB_CountOnTeam(AJB_GetPrisonersTeam());
+	int total = guards + prisoners;
 	int maxGuards = total / (ratio + 1);
 	if (maxGuards < 1 && total >= 2)
 	{
@@ -180,14 +161,20 @@ void AJB_CheckLastPrisoner()
 		return;
 	}
 
-	int alive = AJB_CountAliveOnTeam(AJB_GetPrisonersTeam());
-	if (alive != 1)
+	// Count and locate the last prisoner in a single pass.
+	int alive = 0;
+	int last = 0;
+	int prisoners = AJB_GetPrisonersTeam();
+	for (int i = 1; i <= MaxClients; i++)
 	{
-		return;
+		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == prisoners)
+		{
+			alive++;
+			last = i;
+		}
 	}
 
-	int last = AJB_FindFirstAliveOnTeam(AJB_GetPrisonersTeam());
-	if (last == 0)
+	if (alive != 1 || last == 0)
 	{
 		return;
 	}

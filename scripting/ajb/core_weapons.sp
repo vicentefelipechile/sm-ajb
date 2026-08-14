@@ -14,6 +14,35 @@ ConVar g_cvBlockDeathAmmo;
 // Item definition indices from configs/ajb/prisoner_loadout.cfg (m_iItemDefinitionIndex).
 StringMap g_hPrisonerDefIndexAllow;
 
+// Weapon-like wearables tracked on creation (tf_wearable_demoshield / razorback) so the
+// per-spawn strip walks a small ref list instead of scanning every edict per prisoner.
+#define AJB_MAX_WEAPON_WEARABLES  128
+
+int g_iWeaponWearables[AJB_MAX_WEAPON_WEARABLES];
+int g_iWeaponWearableCount;
+
+void AJB_Weapons_TrackWeaponWearable(int entity)
+{
+	int ref = EntIndexToEntRef(entity);
+	if (ref == INVALID_ENT_REFERENCE)
+	{
+		return;
+	}
+
+	for (int i = 0; i < g_iWeaponWearableCount; i++)
+	{
+		if (g_iWeaponWearables[i] == ref)
+		{
+			return;
+		}
+	}
+
+	if (g_iWeaponWearableCount < AJB_MAX_WEAPON_WEARABLES)
+	{
+		g_iWeaponWearables[g_iWeaponWearableCount++] = ref;
+	}
+}
+
 #define AJB_PRISONER_LOADOUT_FILE  "configs/ajb/prisoner_loadout.cfg"
 
 void AJB_Weapons_OnPluginStart()
@@ -194,6 +223,7 @@ bool AJB_Weapons_IsEntityAllowed(int ent)
 void AJB_Weapons_OnMapStart()
 {
 	// Late hooks for map packs already in the world (and mid-round plugin reload).
+	g_iWeaponWearableCount = 0;
 	int maxEnts = GetMaxEntities();
 	for (int ent = MaxClients + 1; ent < maxEnts; ent++)
 	{
@@ -212,6 +242,13 @@ void AJB_Weapons_OnMapStart()
 			{
 				AcceptEntityInput(ent, "Kill");
 			}
+			continue;
+		}
+
+		// Re-seed the wearable tracker (fresh map / mid-reload; OnEntityCreated covers new ones).
+		if (StrEqual(classname, "tf_wearable_demoshield") || StrEqual(classname, "tf_wearable_razorback"))
+		{
+			AJB_Weapons_TrackWeaponWearable(ent);
 			continue;
 		}
 
@@ -240,6 +277,13 @@ public void OnEntityCreated(int entity, const char[] classname)
 		{
 			RequestFrame(Frame_KillDeathAmmoPack, EntIndexToEntRef(entity));
 		}
+		return;
+	}
+
+	// Weapon-like wearables the strip cares about — track so strips skip edict scans.
+	if (StrEqual(classname, "tf_wearable_demoshield") || StrEqual(classname, "tf_wearable_razorback"))
+	{
+		AJB_Weapons_TrackWeaponWearable(entity);
 		return;
 	}
 
@@ -502,13 +546,19 @@ void AJB_Weapons_StripDisallowedWeaponWearables(int client)
 		"tf_wearable_razorback"
 	};
 
-	int maxE = GetMaxEntities();
-	for (int ent = MaxClients + 1; ent < maxE; ent++)
+	// Compact the tracker while walking (drops dead refs) so the per-spawn strip stays
+	// O(tracked wearables) instead of O(all edicts on the map).
+	int out = 0;
+	for (int i = 0; i < g_iWeaponWearableCount; i++)
 	{
-		if (!IsValidEntity(ent))
+		int ent = EntRefToEntIndex(g_iWeaponWearables[i]);
+		if (ent == INVALID_ENT_REFERENCE || !IsValidEntity(ent))
 		{
 			continue;
 		}
+
+		// Keep the ref for the next strip even if it does not belong to this client.
+		g_iWeaponWearables[out++] = g_iWeaponWearables[i];
 
 		if (!HasEntProp(ent, Prop_Send, "m_hOwnerEntity"))
 		{
@@ -524,27 +574,23 @@ void AJB_Weapons_StripDisallowedWeaponWearables(int client)
 		GetEntityClassname(ent, classname, sizeof(classname));
 
 		bool isWeaponWearable = false;
-		for (int i = 0; i < sizeof(kWeaponWearables); i++)
+		for (int j = 0; j < sizeof(kWeaponWearables); j++)
 		{
-			if (StrEqual(classname, kWeaponWearables[i]))
+			if (StrEqual(classname, kWeaponWearables[j]))
 			{
 				isWeaponWearable = true;
 				break;
 			}
 		}
 
-		if (!isWeaponWearable)
-		{
-			continue;
-		}
-
-		if (AJB_Weapons_IsEntityAllowed(ent))
+		if (!isWeaponWearable || AJB_Weapons_IsEntityAllowed(ent))
 		{
 			continue;
 		}
 
 		AcceptEntityInput(ent, "Kill");
 	}
+	g_iWeaponWearableCount = out;
 }
 
 void AJB_Weapons_ClearSpyStealth(int client)

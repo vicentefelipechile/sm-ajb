@@ -14,14 +14,11 @@
 #include <tf2_stocks>
 #include <dhooks>
 
-#undef REQUIRE_EXT
-#include <tf2attributes>
-#define REQUIRE_EXT
-
 #undef REQUIRE_PLUGIN
 #include <ajb/ajb>
 #define REQUIRE_PLUGIN
 
+#include <ajb/lrwish>
 #include <ajb/phrases>
 
 #define PLUGIN_VERSION "1.3.0"
@@ -46,6 +43,9 @@
 #define LR_ZM_PROTECT_DEFAULT 5.0
 #define LR_ZM_ROUND_DEFAULT   300.0
 #define LR_ZM_MATE_Z_OFFSET   8.0
+// Built-in wish entries in the menu (0..16). Items appended beyond this index belong to
+// external plugins via the AJB_OnLRWishMenu/AJB_OnLRWishSelect hooks in ajb/lrwish.inc.
+#define LR_WISH_BUILTIN_COUNT 17
 
 enum AJB_LRWish
 {
@@ -108,6 +108,11 @@ ConVar g_cvEngineSvTags;
 DynamicHook g_hSetWinningTeam;
 bool g_bHasCore;
 
+// External wish hooks (ajb/lrwish.inc): fired when building the menu and when an external
+// item is picked. Created in OnPluginStart, freed in OnPluginEnd.
+Handle g_hWishMenuFwd;
+Handle g_hWishSelectFwd;
+
 int g_iPrisoner;
 bool g_bMenuOpen;
 bool g_bDodgeball;
@@ -127,9 +132,10 @@ float g_vecDBArenaCenter[3];
 float g_fDBArenaRadius;
 bool g_bDBMapReady;
 
-Handle g_hDBBarrierTimer;
-Handle g_hDBRocketThinkTimer;
-Handle g_hDBZoneTimer;
+	Handle g_hDBBarrierTimer;
+	Handle g_hDBRocketThinkTimer;
+	Handle g_hDBZoneTimer;
+	Handle g_hDBAmmoTimer;
 
 int g_iDBRocketEnt = -1;
 int g_iDBRocketTarget = -1;
@@ -176,6 +182,15 @@ bool g_bCellWars;
 bool g_bCWMeleeOnly;
 bool g_bCWEnding;
 bool g_bCWOriginalBlu[MAXPLAYERS + 1];
+// Per-client arm dedupe: spawn-arms queued during apply run before the global ArmAll
+// frame, so ArmAll skips anyone already armed (avoids double TF2_RegeneratePlayer).
+bool g_bHGArmedThisFrame[MAXPLAYERS + 1];
+bool g_bZMArmedThisFrame[MAXPLAYERS + 1];
+bool g_bCWArmedThisFrame[MAXPLAYERS + 1];
+// Winner-check coalescing: a mass death queues one RequestFrame, not one per victim.
+bool g_bHGCheckQueued;
+bool g_bZMCheckQueued;
+bool g_bCWCheckQueued;
 int g_iCWLastButtons[MAXPLAYERS + 1];
 Handle g_hCWEndTimer;
 bool g_PendingCWMeleeOnly;
@@ -320,7 +335,7 @@ Action Timer_MenuTimeout(Handle timer, int userid)
 	int client = GetClientOfUserId(userid);
 	if (client > 0 && IsClientInGame(client))
 	{
-		AJB_LR_ChatAll1N("LR Timeout", client);
+		AJB_ChatAll1N("LR Timeout", client);
 	}
 
 	AJB_LR_Cleanup(false);
@@ -396,7 +411,7 @@ public int MenuHandler_Grant(Menu menu, MenuAction action, int param1, int param
 	if (target > 0 && IsClientInGame(target) && IsPlayerAlive(target) && AJB_IsPrisoner(target))
 	{
 		AJB_LR_OpenForPrisoner(target);
-		AJB_LR_ChatAll2N("LR Granted By Warden", warden, target);
+		AJB_ChatAll2N("LR Granted By Warden", warden, target);
 	}
 	return 0;
 }
@@ -488,6 +503,13 @@ void AJB_LR_ShowWishMenu(int prisoner)
 	Format(line, sizeof(line), "%T", "LR Wish Suicide", prisoner);
 	menu.AddItem("suicide", line);
 
+	// External wishes (ajb_ff2, ...) append their items here. They own their own
+	// queue/apply; the LR module only closes its state when one claims a pick.
+	Call_StartForward(g_hWishMenuFwd);
+	Call_PushCell(prisoner);
+	Call_PushCell(menu);
+	Call_Finish();
+
 	menu.ExitButton = false;
 	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
 }
@@ -538,6 +560,28 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 		case 16: AJB_LR_DoSuicide(client);
 	}
 
+	// Choices at or beyond the built-in count belong to external plugins (ajb/lrwish.inc).
+	if (param2 >= LR_WISH_BUILTIN_COUNT)
+	{
+		char token[32];
+		menu.GetItem(param2, token, sizeof(token));
+		if (token[0] != '\0')
+		{
+			Action result;
+			Call_StartForward(g_hWishSelectFwd);
+			Call_PushCell(client);
+			Call_PushString(token);
+			Call_Finish(result);
+
+			if (result == Plugin_Handled)
+			{
+				// External plugin owns this wish: free the LR phase and let it queue its own.
+				AJB_LR_CloseMenuState();
+				AJB_LR_MarkWishChosen();
+			}
+		}
+	}
+
 	return 0;
 }
 
@@ -548,6 +592,11 @@ public void OnMapStart()
 		g_hSetWinningTeam.HookGamerules(Hook_Pre, Detour_SetWinningTeam);
 	}
 	PrecacheSound("ui/gamestartup1.mp3");
+	// LR wish sounds: precache once so the first Sniper shot / Dodgeball target switch
+	// never triggers a late lookup (stock sounds, but precache removes the first-use hitch).
+	PrecacheSound("weapons/sniper_railgun_shot.wav");
+	PrecacheSound("weapons/sniper_shoot.wav");
+	PrecacheSound("weapons/sentry_spot.wav");
 	AJB_LR_DB_PrecacheVisuals();
 	AJB_LR_DB_LoadConfig();
 }
@@ -650,6 +699,9 @@ public void OnPluginStart()
 	AddCommandListener(Listener_Say, "say");
 	AddCommandListener(Listener_Say, "say_team");
 
+	g_hWishMenuFwd = CreateGlobalForward("AJB_OnLRWishMenu", ET_Ignore, Param_Cell, Param_Cell);
+	g_hWishSelectFwd = CreateGlobalForward("AJB_OnLRWishSelect", ET_Event, Param_Cell, Param_String);
+
 	g_bHasCore = LibraryExists(AJB_LIBRARY);
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -666,6 +718,17 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
+	delete g_hWishMenuFwd;
+	g_hWishMenuFwd = null;
+	delete g_hWishSelectFwd;
+	g_hWishSelectFwd = null;
+
+	if (g_hSetWinningTeam != null)
+	{
+		delete g_hSetWinningTeam;
+		g_hSetWinningTeam = null;
+	}
+
 	AJB_LR_Cleanup(false);
 }
 
@@ -762,7 +825,7 @@ public void OnLibraryRemoved(const char[] name)
 
 public void AJB_OnLastPrisoner(int client)
 {
-	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	if (!AJB_LR_CanRun())
 	{
 		return;
 	}
@@ -775,13 +838,13 @@ public void AJB_OnLastPrisoner(int client)
 
 	if (client > 0 && IsClientInGame(client))
 	{
-		AJB_LR_ChatAll1N("LR Last Prisoner Hint", client);
+		AJB_ChatAll1N("LR Last Prisoner Hint", client);
 	}
 }
 
 public void AJB_OnWardenGiveLR(int warden)
 {
-	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	if (!AJB_LR_CanRun())
 	{
 		return;
 	}
@@ -934,7 +997,7 @@ void AJB_LR_QueueWish(int prisoner, AJB_LRWish wish, const char[] phraseKey)
 
 	if (prisoner > 0 && IsClientInGame(prisoner))
 	{
-		AJB_LR_ChatAll1N(phraseKey, prisoner);
+		AJB_ChatAll1N(phraseKey, prisoner);
 	}
 
 	AJB_LR_CloseMenuState();
@@ -1045,7 +1108,7 @@ void AJB_LR_ApplyPendingWish()
 				cv.SetInt(g_cvGravity.IntValue);
 				g_bLowGravity = true;
 			}
-			AJB_OpenCells();
+			// Normal round: cells stay with the warden / auto-open, never force-opened here.
 			AJB_LR_ChatAllQueuedApplied(chooser, "LR Applied LowGravity");
 		}
 		case LRWish_HideSeek:
@@ -1147,11 +1210,58 @@ int AJB_LR_FindGuardSpawn()
 // Cleanup
 // =========================================================================================================
 
-void AJB_LR_Cleanup(bool announce)
+// The gate every LR command/event entry point shares: enabled, core attached, mode live.
+bool AJB_LR_CanRun()
 {
-	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bZombieMode || g_bSniper || g_bCellWars || g_bDodgeball);
-	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
+	return g_cvEnabled.BoolValue && g_bHasCore && AJB_IsEnabled();
+}
 
+// Fold every playable client onto redTeam via Spectator (avoids the death event a direct
+// cross-team swap fires). Former BLU members are snapshotted into originalBlu so their
+// death restores them (HG/CW share this shape).
+void AJB_LR_FoldAllToRed(int redTeam, int blueTeam, bool[] originalBlu)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		originalBlu[i] = false;
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		if (GetClientTeam(i) == blueTeam)
+		{
+			originalBlu[i] = true;
+			ChangeClientTeam(i, 1);
+			ChangeClientTeam(i, redTeam);
+		}
+
+		if (!IsPlayerAlive(i) && GetClientTeam(i) == redTeam)
+		{
+			TF2_RespawnPlayer(i);
+		}
+	}
+}
+
+// Death-restore for former BLU players folded onto RED (HG/CW share this shape).
+void AJB_LR_RestoreBluOriginal(int userid, bool[] originalBlu)
+{
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && IsClientInGame(client) && originalBlu[client])
+	{
+		originalBlu[client] = false;
+		int blueTeam = AJB_GetGuardsTeam();
+		if (GetClientTeam(client) != blueTeam)
+		{
+			TF2_ChangeClientTeam(client, view_as<TFTeam>(blueTeam));
+		}
+	}
+}
+
+// Every mode timer in one sweep (Cleanup path). The per-mode Kill functions stay for
+// targeted teardown when a new wish takes over mid-round.
+void AJB_LR_KillAllModeTimers()
+{
 	AJB_LR_KillMenuTimer();
 	AJB_LR_KillSuicideTimer();
 	AJB_LR_KillHotTimer();
@@ -1162,6 +1272,14 @@ void AJB_LR_Cleanup(bool announce)
 	AJB_LR_KillSniperTimer();
 	AJB_LR_KillCWTimers();
 	AJB_LR_KillDBTimers();
+}
+
+void AJB_LR_Cleanup(bool announce)
+{
+	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bZombieMode || g_bSniper || g_bCellWars || g_bDodgeball);
+	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
+
+	AJB_LR_KillAllModeTimers();
 
 	g_iPrisoner = 0;
 	g_bAdminForcingWish = false;
@@ -1315,59 +1433,19 @@ void AJB_LR_Cleanup(bool announce)
 
 
 // =========================================================================================================
-// Chat helpers
+// Chat helpers — LR semantic wrappers over the shared broadcast shapes in phrases.inc.
+// The loop lives in exactly one place (phrases.inc); these only fill in fixed phrases
+// or the chooser-name fallback ("LR" when nobody claims the pick).
 // =========================================================================================================
-
-void AJB_LR_ChatAll1N(const char[] phrase, int player)
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", phrase, i, prefix, player);
-	}
-}
 
 void AJB_LR_ChatAllFreedayOthers(int chooser, int count)
 {
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", "LR Chose Freeday Others", i, prefix, chooser, count);
-	}
+	AJB_ChatAll2N("LR Chose Freeday Others", chooser, count);
 }
 
 void AJB_LR_ChatAllQueuedApplied(const char[] chooserName, const char[] phrase)
 {
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		if (chooserName[0] != '\0')
-		{
-			CPrintToChat(i, "%T", phrase, i, prefix, chooserName);
-		}
-		else
-		{
-			CPrintToChat(i, "%T", phrase, i, prefix, "LR");
-		}
-	}
+	AJB_ChatAll1S(phrase, chooserName[0] != '\0' ? chooserName : "LR");
 }
 
 void AJB_LR_ChatAllClassApplied(const char[] chooserName, TFClassType redCls, TFClassType bluCls)
@@ -1376,69 +1454,23 @@ void AJB_LR_ChatAllClassApplied(const char[] chooserName, TFClassType redCls, TF
 	char bluName[32];
 	AJB_TFClassName(redCls, redName, sizeof(redName));
 	AJB_TFClassName(bluCls, bluName, sizeof(bluName));
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", "LR Applied ClassWarfare", i, prefix,
-			chooserName[0] != '\0' ? chooserName : "LR", redName, bluName);
-	}
+	AJB_ChatAll3S("LR Applied ClassWarfare",
+		chooserName[0] != '\0' ? chooserName : "LR", redName, bluName);
 }
 
 void AJB_LR_ChatAllCustomApplied(const char[] chooserName, const char[] text)
 {
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", "LR Applied Custom", i, prefix, chooserName[0] != '\0' ? chooserName : "LR", text);
-	}
+	AJB_ChatAll2S("LR Applied Custom", chooserName[0] != '\0' ? chooserName : "LR", text);
 }
 
 void AJB_LR_ChatAllCustom(int chooser, const char[] text)
 {
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", "LR Chose Custom", i, prefix, chooser, text);
-	}
-}
-
-void AJB_LR_ChatAll2N(const char[] phrase, int player1, int player2)
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", phrase, i, prefix, player1, player2);
-	}
+	AJB_ChatAll1N1S("LR Chose Custom", chooser, text);
 }
 
 public Action Command_LR(int client, int args)
 {
-	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	if (!AJB_LR_CanRun())
 	{
 		return Plugin_Handled;
 	}
@@ -1502,7 +1534,7 @@ public Action Command_ForceLR(int client, int args)
 // Admin opens the same wish menu a prisoner would - no team / alive gate.
 public Action Command_ForceAdminLR(int client, int args)
 {
-	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	if (!AJB_LR_CanRun())
 	{
 		return Plugin_Handled;
 	}
@@ -1543,7 +1575,7 @@ public Action Command_ForceAdminLR(int client, int args)
 
 public Action Command_ReopenLR(int client, int args)
 {
-	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	if (!AJB_LR_CanRun())
 	{
 		return Plugin_Handled;
 	}

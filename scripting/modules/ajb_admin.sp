@@ -336,8 +336,6 @@ Action Command_ClearWarden(int client, int args)
 
 	AJB_ClearWarden();
 
-	char prefix[32];
-	AJB_GetPrefix(client, prefix, sizeof(prefix));
 	AJB_AdminBroadcast(client, "Activity Cleared Warden");
 	LogAction(client, -1, "\"%L\" cleared warden via command", client);
 	return Plugin_Handled;
@@ -530,9 +528,6 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 
 	char info[16];
 	menu.GetItem(param2, info, sizeof(info));
-
-	char prefix[32];
-	AJB_GetPrefix(client, prefix, sizeof(prefix));
 
 	if (StrEqual(info, "status"))
 	{
@@ -957,12 +952,15 @@ void AJB_DB_LoadCache()
 		return;
 	}
 
-	// Drop expired rows, then load what remains.
+	// Drop expired rows, then load only what can still be active (avoids shipping the
+	// whole table to the plugin on every map).
 	char q[192];
 	Format(q, sizeof(q), "DELETE FROM ajb_guardbans WHERE expire <> 0 AND expire <= %d;", GetTime());
 	g_hDB.Query(OnWriteDone, q);
 
-	g_hDB.Query(OnCacheLoaded, "SELECT steamid, expire FROM ajb_guardbans;");
+	char qLoad[256];
+	Format(qLoad, sizeof(qLoad), "SELECT steamid, expire FROM ajb_guardbans WHERE expire = 0 OR expire > %d;", GetTime());
+	g_hDB.Query(OnCacheLoaded, qLoad);
 }
 
 public void OnCacheLoaded(Database db, DBResultSet results, const char[] error, any data)
@@ -1318,7 +1316,8 @@ Action Command_GuardBanList(int client, int args)
 		return Plugin_Handled;
 	}
 
-	g_hDB.Query(OnListDone, "SELECT steamid, name, reason, expire FROM ajb_guardbans ORDER BY created DESC;",
+	// Latest 100 only — the command is a quick reference, not a table dump.
+	g_hDB.Query(OnListDone, "SELECT steamid, name, reason, expire FROM ajb_guardbans ORDER BY created DESC LIMIT 100;",
 		(client > 0) ? GetClientUserId(client) : 0);
 	return Plugin_Handled;
 }

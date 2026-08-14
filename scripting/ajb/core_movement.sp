@@ -23,6 +23,17 @@
 
 DynamicDetour g_hDetourCanPlayerMove;
 
+// Cached engine round state (GR_STATE_PREROUND = 3). Refreshed from round lifecycle
+// events so the detour never walks edicts per call (FindEntityByClassname was the
+// dominant cost of the post hook on every player movement check).
+static bool g_bEnginePreround;
+
+void AJB_Movement_RefreshEngineState()
+{
+	int gc = FindEntityByClassname(-1, "tf_gamerules");
+	g_bEnginePreround = (gc != -1 && IsValidEntity(gc) && GameRules_GetProp("m_iRoundState") == 3);
+}
+
 void AJB_Movement_OnPluginStart()
 {
 	GameData gd = new GameData(AJB_GAMEDATA_FILE);
@@ -98,17 +109,12 @@ public MRESReturn Detour_CanPlayerMove_Post(int client, DHookReturn hReturn)
 	}
 
 	// Outside prep but engine still in PREROUND: let playable teams move (JB has no setup doors).
-	int gc = FindEntityByClassname(-1, "tf_gamerules");
-	if (gc != -1 && IsValidEntity(gc))
+	if (g_bEnginePreround)
 	{
-		int eng = GameRules_GetProp("m_iRoundState");
-		if (eng == 3) // GR_STATE_PREROUND
+		if (GetClientTeam(client) >= AJB_TEAM_RED)
 		{
-			if (GetClientTeam(client) >= AJB_TEAM_RED)
-			{
-				hReturn.Value = true;
-				return MRES_Override;
-			}
+			hReturn.Value = true;
+			return MRES_Override;
 		}
 	}
 

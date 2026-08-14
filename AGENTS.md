@@ -18,6 +18,7 @@ projects/ajb/
 │   ├── modules/ajb_*.sp       # standalone plugins that consume the core API
 │   ├── modules/lastrequest/   # LR wish fragments #included by ajb_lastrequest.sp
 │   └── include/ajb/*.inc      # shared api / enums / constants / phrases
+│   └── include/ff2r.inc, cfgmap.inc   # vendored from the FF2 Rewrite project (compile only)
 ├── translations/*.phrases.txt
 ├── configs/                   # settings, prisoner loadout, per-map configs
 └── gamedata/ajb.games.txt
@@ -54,8 +55,11 @@ Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in the SourceMod tree. Inclu
 # from addons/sourcemod
 .\projects\ajb\deploy.ps1               # compile all → project plugins/ → live plugins/ + sync assets
 .\projects\ajb\deploy.ps1 -CompileOnly  # compile into projects/ajb/plugins/ only
-.\projects\ajb\deploy.ps1 -SyncOnly     # sync translations/configs, no compile
+.\projects\ajb\deploy.ps1 -SyncOnly     # sync translations/configs/gamedata, no compile
 ```
+
+Deploy syncs translations, per-map/dodgeball configs, prisoner_loadout/settings and
+`gamedata/ajb.games.txt`; it prints a per-plugin SHA256 so a stale live `.smx` is obvious.
 
 `ajb.sp` is compiled explicitly; every `modules/*.sp` is compiled to its own `.smx`. The
 core fragments (`ajb/core_*.sp`) are **not** compiled directly — they are included by
@@ -90,7 +94,11 @@ in `plugins/`; it loads on next server start or a later `reload_plugin`.
   or bounds (cosmetic only) — that needs a map change; behavior still updates.
 - Prefer `TF2_RespawnPlayer` after `ChangeClientTeam` for players who must keep playing —
   `ChangeClientTeam` kills a live player and prisoners get no mid-round respawn wave. To safely swap teams without dying, transit through Spectator first (`ChangeClientTeam(client, 1)`).
-- **Round state order matters**: Helpers like `AJB_OpenCells` implicitly change the round state (to `AJBState_CellsOpen`). When building LR modules or Special Days, always open cells *before* calling `AJB_SetRoundState` if you want your custom state (like `AJBState_SpecialDay`) to persist.
+- **Round state order matters**: Helpers like `AJB_OpenCells` implicitly change the round state (to `AJBState_CellsOpen`). When building LR modules or Special Days, always open cells *before* calling `AJB_SetRoundState` if you want your custom state (like `AJBState_SpecialDay`) to persist. Concretely:
+  - `AJB_BeginCombatDay()` / `AJB_BeginFreedayAllCosmetic()` already open the cells **and** set the final state — never call `AJB_OpenCells()`/`AJB_SetRoundState()` after them (double "Cells Opened" announce + door refire).
+  - Days that need cells **closed** (Cell Wars) must not use `BeginCombatDay`; set up manually and finish with `AJB_CloseCells()` → `AJB_SetRoundState(AJBState_SpecialDay)` (state call last).
+  - Normal-round wishes (Low Gravity, Guard Melee, Set All Class, …) must **not touch cells at all** — the warden or `sm_ajb_cells_auto_open` owns them.
+  - The cells auto-open timer only fires in `AJBState_CellsLocked` (core), so it can never reopen a Special Day's closed cells.
 - Memory: no leaked Handles. Timers that fire once and return `Plugin_Stop` are freed
   automatically; stored Handles (`g_h*`) must be `delete`d. Prefer stack arrays over
   `ArrayList`/`StringMap` for short-lived per-player scans.
@@ -100,13 +108,19 @@ in `plugins/`; it loads on next server start or a later `reload_plugin`.
   - **Client validation**: `AJB_IsValidClient(client, aliveOnly)` → `core_teams.sp`
   - **Team queries**: `AJB_GetGuardsTeam()` / `AJB_GetPrisonersTeam()` → `core_mode.sp`
     (exposed as natives for modules via `ajb.inc`)
-  - **Team helpers**: `AJB_ClientIsGuard`, `AJB_ClientIsPrisoner`, `AJB_CountAliveOnTeam`,
-    `AJB_FindFirstAliveOnTeam`, `AJB_PickRandomAliveOnTeam` → `core_teams.sp`
-  - **Chat with prefix**: `AJB_GetPrefix`, `AJB_ChatAll`, `AJB_Reply` → `phrases.inc`
+  - **Team helpers**: `AJB_ClientIsGuard`, `AJB_ClientIsPrisoner`, `AJB_PickRandomAliveOnTeam`,
+    `AJB_MaxGuardsFromCounts(guards, prisoners)` (pass precomputed counts to avoid re-scans)
+    → `core_teams.sp`
+  - **Chat with prefix**: `AJB_GetPrefix`, `AJB_ChatAll`, `AJB_ChatAll1N/2N/1S/2S/3S/1N1S/1S1N/1S2N`
+    → `phrases.inc` (the only broadcast loops in the project; do not re-implement them)
   - **State name**: `AJB_GetStateName(state, buf, maxlen)` → `enums.inc`
   - **Class name**: `AJB_TFClassName(cls, buf, maxlen)` → `constants.inc`
   - **Safe team swap**: `AJB_ChangeTeamSafe(client, team)` → `ajb.inc` (transit via Spectator)
-  - **Distance squared**: `AJB_GetDistanceSqr(v1, v2)` → shared math stock
+  - **Distance squared**: `AJB_GetDistanceSqr(v1, v2)` → `constants.inc` (included by core + modules)
+  - **Special-day setup**: `AJB_SetupSpecialDay()` (clear warden + rebel-on-hit off + clear phase
+    timer) — native via `ajb.inc`, used by HG/ZM/CW/FF2
+  - **LR folding**: `AJB_LR_FoldAllToRed` / `AJB_LR_RestoreBluOriginal` (HG/CW shared shape) and
+    `AJB_LR_KillAllModeTimers()` → `ajb_lastrequest.sp`
 
   If a helper does not exist yet, add it to the appropriate shared include rather than
   writing it inline in a single module. This avoids the drift of duplicated functions.
@@ -126,6 +140,49 @@ selects the picker: `0` = uniform random (`AJB_PickRandomAliveOnTeam`), `1` = we
 anti-repetition (`AJB_PickWeightedWardenGuard`), favoring guards who have not been warden
 recently. `g_iWardenRoundSerial` ticks per round; `g_iWardenLastRound[client]` is stamped in
 `AJB_SetWarden` and reset in `OnClientPutInServer`.
+
+## FF2 Boss Wish (`ajb_ff2.sp`) — dependencies & degraded modes
+
+`ajb_ff2` is a standalone module that turns the next live round into a Freak Fortress 2 boss
+fight via the `ff2r` natives (`FF2R_GetSpecialData` / `FF2R_CreateBoss`). It injects its wish
+into the Last Request menu through the external wish hooks in `include/ajb/lrwish.inc`
+(`AJB_OnLRWishMenu` / `AJB_OnLRWishSelect`), fired by `ajb_lastrequest` for menu items at
+index >= `LR_WISH_BUILTIN_COUNT`. The LR module does not know about the FF2 wish: it only
+closes its own menu state when the external plugin returns `Plugin_Handled`.
+
+Compile-time only: `include/ff2r.inc` + `include/cfgmap.inc` are vendored from the FF2
+Rewrite project (`cfgmap.inc` is a pure SourcePawn parser — **no extension needed**; it
+defines `CFGMAP_FF2R` so the `BossData`/`ConfigMap` methodmaps in `ff2r.inc` are available).
+
+Dependency matrix — *blocked* means the wish cannot run; *degraded* means it runs with
+features off. `sm_ajb_ff2_status` prints a live diagnosis.
+
+| Dependency | If missing → | Behavior |
+| --- | --- | --- |
+| `ff2r` library (`freak_fortress_2.smx`) | **Blocked** | Module loads; menu item disabled (label "requires Freak Fortress 2"). Nothing else changes. |
+| Bosses precached (`FF2R_GetGamemodeType() < 1`) | **Blocked** | FF2 loaded but no charset/boss pack (e.g. `characters.cfg` missing or a map entry with `enable -1`); item disabled. |
+| Ability subplugins (`plugins/freaks/`) | **Degraded** | Boss spawns with model/weapons/health/sounds/HUD but **no rage/abilities** (they live in `ff2r_*_abilities.smx`). Chat warning on apply. |
+| `morecolors` plugin | **Degraded** | Shared AJB dependency; chat/colors degrade everywhere, not just FF2. |
+| TF2Items / TF2Attributes / TF2Utils | **Degraded** | FF2 falls back internally (fewer weapon attributes, no ability lag comp). |
+
+Server install (owner side, FF2 not shipped by AJB): New Install Package from
+`Batfoxkid/Freak-Fortress-2-Rewrite` releases → `freak_fortress_2.smx` in `plugins/`, the
+`ff2r_*.smx` ability plugins in `plugins/freaks/` (FF2 renames them to `.ff2` while idle),
+plus `translations`, `gamedata/ff2.txt`, `data/freak_fortress_2/`, `configs/freak_fortress_2/`
+and `custom/ff2r_defaults` → `tf/custom/`. FF2's `data/.../maps.cfg` ships `"*" { "enable" "0" }`,
+so on jailbreak maps bosses are precached but FF2 never runs the gamemode — exactly what the
+loader needs. Only bosses of the active pack (`ff2_current` / pack vote) appear in the picker.
+
+Boss round flow (modeled on the LR's Zombie Mode): applied in `AJB_OnLiveRoundBegin`;
+`AJB_BeginCombatDay` + `AJB_ClearWarden` + `AJB_SetRebelOnHit(false)` + `AJB_ClearPhaseTimer`;
+`sm_ajb_freekill_detect` parked (boss AoE would trip it); `AJB_OpenCells()` **before**
+`AJB_SetRoundState(AJBState_SpecialDay)` (order per Conventions); boss player (the LR chooser,
+else random) transits to the boss team, `FF2R_CreateBoss(boss, cfg, team)` then
+`TF2_RespawnPlayer` (spawn applies the loadout); everyone else folded onto RED and armed in
+`Frame_ArmRedPlayers`. Round ends via the engine (empty team); `AJB_OnRoundWin` removes the
+boss (`FF2R_CreateBoss(client, null, 0)`), restores teams and cvars. Known limitation: the LR
+module's `AJB_LR_IsGrantBlocked` does not see external pending wishes, so the warden could
+still grant an LR while an FF2 wish is queued — accepted for now.
 
 ## Reference: commands & ConVars
 
@@ -194,6 +251,12 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_lr` | console | Warden: grant Last Request to a prisoner |
 | `sm_ajb_lr_force <#userid\|name>` | GENERIC | Force LR menu for a living prisoner |
 | `sm_reopenlr`, `sm_ajb_reopenlr` | console | Prisoner: reopen your LR menu if a map vote / external menu closed it |
+
+**Module — `ajb_ff2.sp`**
+
+| Command | Access | Purpose |
+| --- | --- | --- |
+| `sm_ajb_ff2_status` | console | Print the FF2 wish dependency diagnosis (ff2r, bosses, subplugins) |
 
 ### ConVars
 
@@ -291,6 +354,13 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_mute_deadtalk` | `1` | 1 = dead players heard only by each other, not the living |
 | `sm_ajb_mute_deadtalk_crossteam` | `1` | 1 = all dead hear each other; 0 = only dead teammates |
 | `sm_ajb_mute_bypass_flags` | `b` | Admin flag(s) that can always talk to/hear everyone (empty = nobody) |
+
+**Module — `ajb_ff2.sp`** (persisted to `cfg/sourcemod/ajb_ff2.cfg`)
+
+| ConVar | Default | Purpose |
+| --- | --- | --- |
+| `sm_ajb_ff2_enabled` | `1` | Enable the FF2 Boss Last Request wish |
+| `sm_ajb_ff2_boss_team` | `3` | Team the boss fights for (2 = RED, 3 = BLU) |
 
 **Module — `ajb_hud.sp`**
 

@@ -56,3 +56,14 @@ stock void AJB_TFClassName(TFClassType cls, char[] buffer, int maxlen)
 		default:               strcopy(buffer, maxlen, "Class");
 	}
 }
+
+// Squared distance between two vectors. Proximity loops only ever compare squared
+// values, so the sqrt inside GetVectorDistance is pure waste. Shared by core and
+// modules (both include constants.inc through ajb.sp / ajb.inc).
+stock float AJB_GetDistanceSqr(const float a[3], const float b[3])
+{
+	float dx = a[0] - b[0];
+	float dy = a[1] - b[1];
+	float dz = a[2] - b[2];
+	return dx * dx + dy * dy + dz * dz;
+}

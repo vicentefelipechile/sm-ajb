@@ -228,6 +228,11 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
+	// Stop any running regen timers so a hot reload cannot leave stale handles.
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		AJB_Boosts_StopRegen(i);
+	}
 }
 
 public void OnMapStart()
@@ -439,7 +444,7 @@ void AJB_Boosts_AddPoints(int client, int amount, const char[] reason)
 	int gained = next - g_Boost[client].points;
 	g_Boost[client].points = next;
 
-	if (gained > 0 && !StrEqual(reason, "admin"))
+	if (gained > 0 && !isAdmin)
 	{
 		char prefix[32];
 		AJB_GetPrefix(client, prefix, sizeof(prefix));
@@ -744,17 +749,7 @@ public int MenuHandler_Revive(Menu menu, MenuAction action, int param1, int para
 
 	TF2_RespawnPlayer(target);
 
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", "Boosts Revived", i, prefix, client, target);
-	}
+	AJB_ChatAll2N("Boosts Revived", client, target);
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));

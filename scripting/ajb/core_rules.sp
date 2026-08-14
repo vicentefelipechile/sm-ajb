@@ -9,8 +9,14 @@ void AJB_HookClient(int client)
 		return;
 	}
 
-	// Always hook while connected — mode is checked inside the callbacks.
-	// (If we skip when mode is off, a late-enable can leave clients unhooked.)
+	// Hook only while the mode is live. The mode-on paths (OnPluginStart/OnMapStart/
+	// cvar enable) call AJB_HookAllClients, so a late-enable still picks up everyone;
+	// this just keeps the damage callbacks off the server on non-JB maps.
+	if (!g_bModeActive)
+	{
+		return;
+	}
+
 	SDKHook(client, SDKHook_OnTakeDamage, AJB_OnTakeDamage);
 	SDKHook(client, SDKHook_TraceAttack, AJB_OnTraceAttack);
 	AJB_FlagSet(client, AJB_PF_SDKHOOKED, true);
@@ -92,26 +98,15 @@ void AJB_SetRebelInternal(int client, bool rebel, bool announce, int source = 0)
 
 	bool hasSource = (source > 0 && source <= MaxClients && IsClientInGame(source));
 
-	for (int i = 1; i <= MaxClients; i++)
+	if (hasSource)
 	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-
-		if (hasSource)
-		{
-			// {1}=prefix, {2}=warden/admin who acted, {3}=target prisoner
-			CPrintToChat(i, "%T", rebel ? "Player Rebel" : "Player Unrebel", i, prefix, source, client);
-		}
-		else
-		{
-			// Auto (damage, native, etc.): no actor name.
-			CPrintToChat(i, "%T", rebel ? "Player Rebel Auto" : "Player Unrebel Auto", i, prefix, client);
-		}
+		// {1}=prefix, {2}=warden/admin who acted, {3}=target prisoner
+		AJB_ChatAll2N(rebel ? "Player Rebel" : "Player Unrebel", source, client);
+	}
+	else
+	{
+		// Auto (damage, native, etc.): no actor name.
+		AJB_ChatAll1N(rebel ? "Player Rebel Auto" : "Player Unrebel Auto", client);
 	}
 }
 

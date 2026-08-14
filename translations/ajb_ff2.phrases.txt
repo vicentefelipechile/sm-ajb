@@ -1,0 +1,118 @@
+"Phrases"
+{
+	"Prefix"
+	{
+		"en"		"{green}[AJB]{default}"
+		"es"		"{green}[AJB]{default}"
+		"las"		"{green}[AJB]{default}"
+		"de"		"{green}[AJB]{default}"
+		"fr"		"{green}[AJB]{default}"
+		"pt"		"{green}[AJB]{default}"
+		"ru"		"{green}[AJB]{default}"
+	}
+
+	"LR Wish FF2"
+	{
+		"en"		"FF2 Boss"
+		"es"		"Jefe FF2"
+		"las"		"Jefe FF2"
+		"de"		"FF2-Boss"
+		"fr"		"Boss FF2"
+		"pt"		"Chefe FF2"
+		"ru"		"Босс FF2"
+	}
+
+	"LR Wish FF2 Missing"
+	{
+		"en"		"FF2 Boss (requires Freak Fortress 2)"
+		"es"		"Jefe FF2 (requiere Freak Fortress 2)"
+		"las"		"Jefe FF2 (requiere Freak Fortress 2)"
+		"de"		"FF2-Boss (erfordert Freak Fortress 2)"
+		"fr"		"Boss FF2 (requiert Freak Fortress 2)"
+		"pt"		"Chefe FF2 (requer Freak Fortress 2)"
+		"ru"		"Босс FF2 (требуется Freak Fortress 2)"
+	}
+
+	"FF2 Picker Title"
+	{
+		"en"		"FF2 Boss - pick a boss"
+		"es"		"Jefe FF2 - elige un jefe"
+		"las"		"Jefe FF2 - elige un jefe"
+		"de"		"FF2-Boss - wähle einen Boss"
+		"fr"		"Boss FF2 - choisissez un boss"
+		"pt"		"Chefe FF2 - escolha um chefe"
+		"ru"		"Босс FF2 - выберите босса"
+	}
+
+	"LR Chose FF2"
+	{
+		"#format"	"{1:s},{2:N},{3:s}"
+		"en"		"{1} {2} chose an FF2 boss round: {3}!"
+		"es"		"{1} {2} eligió una ronda de jefe FF2: {3}!"
+		"las"		"{1} {2} eligió una ronda de jefe FF2: {3}!"
+		"de"		"{1} {2} hat eine FF2-Bossrunde gewählt: {3}!"
+		"fr"		"{1} {2} a choisi une ronde de boss FF2 : {3} !"
+		"pt"		"{1} {2} escolheu uma ronda de chefe FF2: {3}!"
+		"ru"		"{1} {2} выбрал(а) раунд с боссом FF2: {3}!"
+	}
+
+	"FF2 Applied"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1} Boss fight ({2})! All players vs the boss - good luck!"
+		"es"		"{1} ¡Ronda de jefe ({2})! Todos contra el jefe - ¡suerte!"
+		"las"		"{1} ¡Ronda de jefe ({2})! Todos contra el jefe - ¡suerte!"
+		"de"		"{1} Bosskampf ({2})! Alle Spieler gegen den Boss - viel Glück!"
+		"fr"		"{1} Combat de boss ({2}) ! Tous les joueurs contre le boss - bonne chance !"
+		"pt"		"{1} Luta de chefe ({2})! Todos contra o chefe - boa sorte!"
+		"ru"		"{1} Бой с боссом ({2})! Все игроки против босса - удачи!"
+	}
+
+	"FF2 Cancelled"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} The FF2 boss round was cancelled ({2}'s boss is no longer available)."
+		"es"		"{1} La ronda de jefe FF2 se canceló (el jefe de {2} ya no está disponible)."
+		"las"		"{1} La ronda de jefe FF2 se canceló (el jefe de {2} ya no está disponible)."
+		"de"		"{1} Die FF2-Bossrunde wurde abgebrochen (der Boss von {2} ist nicht mehr verfügbar)."
+		"fr"		"{1} La ronde de boss FF2 a été annulée (le boss de {2} n'est plus disponible)."
+		"pt"		"{1} A ronda de chefe FF2 foi cancelada (o chefe de {2} já não está disponível)."
+		"ru"		"{1} Раунд с боссом FF2 отменён (босс {2} больше недоступен)."
+	}
+
+	"FF2 Cancelled No Boss"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} The FF2 boss round was cancelled (no players available)."
+		"es"		"{1} La ronda de jefe FF2 se canceló (no hay jugadores disponibles)."
+		"las"		"{1} La ronda de jefe FF2 se canceló (no hay jugadores disponibles)."
+		"de"		"{1} Die FF2-Bossrunde wurde abgebrochen (keine Spieler verfügbar)."
+		"fr"		"{1} La ronde de boss FF2 a été annulée (aucun joueur disponible)."
+		"pt"		"{1} A ronda de chefe FF2 foi cancelada (sem jogadores disponíveis)."
+		"ru"		"{1} Раунд с боссом FF2 отменён (нет доступных игроков)."
+	}
+
+	"FF2 Boss Defeated"
+	{
+		"#format"	"{1:s},{2:N},{3:s}"
+		"en"		"{1} {3} was defeated! The round is over."
+		"es"		"{1} ¡{3} fue derrotado! La ronda terminó."
+		"las"		"{1} ¡{3} fue derrotado! La ronda terminó."
+		"de"		"{1} {3} wurde besiegt! Die Runde ist vorbei."
+		"fr"		"{1} {3} a été vaincu ! La ronde est terminée."
+		"pt"		"{1} {3} foi derrotado! A ronda terminou."
+		"ru"		"{1} {3} повержен! Раунд окончен."
+	}
+
+	"FF2 No Abilities"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Warning: the Freak Fortress 2 ability subplugins are not installed - the boss has no rage/abilities."
+		"es"		"{1} Aviso: los subplugins de habilidades de Freak Fortress 2 no están instalados - el jefe no tiene furia/habilidades."
+		"las"		"{1} Aviso: los subplugins de habilidades de Freak Fortress 2 no están instalados - el jefe no tiene furia/habilidades."
+		"de"		"{1} Warnung: Die Fähigkeits-Subplugins von Freak Fortress 2 fehlen - der Boss hat keine Fähigkeiten."
+		"fr"		"{1} Attention : les sous-plugins de capacités de Freak Fortress 2 ne sont pas installés - le boss n'a pas de capacités."
+		"pt"		"{1} Aviso: os subplugins de habilidades do Freak Fortress 2 não estão instalados - o chefe não tem habilidades."
+		"ru"		"{1} Внимание: саб-плагины способностей Freak Fortress 2 не установлены - у босса нет способностей."
+	}
+}

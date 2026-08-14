@@ -41,7 +41,7 @@ void AJB_LR_ApplyGuardMelee(const char[] chooserName)
 		}
 	}
 
-	AJB_OpenCells();
+	// Normal round: cells stay with the warden / auto-open, never force-opened here.
 	AJB_LR_ChatAllQueuedApplied(chooserName, "LR Applied GuardMelee");
 }
 

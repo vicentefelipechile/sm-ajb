@@ -38,6 +38,7 @@ void AJB_WardenHealth_OnPluginStart()
 	g_iHudLastTarget = 0;
 	g_iHudLastHp = -1;
 	g_iHudLastMax = -1;
+	AJB_WardenHealth_RefreshNative();
 }
 
 void AJB_WardenHealth_OnLibraryAdded(const char[] name)
@@ -45,6 +46,7 @@ void AJB_WardenHealth_OnLibraryAdded(const char[] name)
 	if (StrEqual(name, "tf2attributes"))
 	{
 		g_bTf2Attribs = true;
+		AJB_WardenHealth_RefreshNative();
 		if (g_iWarden > 0 && g_cvWardenSeeHealth.BoolValue)
 		{
 			AJB_WardenHealth_Apply(g_iWarden);
@@ -57,6 +59,7 @@ void AJB_WardenHealth_OnLibraryRemoved(const char[] name)
 	if (StrEqual(name, "tf2attributes"))
 	{
 		g_bTf2Attribs = false;
+		AJB_WardenHealth_RefreshNative();
 	}
 }
 
@@ -109,19 +112,31 @@ Action Timer_WardenHealthApply(Handle timer, int userid)
 	return Plugin_Stop;
 }
 
+// Recompute the tf2attributes availability once per library change instead of per tick.
+static bool g_bAttribsReady;
+static int g_iAttrStampedRef;   // last weapon entref stamped with the attr (0 = none)
+
 bool AJB_WardenHealth_NativeReady()
 {
+	return g_bAttribsReady;
+}
+
+void AJB_WardenHealth_RefreshNative()
+{
+	g_bAttribsReady = false;
 	if (!g_bTf2Attribs)
 	{
-		return false;
+		return;
 	}
 
 	if (GetFeatureStatus(FeatureType_Native, "TF2Attrib_IsReady") == FeatureStatus_Available)
 	{
-		return TF2Attrib_IsReady();
+		g_bAttribsReady = TF2Attrib_IsReady();
 	}
-
-	return true;
+	else
+	{
+		g_bAttribsReady = true;
+	}
 }
 
 void AJB_WardenHealth_Apply(int client)
@@ -274,6 +289,9 @@ void AJB_WardenHealth_StartTimer()
 		Timer_WardenHealthTick,
 		_,
 		TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
+	// A new warden may hold a weapon the previous one never stamped.
+	g_iAttrStampedRef = 0;
 }
 
 void AJB_WardenHealth_StopTimer()
@@ -282,6 +300,17 @@ void AJB_WardenHealth_StopTimer()
 	{
 		delete g_hWardenHealthTimer;
 		g_hWardenHealthTimer = null;
+	}
+}
+
+void AJB_WardenHealth_OnPluginEnd()
+{
+	AJB_WardenHealth_StopTimer();
+
+	if (g_hWardenHealthHud != null)
+	{
+		delete g_hWardenHealthHud;
+		g_hWardenHealthHud = null;
 	}
 }
 
@@ -303,13 +332,19 @@ Action Timer_WardenHealthTick(Handle timer)
 		return Plugin_Continue;
 	}
 
-	// Keep native attr on the currently held weapon (resupply/switch).
+	// Keep native attr on the currently held weapon, but only when the weapon changed
+	// (resupply/switch) — not on every 0.15s tick.
 	if (AJB_WardenHealth_NativeReady())
 	{
 		int active = GetEntPropEnt(warden, Prop_Send, "m_hActiveWeapon");
-		if (active > MaxClients && IsValidEntity(active))
+		int activeRef = (active > MaxClients && IsValidEntity(active)) ? EntIndexToEntRef(active) : 0;
+		if (activeRef != g_iAttrStampedRef)
 		{
-			TF2Attrib_SetByName(active, AJB_ATTR_SEE_ENEMY_HEALTH, 1.0);
+			g_iAttrStampedRef = activeRef;
+			if (activeRef != 0)
+			{
+				TF2Attrib_SetByName(active, AJB_ATTR_SEE_ENEMY_HEALTH, 1.0);
+			}
 		}
 	}
 

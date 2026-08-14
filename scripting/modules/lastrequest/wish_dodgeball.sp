@@ -17,6 +17,46 @@
 bool g_bDB1v1Mode;
 float g_fDBArenaRadiusSq;
 
+// Precomputed arena post geometry (12 posts × bottom/top/mid) so the 0.5s redraw
+// never recomputes sine/cosine — only the TE setup + send remains per tick.
+float g_fDBPostBottom[DB_ZONE_POST_COUNT][3];
+float g_fDBPostTop[DB_ZONE_POST_COUNT][3];
+float g_fDBPostMid[DB_ZONE_POST_COUNT][3];
+bool g_bDBZoneCached;
+
+// Out-of-bounds chat spam guard: warn at most once per 2s per player.
+float g_fDBLastWarn[MAXPLAYERS + 1];
+
+void AJB_LR_DB_CacheZoneGeometry()
+{
+	g_bDBZoneCached = false;
+	if (g_fDBArenaRadius <= 1.0)
+	{
+		return;
+	}
+
+	for (int i = 0; i < DB_ZONE_POST_COUNT; i++)
+	{
+		float angle = (float(i) / float(DB_ZONE_POST_COUNT)) * (FLOAT_PI * 2.0);
+		float cosA = Cosine(angle);
+		float sinA = Sine(angle);
+
+		g_fDBPostBottom[i][0] = g_vecDBArenaCenter[0] + cosA * g_fDBArenaRadius;
+		g_fDBPostBottom[i][1] = g_vecDBArenaCenter[1] + sinA * g_fDBArenaRadius;
+		g_fDBPostBottom[i][2] = g_vecDBArenaCenter[2];
+
+		g_fDBPostTop[i][0] = g_fDBPostBottom[i][0];
+		g_fDBPostTop[i][1] = g_fDBPostBottom[i][1];
+		g_fDBPostTop[i][2] = g_fDBPostBottom[i][2] + DB_ZONE_POST_HEIGHT;
+
+		g_fDBPostMid[i][0] = g_fDBPostBottom[i][0];
+		g_fDBPostMid[i][1] = g_fDBPostBottom[i][1];
+		g_fDBPostMid[i][2] = g_fDBPostBottom[i][2] + (DB_ZONE_POST_HEIGHT / 2.0);
+	}
+
+	g_bDBZoneCached = true;
+}
+
 void AJB_LR_KillDBTimers()
 {
 	if (g_hDBBarrierTimer != null)
@@ -33,6 +73,11 @@ void AJB_LR_KillDBTimers()
 	{
 		delete g_hDBZoneTimer;
 		g_hDBZoneTimer = null;
+	}
+	if (g_hDBAmmoTimer != null)
+	{
+		delete g_hDBAmmoTimer;
+		g_hDBAmmoTimer = null;
 	}
 	if (g_iDBRocketEnt != -1 && IsValidEntity(g_iDBRocketEnt))
 	{
@@ -76,6 +121,9 @@ void AJB_LR_DB_StartZoneVisual()
 		g_hDBZoneTimer = null;
 	}
 
+	// Cache the post geometry once — the arena does not move mid-round.
+	AJB_LR_DB_CacheZoneGeometry();
+
 	// Draw immediately so the boundary is visible before the first rocket spawns.
 	AJB_LR_DB_DrawZone();
 	g_hDBZoneTimer = CreateTimer(DB_ZONE_REDRAW, Timer_DBZoneVisual, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -95,7 +143,7 @@ Action Timer_DBZoneVisual(Handle timer)
 
 void AJB_LR_DB_DrawZone()
 {
-	if (g_iDBBeam <= 0 || g_fDBArenaRadius <= 1.0)
+	if (g_iDBBeam <= 0 || !g_bDBZoneCached)
 	{
 		return;
 	}
@@ -103,50 +151,14 @@ void AJB_LR_DB_DrawZone()
 	// Amber boundary — reads as "do not cross" without clashing with team colors.
 	int color[4] = { 255, 160, 40, 230 };
 	int halo = (g_iDBHalo > 0) ? g_iDBHalo : g_iDBBeam;
-	float radius = g_fDBArenaRadius;
-	float center[3];
-	center[0] = g_vecDBArenaCenter[0];
-	center[1] = g_vecDBArenaCenter[1];
-	center[2] = g_vecDBArenaCenter[2];
 
-	// Vertical posts and horizontal connecting beams around the circle
+	// Vertical posts and horizontal connecting beams around the circle (geometry cached).
 	for (int i = 0; i < DB_ZONE_POST_COUNT; i++)
 	{
-		float angle1 = (float(i) / float(DB_ZONE_POST_COUNT)) * (FLOAT_PI * 2.0);
-		float angle2 = (float(i + 1) / float(DB_ZONE_POST_COUNT)) * (FLOAT_PI * 2.0);
-
-		float bottom1[3], top1[3];
-		float bottom2[3], top2[3];
-
-		bottom1[0] = center[0] + Cosine(angle1) * radius;
-		bottom1[1] = center[1] + Sine(angle1) * radius;
-		bottom1[2] = center[2];
-
-		top1[0] = bottom1[0];
-		top1[1] = bottom1[1];
-		top1[2] = bottom1[2] + DB_ZONE_POST_HEIGHT;
-
-		bottom2[0] = center[0] + Cosine(angle2) * radius;
-		bottom2[1] = center[1] + Sine(angle2) * radius;
-		bottom2[2] = center[2];
-
-		top2[0] = bottom2[0];
-		top2[1] = bottom2[1];
-		top2[2] = bottom2[2] + DB_ZONE_POST_HEIGHT;
-
-		float mid1[3], mid2[3];
-		mid1[0] = bottom1[0];
-		mid1[1] = bottom1[1];
-		mid1[2] = bottom1[2] + (DB_ZONE_POST_HEIGHT / 2.0);
-		
-		mid2[0] = bottom2[0];
-		mid2[1] = bottom2[1];
-		mid2[2] = bottom2[2] + (DB_ZONE_POST_HEIGHT / 2.0);
-
 		// Vertical post
 		TE_SetupBeamPoints(
-			bottom1,
-			top1,
+			g_fDBPostBottom[i],
+			g_fDBPostTop[i],
 			g_iDBBeam,
 			halo,
 			0, 10,
@@ -161,8 +173,8 @@ void AJB_LR_DB_DrawZone()
 
 		// Horizontal bottom beam
 		TE_SetupBeamPoints(
-			bottom1,
-			bottom2,
+			g_fDBPostBottom[i],
+			g_fDBPostBottom[(i + 1) % DB_ZONE_POST_COUNT],
 			g_iDBBeam,
 			halo,
 			0, 10,
@@ -177,8 +189,8 @@ void AJB_LR_DB_DrawZone()
 
 		// Horizontal middle beam
 		TE_SetupBeamPoints(
-			mid1,
-			mid2,
+			g_fDBPostMid[i],
+			g_fDBPostMid[(i + 1) % DB_ZONE_POST_COUNT],
 			g_iDBBeam,
 			halo,
 			0, 10,
@@ -193,8 +205,8 @@ void AJB_LR_DB_DrawZone()
 
 		// Horizontal top beam
 		TE_SetupBeamPoints(
-			top1,
-			top2,
+			g_fDBPostTop[i],
+			g_fDBPostTop[(i + 1) % DB_ZONE_POST_COUNT],
 			g_iDBBeam,
 			halo,
 			0, 10,
@@ -411,6 +423,19 @@ void AJB_LR_ApplyDodgeball(const char[] chooser)
 
 	g_bDB1v1Mode = false;
 
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_fDBLastWarn[i] = 0.0;
+	}
+
+	// Ammo top-up is separate from the homing think (which must stay fast).
+	if (g_hDBAmmoTimer != null)
+	{
+		delete g_hDBAmmoTimer;
+		g_hDBAmmoTimer = null;
+	}
+	g_hDBAmmoTimer = CreateTimer(0.5, Timer_DBAmmo, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
 	g_hDBBarrierTimer = CreateTimer(0.5, Timer_DBBarrierCheck, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	AJB_LR_DB_StartZoneVisual();
 
@@ -450,9 +475,14 @@ Action Timer_DBBarrierCheck(Handle timer)
 
 		if (distSq > g_fDBArenaRadiusSq)
 		{
-			char prefix[32];
-			AJB_GetPrefix(i, prefix, sizeof(prefix));
-			CPrintToChat(i, "%T", "LR DB Out Of Bounds", i, prefix);
+			// Warn at most every 2s so an AFK player does not spam chat every tick.
+			if (GetGameTime() - g_fDBLastWarn[i] > 2.0)
+			{
+				g_fDBLastWarn[i] = GetGameTime();
+				char prefix[32];
+				AJB_GetPrefix(i, prefix, sizeof(prefix));
+				CPrintToChat(i, "%T", "LR DB Out Of Bounds", i, prefix);
+			}
 			SDKHooks_TakeDamage(i, 0, 0, dmg, DMG_SHOCK, -1, NULL_VECTOR, g_vecDBArenaCenter);
 		}
 	}
@@ -575,10 +605,11 @@ void AJB_LR_DB_SetTarget(int newTarget)
 	g_iDBRocketTarget = newTarget;
 }
 
-bool AJB_LR_DB_BothSidesAlive()
+// One alive-per-team count, shared by the both-sides gate and the round-end check.
+void AJB_LR_DB_CountAliveByTeam(int &red, int &blu)
 {
-	bool redAlive = false;
-	bool bluAlive = false;
+	red = 0;
+	blu = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || !IsPlayerAlive(i))
@@ -586,10 +617,17 @@ bool AJB_LR_DB_BothSidesAlive()
 			continue;
 		}
 		int team = GetClientTeam(i);
-		if (team == 2) redAlive = true;
-		else if (team == 3) bluAlive = true;
+		if (team == 2) red++;
+		else if (team == 3) blu++;
 	}
-	return redAlive && bluAlive;
+}
+
+bool AJB_LR_DB_BothSidesAlive()
+{
+	int red;
+	int blu;
+	AJB_LR_DB_CountAliveByTeam(red, blu);
+	return red > 0 && blu > 0;
 }
 
 void AJB_LR_DB_CheckRoundEnd()
@@ -599,36 +637,20 @@ void AJB_LR_DB_CheckRoundEnd()
 		return;
 	}
 
-	int redAlive = 0;
-	int bluAlive = 0;
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
-			int t = GetClientTeam(i);
-			if (t == 2) redAlive++;
-			else if (t == 3) bluAlive++;
-		}
-	}
+	int redAlive;
+	int bluAlive;
+	AJB_LR_DB_CountAliveByTeam(redAlive, bluAlive);
 
 	if (redAlive == 0 || bluAlive == 0)
 	{
 		// Announce winner team via generic cleanup — the round-end event will clean up.
-		for (int i = 1; i <= MaxClients; i++)
+		if (redAlive == 0 && bluAlive > 0)
 		{
-			if (IsClientInGame(i) && !IsFakeClient(i))
-			{
-				char prefix[32];
-				AJB_GetPrefix(i, prefix, sizeof(prefix));
-				if (redAlive == 0 && bluAlive > 0)
-				{
-					CPrintToChat(i, "%T", "LR DB Blu Wins", i, prefix);
-				}
-				else if (redAlive > 0 && bluAlive == 0)
-				{
-					CPrintToChat(i, "%T", "LR DB Red Wins", i, prefix);
-				}
-			}
+			AJB_ChatAll("LR DB Blu Wins");
+		}
+		else if (redAlive > 0 && bluAlive == 0)
+		{
+			AJB_ChatAll("LR DB Red Wins");
 		}
 		// Cleanup without an extra "aborted" message since this is a natural end.
 		g_bDodgeball = false;
@@ -773,11 +795,15 @@ void Frame_DBCheckRoundEnd(any data)
 // Homing think — runs every 0.1 s per rocket
 // ---------------------------------------------------------------------------------------------------------
 
-Action Timer_DBRocketThink(Handle timer, int ref)
+// =========================================================================================================
+// Ammo maintenance — every 0.5s (the homing think at 0.1s must stay light).
+// =========================================================================================================
+
+Action Timer_DBAmmo(Handle timer)
 {
 	if (!g_bDodgeball)
 	{
-		g_hDBRocketThinkTimer = null;
+		g_hDBAmmoTimer = null;
 		return Plugin_Stop;
 	}
 
@@ -791,6 +817,21 @@ Action Timer_DBRocketThink(Handle timer, int ref)
 				SetEntProp(i, Prop_Send, "m_iAmmo", 200, _, 1);
 			}
 		}
+	}
+
+	return Plugin_Continue;
+}
+
+// =========================================================================================================
+// Homing think — runs every 0.1 s per rocket
+// =========================================================================================================
+
+Action Timer_DBRocketThink(Handle timer, int ref)
+{
+	if (!g_bDodgeball)
+	{
+		g_hDBRocketThinkTimer = null;
+		return Plugin_Stop;
 	}
 
 	int ent = EntRefToEntIndex(ref);

@@ -87,31 +87,6 @@ bool AJB_Sentry_IsRebelOnly()
 	return g_bModeActive && g_cvSentryRebelsOnly != null && g_cvSentryRebelsOnly.BoolValue;
 }
 
-bool AJB_Sentry_IsValidRebelTarget(int client)
-{
-	if (client < 1 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client))
-	{
-		return false;
-	}
-
-	// Must be on prisoners team and flagged rebel this round.
-	if (!AJB_ClientIsPrisoner(client) || !AJB_FlagGet(client, AJB_PF_REBEL))
-	{
-		return false;
-	}
-
-	// Don't feed the sentry targets it cannot hurt (uber / ghost, etc.).
-	if (TF2_IsPlayerInCondition(client, TFCond_Ubercharged)
-		|| TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden)
-		|| TF2_IsPlayerInCondition(client, TFCond_Bonked)
-		|| TF2_IsPlayerInCondition(client, TFCond_HalloweenGhostMode))
-	{
-		return false;
-	}
-
-	return true;
-}
-
 void AJB_Sentry_ClearEnemy(int sentry)
 {
 	if (sentry > MaxClients && IsValidEntity(sentry) && HasEntProp(sentry, Prop_Send, "m_hEnemy"))
@@ -195,6 +170,18 @@ int AJB_Sentry_FromInflictor(int inflictor)
 	return -1;
 }
 
+// The readiness checks below all read one bool netprop guarded by HasEntProp — one
+// helper instead of five copy-pasted blocks (and the int variant for the upgrade level).
+bool AJB_Sentry_PropTrue(int sentry, const char[] prop)
+{
+	return HasEntProp(sentry, Prop_Send, prop) && GetEntProp(sentry, Prop_Send, prop) != 0;
+}
+
+int AJB_Sentry_PropInt(int sentry, const char[] prop, int def = 0)
+{
+	return HasEntProp(sentry, Prop_Send, prop) ? GetEntProp(sentry, Prop_Send, prop) : def;
+}
+
 bool AJB_Sentry_IsReady(int sentry)
 {
 	if (sentry <= MaxClients || !IsValidEntity(sentry))
@@ -203,24 +190,24 @@ bool AJB_Sentry_IsReady(int sentry)
 	}
 
 	// Still constructing / carried / disabled → no acquire.
-	if (HasEntProp(sentry, Prop_Send, "m_bBuilding") && GetEntProp(sentry, Prop_Send, "m_bBuilding"))
+	if (AJB_Sentry_PropTrue(sentry, "m_bBuilding"))
 	{
 		return false;
 	}
-	if (HasEntProp(sentry, Prop_Send, "m_bCarried") && GetEntProp(sentry, Prop_Send, "m_bCarried"))
+	if (AJB_Sentry_PropTrue(sentry, "m_bCarried"))
 	{
 		return false;
 	}
-	if (HasEntProp(sentry, Prop_Send, "m_bPlacing") && GetEntProp(sentry, Prop_Send, "m_bPlacing"))
+	if (AJB_Sentry_PropTrue(sentry, "m_bPlacing"))
 	{
 		return false;
 	}
-	if (HasEntProp(sentry, Prop_Send, "m_bDisabled") && GetEntProp(sentry, Prop_Send, "m_bDisabled"))
+	if (AJB_Sentry_PropTrue(sentry, "m_bDisabled"))
 	{
 		return false;
 	}
 	// Wrangler: owner is controlling — leave stock alone (we Supercede only when not controlled).
-	if (HasEntProp(sentry, Prop_Send, "m_bPlayerControlled") && GetEntProp(sentry, Prop_Send, "m_bPlayerControlled"))
+	if (AJB_Sentry_PropTrue(sentry, "m_bPlayerControlled"))
 	{
 		return false;
 	}
@@ -233,7 +220,7 @@ float AJB_Sentry_GetRangeSqr(int sentry)
 	float range = AJB_SENTRY_RANGE_DEFAULT;
 
 	// Mini sentries are shorter range in stock TF2 (~0.75 of normal is a common approx).
-	if (HasEntProp(sentry, Prop_Send, "m_bMiniBuilding") && GetEntProp(sentry, Prop_Send, "m_bMiniBuilding"))
+	if (AJB_Sentry_PropTrue(sentry, "m_bMiniBuilding"))
 	{
 		range *= 0.75;
 	}
@@ -245,11 +232,7 @@ void AJB_Sentry_GetEye(int sentry, float eye[3])
 {
 	GetEntPropVector(sentry, Prop_Send, "m_vecOrigin", eye);
 	// Approximate muzzle height by level (L1 short, L2/L3 taller).
-	int level = 1;
-	if (HasEntProp(sentry, Prop_Send, "m_iUpgradeLevel"))
-	{
-		level = GetEntProp(sentry, Prop_Send, "m_iUpgradeLevel");
-	}
+	int level = AJB_Sentry_PropInt(sentry, "m_iUpgradeLevel", 1);
 	eye[2] += (level >= 2) ? 50.0 : 35.0;
 }
 
@@ -302,6 +285,31 @@ bool AJB_Sentry_CanSee(int sentry, int client, const float eye[3], float rangeSq
 	return !blocked;
 }
 
+// Per-tick rebel census: sentry AI thinks on a fixed cadence, so several FindTarget
+// calls within the same tick share a single scan, and a round with no rebels alive
+// skips the client loop and every LOS trace entirely.
+static int g_iRebelScanTick = -1;
+static int g_iCachedAliveRebels;
+
+int AJB_Sentry_CountAliveRebels()
+{
+	int tick = GetGameTickCount();
+	if (tick != g_iRebelScanTick)
+	{
+		g_iRebelScanTick = tick;
+		int n = 0;
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientInGame(i) && IsPlayerAlive(i) && AJB_FlagGet(i, AJB_PF_REBEL))
+			{
+				n++;
+			}
+		}
+		g_iCachedAliveRebels = n;
+	}
+	return g_iCachedAliveRebels;
+}
+
 int AJB_Sentry_FindNearestRebel(int sentry)
 {
 	int sentryTeam = GetEntProp(sentry, Prop_Send, "m_iTeamNum");
@@ -311,16 +319,52 @@ int AJB_Sentry_FindNearestRebel(int sentry)
 	AJB_Sentry_GetEye(sentry, eye);
 	float rangeSqr = AJB_Sentry_GetRangeSqr(sentry);
 
+	// Nothing to scan (skips the loop + all traces on a normal round).
+	if (AJB_Sentry_CountAliveRebels() == 0)
+	{
+		return -1;
+	}
+
 	float bestDist = rangeSqr;
 	int best = -1;
 
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (!AJB_Sentry_IsValidRebelTarget(client))
+		if (!IsClientInGame(client) || !IsPlayerAlive(client))
+		{
+			continue;
+		}
+		if (GetClientTeam(client) != AJB_GetPrisonersTeam())
 		{
 			continue;
 		}
 		if (GetClientTeam(client) == sentryTeam)
+		{
+			continue;
+		}
+		if (!AJB_FlagGet(client, AJB_PF_REBEL))
+		{
+			continue;
+		}
+
+		// Cheap squared-range gate first — the TF2 condition natives below only run
+		// for in-range rebels (out-of-range ones dominate on open jail maps).
+		float target[3];
+		GetClientEyePosition(client, target);
+		float dx = target[0] - eye[0];
+		float dy = target[1] - eye[1];
+		float dz = target[2] - eye[2];
+		float d2 = dx * dx + dy * dy + dz * dz;
+		if (d2 > rangeSqr)
+		{
+			continue;
+		}
+
+		// Don't feed the sentry targets it cannot hurt (uber / ghost, etc.).
+		if (TF2_IsPlayerInCondition(client, TFCond_Ubercharged)
+			|| TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden)
+			|| TF2_IsPlayerInCondition(client, TFCond_Bonked)
+			|| TF2_IsPlayerInCondition(client, TFCond_HalloweenGhostMode))
 		{
 			continue;
 		}

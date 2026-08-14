@@ -14,21 +14,16 @@ void AJB_LR_HG_OnPlayerDeath(int victim)
 		RequestFrame(Frame_HGRestoreBluTeam, GetClientUserId(victim));
 	}
 
-	RequestFrame(Frame_HGCheckWinner);
+	if (!g_bHGCheckQueued)
+	{
+		g_bHGCheckQueued = true;
+		RequestFrame(Frame_HGCheckWinner);
+	}
 }
 
 void Frame_HGRestoreBluTeam(int userid)
 {
-	int client = GetClientOfUserId(userid);
-	if (client > 0 && IsClientInGame(client) && g_bHGOriginalBlu[client])
-	{
-		g_bHGOriginalBlu[client] = false;
-		int blueTeam = AJB_GetGuardsTeam();
-		if (GetClientTeam(client) != blueTeam)
-		{
-			TF2_ChangeClientTeam(client, view_as<TFTeam>(blueTeam));
-		}
-	}
+	AJB_LR_RestoreBluOriginal(userid, g_bHGOriginalBlu);
 }
 
 // =========================================================================================================
@@ -230,14 +225,37 @@ public int MenuHandler_HungerGamesClass(Menu menu, MenuAction action, int param1
 	return 0;
 }
 
+// Shared per-client label builders for the HG/CW chat lines (localized, so they must
+// run inside the per-client loop — but only once each, not duplicated per function).
+void AJB_LR_HG_WeaponsLabel(int client, bool meleeOnly, char[] out, int maxlen)
+{
+	Format(out, maxlen, "%T", meleeOnly ? "LR HG Weapons Melee" : "LR HG Weapons Full", client);
+}
+
+// mode: 0 = any class, 1 = random class, 2 = fixed class (cls).
+void AJB_LR_HG_ClassLabel(int client, int mode, TFClassType cls, char[] out, int maxlen)
+{
+	switch (mode)
+	{
+		case 0:
+		{
+			Format(out, maxlen, "%T", "LR HG Class Any", client);
+		}
+		case 1:
+		{
+			Format(out, maxlen, "%T", "LR HG Class Random", client);
+		}
+		default:
+		{
+			char fixed[32];
+			AJB_TFClassName(cls, fixed, sizeof(fixed));
+			strcopy(out, maxlen, fixed);
+		}
+	}
+}
+
 void AJB_LR_ChatAllHungerGamesChose(int chooser, bool meleeOnly, bool classRandom, TFClassType cls)
 {
-	char fixedClass[32];
-	if (!classRandom && cls != TFClass_Unknown)
-	{
-		AJB_TFClassName(cls, fixedClass, sizeof(fixedClass));
-	}
-
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || IsFakeClient(i))
@@ -250,20 +268,8 @@ void AJB_LR_ChatAllHungerGamesChose(int chooser, bool meleeOnly, bool classRando
 
 		char locClass[32];
 		char locWeapons[32];
-		if (classRandom)
-		{
-			Format(locClass, sizeof(locClass), "%T", "LR HG Class Random", i);
-		}
-		else if (cls == TFClass_Unknown)
-		{
-			Format(locClass, sizeof(locClass), "%T", "LR HG Class Any", i);
-		}
-		else
-		{
-			strcopy(locClass, sizeof(locClass), fixedClass);
-		}
-		Format(locWeapons, sizeof(locWeapons), "%T",
-			meleeOnly ? "LR HG Weapons Melee" : "LR HG Weapons Full", i);
+		AJB_LR_HG_ClassLabel(i, classRandom ? 1 : (cls == TFClass_Unknown ? 0 : 2), cls, locClass, sizeof(locClass));
+		AJB_LR_HG_WeaponsLabel(i, meleeOnly, locWeapons, sizeof(locWeapons));
 
 		CPrintToChat(i, "%T", "LR Chose HungerGames", i, prefix, chooser, locClass, locWeapons);
 	}
@@ -293,51 +299,31 @@ void AJB_LR_ApplyHungerGames(const char[] chooser, bool meleeOnly, bool classRan
 		g_HGClass = cls;
 	}
 
-	// Combat day: full loadouts allowed, no warden claim, freekill rules relaxed.
+	// Combat day: full loadouts allowed, no warden claim, freekill rules relaxed,
+	// cells opened and state moved to SpecialDay (no further state calls after this).
 	AJB_BeginCombatDay();
-	AJB_ClearWarden();
-	AJB_SetRebelOnHit(false);
+	AJB_SetupSpecialDay();
 
 	// Friendly fire stays off for the grace window (same-team damage blocked by engine).
 	AJB_LR_HG_SetFriendlyFire(false);
 
 	// Core jail clock still awards guards on expire - HG owns the end (last standing / timeout).
-	AJB_ClearPhaseTimer();
-
-	// Cells must be open so RED and BLU can reach each other.
-	AJB_OpenCells();
-	if (g_bHasCore)
-	{
-		AJB_SetRoundState(AJBState_SpecialDay);
-	}
 
 	// Move guards to RED without killing them: route through Spectator first.
 	// TF2_ChangeClientTeam from BLU->RED kills a live player and fires player_death,
 	// which would trigger Frame_HGRestoreBluTeam and move them back to BLU.
 	int redTeam = AJB_GetPrisonersTeam();
 	int blueTeam = AJB_GetGuardsTeam();
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		g_bHGOriginalBlu[i] = false;
-		if (IsClientInGame(i) && !IsFakeClient(i))
-		{
-			if (GetClientTeam(i) == blueTeam)
-			{
-				g_bHGOriginalBlu[i] = true;
-				// Spectator transit avoids the death event from a direct cross-team swap.
-				ChangeClientTeam(i, 1);
-				ChangeClientTeam(i, redTeam);
-			}
-
-			// Respawn everyone on RED (former guards + dead prisoners).
-			if (!IsPlayerAlive(i) && GetClientTeam(i) == redTeam)
-			{
-				TF2_RespawnPlayer(i);
-			}
-		}
-	}
+	AJB_LR_FoldAllToRed(redTeam, blueTeam, g_bHGOriginalBlu);
 
 	RequestFrame(Frame_HGArmAll);
+
+	// Per-client arm dedupe: respawns during apply queue a spawn-arm too, which runs in
+	// the same frame as ArmAll — the flag lets ArmAll skip whoever was already armed.
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bHGArmedThisFrame[i] = false;
+	}
 
 	float grace = g_cvHGGraceTime.FloatValue;
 	if (grace < 5.0)
@@ -371,8 +357,17 @@ void Frame_HGArmAll(any data)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i) && AJB_IsPrisoner(i))
 		{
-			AJB_LR_HG_ArmPlayer(i);
+			if (!g_bHGArmedThisFrame[i])
+			{
+				AJB_LR_HG_ArmPlayer(i);
+				g_bHGArmedThisFrame[i] = true;
+			}
 		}
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bHGArmedThisFrame[i] = false;
 	}
 }
 
@@ -389,6 +384,8 @@ void AJB_LR_HG_OnPlayerSpawn(int client)
 		return;
 	}
 
+	// Mark as queued so the apply-frame ArmAll skips this client (spawn-arm runs first).
+	g_bHGArmedThisFrame[client] = true;
 	RequestFrame(Frame_HGArmClient, GetClientUserId(client));
 }
 
@@ -462,6 +459,8 @@ Action Timer_HGEnd(Handle timer)
 
 void Frame_HGCheckWinner(any data)
 {
+	g_bHGCheckQueued = false;
+
 	if (!g_bHungerGames || g_bHGEnding || !g_bHasCore)
 	{
 		return;
@@ -488,7 +487,7 @@ void Frame_HGCheckWinner(any data)
 	if (alive == 1 && last > 0)
 	{
 		g_bHGEnding = true;
-		AJB_LR_ChatAll1N("LR HG Winner", last);
+		AJB_ChatAll1N("LR HG Winner", last);
 		AJB_ForceTeamWin(GetClientTeam(last));
 	}
 	else if (alive <= 0)
@@ -515,16 +514,6 @@ void AJB_LR_KillHGTimers()
 
 void AJB_LR_ChatAllHungerGamesApplied(const char[] chooserName, bool meleeOnly, bool classLock, TFClassType cls, float grace)
 {
-	char classLabel[32];
-	if (!classLock)
-	{
-		strcopy(classLabel, sizeof(classLabel), "Any");
-	}
-	else
-	{
-		AJB_TFClassName(cls, classLabel, sizeof(classLabel));
-	}
-
 	int graceSec = RoundToFloor(grace);
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -539,16 +528,8 @@ void AJB_LR_ChatAllHungerGamesApplied(const char[] chooserName, bool meleeOnly, 
 
 		char locClass[32];
 		char locWeapons[32];
-		if (!classLock)
-		{
-			Format(locClass, sizeof(locClass), "%T", "LR HG Class Any", i);
-		}
-		else
-		{
-			strcopy(locClass, sizeof(locClass), classLabel);
-		}
-		Format(locWeapons, sizeof(locWeapons), "%T",
-			meleeOnly ? "LR HG Weapons Melee" : "LR HG Weapons Full", i);
+		AJB_LR_HG_ClassLabel(i, classLock ? 2 : 0, cls, locClass, sizeof(locClass));
+		AJB_LR_HG_WeaponsLabel(i, meleeOnly, locWeapons, sizeof(locWeapons));
 
 		CPrintToChat(i, "%T", "LR Applied HungerGames", i, prefix,
 			chooserName[0] != '\0' ? chooserName : "LR", locClass, locWeapons, graceSec);

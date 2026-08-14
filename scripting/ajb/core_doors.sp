@@ -4,11 +4,45 @@
 
 // Per-map cfg: configs/ajb/maps/<map>.cfg
 // Doors + teleports (freeday / combat_red / combat_blu). Never invents coordinates.
+// Door entity cache: one edict walk per map stores every door-like ref; the fire/hook
+// paths re-evaluate their own name/hammer criteria over this cache instead of walking
+// all edicts per input (open/close fire up to 4 inputs per action).
+#define AJB_MAX_DOOR_CACHE  256
+
+int g_iDoorCache[AJB_MAX_DOOR_CACHE];
+int g_iDoorCacheCount;
+
+void AJB_BuildDoorCache()
+{
+	g_iDoorCacheCount = 0;
+	char classname[64];
+	int maxEdicts = GetMaxEntities();
+
+	for (int ent = MaxClients + 1; ent < maxEdicts && g_iDoorCacheCount < AJB_MAX_DOOR_CACHE; ent++)
+	{
+		if (!IsValidEntity(ent))
+		{
+			continue;
+		}
+
+		GetEntityClassname(ent, classname, sizeof(classname));
+		if (!AJB_IsDoorLikeClass(classname))
+		{
+			continue;
+		}
+
+		g_iDoorCache[g_iDoorCacheCount++] = EntIndexToEntRef(ent);
+	}
+}
+
 void AJB_LoadMapDoors()
 {
 	g_iDoorNameCount = 0;
 	g_iDoorHammerCount = 0;
 	AJB_Settings_ClearTeleports();
+	// The door-like entity set only depends on the map — build it once up front so the
+	// nofallback early-return below cannot skip it (fire paths rely on it).
+	AJB_BuildDoorCache();
 
 	char fileMap[PLATFORM_MAX_PATH];
 	AJB_GetShortMapName(fileMap, sizeof(fileMap));
@@ -292,13 +326,13 @@ Action Timer_CellsResetRetry(Handle timer, int idx)
 
 void AJB_FireAllCellLikeDoors(const char[] input)
 {
-	int maxEdicts = GetMaxEntities();
 	char classname[64];
 	char name[128];
 
-	for (int ent = MaxClients + 1; ent < maxEdicts; ent++)
+	for (int c = 0; c < g_iDoorCacheCount; c++)
 	{
-		if (!IsValidEntity(ent))
+		int ent = EntRefToEntIndex(g_iDoorCache[c]);
+		if (ent == INVALID_ENT_REFERENCE || !IsValidEntity(ent))
 		{
 			continue;
 		}
@@ -524,22 +558,18 @@ public void EntityOutput_OnCellDoorClosed(const char[] output, int caller, int a
 
 void AJB_HookCellEntities()
 {
-	int maxEdicts = GetMaxEntities();
 	char classname[64];
 	char name[128];
 
-	for (int ent = MaxClients + 1; ent < maxEdicts; ent++)
+	for (int c = 0; c < g_iDoorCacheCount; c++)
 	{
-		if (!IsValidEntity(ent))
+		int ent = EntRefToEntIndex(g_iDoorCache[c]);
+		if (ent == INVALID_ENT_REFERENCE || !IsValidEntity(ent))
 		{
 			continue;
 		}
 
 		GetEntityClassname(ent, classname, sizeof(classname));
-		if (!AJB_IsDoorLikeClass(classname))
-		{
-			continue;
-		}
 
 		bool match = false;
 
@@ -607,51 +637,33 @@ int AJB_FireDoorInput(const char[] input)
 
 	for (int i = 0; i < g_iDoorNameCount; i++)
 	{
-		int ent = -1;
-		while ((ent = AJB_FindEntityByTargetname(ent, g_sDoorNames[i])) != -1)
+		// Walk the per-map door cache (refs) instead of re-scanning all edicts per name.
+		for (int c = 0; c < g_iDoorCacheCount; c++)
 		{
-			AJB_SendEntityDoorInput(ent, input);
-			touched++;
+			int ent = EntRefToEntIndex(g_iDoorCache[c]);
+			if (ent == INVALID_ENT_REFERENCE || !IsValidEntity(ent))
+			{
+				continue;
+			}
+
+			if (!HasEntProp(ent, Prop_Data, "m_iName"))
+			{
+				continue;
+			}
+
+			char name[128];
+			GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
+			if (StrEqual(name, g_sDoorNames[i], false))
+			{
+				AJB_SendEntityDoorInput(ent, input);
+				touched++;
+			}
 		}
 	}
 
 	// Auto-detected doors are addressed by stable map id (covers unnamed cell doors).
 	touched += AJB_FireDoorHammerInput(input);
 	return touched;
-}
-
-int AJB_FindEntityByTargetname(int startEnt, const char[] targetname)
-{
-	char classname[64];
-	char name[128];
-
-	int maxEdicts = GetMaxEntities();
-	for (int ent = startEnt + 1; ent < maxEdicts; ent++)
-	{
-		if (!IsValidEntity(ent))
-		{
-			continue;
-		}
-
-		GetEntityClassname(ent, classname, sizeof(classname));
-		if (!AJB_IsDoorLikeClass(classname))
-		{
-			continue;
-		}
-
-		if (!HasEntProp(ent, Prop_Data, "m_iName"))
-		{
-			continue;
-		}
-
-		GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
-		if (StrEqual(name, targetname, false))
-		{
-			return ent;
-		}
-	}
-
-	return -1;
 }
 
 // =========================================================================================================
@@ -826,12 +838,12 @@ int AJB_FireDoorHammerInput(const char[] input)
 	}
 
 	int touched = 0;
-	int maxEdicts = GetMaxEntities();
 	char classname[64];
 
-	for (int ent = MaxClients + 1; ent < maxEdicts; ent++)
+	for (int c = 0; c < g_iDoorCacheCount; c++)
 	{
-		if (!IsValidEntity(ent))
+		int ent = EntRefToEntIndex(g_iDoorCache[c]);
+		if (ent == INVALID_ENT_REFERENCE || !IsValidEntity(ent))
 		{
 			continue;
 		}

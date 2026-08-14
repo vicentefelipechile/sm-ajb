@@ -222,6 +222,8 @@ void AJB_LR_ApplySetAllClass(const char[] chooserName, AJB_SetAllClassTarget tar
 	g_SetAllClassTarget = target;
 	g_SetAllClassType = cls;
 
+	// Pure class wish on a NORMAL round: force the class (persist so it survives respawns),
+	// nothing else. No regenerate, no cells, no combat day - Class Warfare owns that.
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || !IsPlayerAlive(i))
@@ -231,8 +233,7 @@ void AJB_LR_ApplySetAllClass(const char[] chooserName, AJB_SetAllClassTarget tar
 
 		if (AJB_LR_IsSetAllClassTarget(i, target))
 		{
-			TF2_SetPlayerClass(i, cls, false, true);
-			TF2_RegeneratePlayer(i);
+			TF2_SetPlayerClass(i, cls, true, true);
 		}
 	}
 
@@ -267,54 +268,52 @@ void AJB_LR_ForceSetAllClass(int client)
 		return;
 	}
 
+	// Spawn safety net (persist should already hold; re-force without regenerating loadouts).
 	if (TF2_GetPlayerClass(client) == g_SetAllClassType)
 	{
 		return;
 	}
 
-	TF2_SetPlayerClass(client, g_SetAllClassType, false, true);
-	TF2_RegeneratePlayer(client);
+	TF2_SetPlayerClass(client, g_SetAllClassType, true, true);
+}
+
+// Chose (player as actor) and Applied (name string as actor) share every line except
+// the actor argument — one loop, two entry points.
+void AJB_LR_ChatAllSetAllClassImpl(const char[] phrase, bool usePlayer, int chooser, const char[] chooserName, AJB_SetAllClassTarget target, TFClassType cls)
+{
+	char className[32];
+	AJB_TFClassName(cls, className, sizeof(className));
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		char prefix[32];
+		char targetLabel[32];
+		AJB_GetPrefix(i, prefix, sizeof(prefix));
+		AJB_LR_SetAllClassTargetLabel(i, target, targetLabel, sizeof(targetLabel));
+
+		if (usePlayer)
+		{
+			CPrintToChat(i, "%T", phrase, i, prefix, chooser, targetLabel, className);
+		}
+		else
+		{
+			CPrintToChat(i, "%T", phrase, i, prefix, chooserName[0] != '\0' ? chooserName : "LR", targetLabel, className);
+		}
+	}
 }
 
 void AJB_LR_ChatAllSetAllClassChose(int chooser, AJB_SetAllClassTarget target, TFClassType cls)
 {
-	char className[32];
-	AJB_TFClassName(cls, className, sizeof(className));
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		char targetLabel[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		AJB_LR_SetAllClassTargetLabel(i, target, targetLabel, sizeof(targetLabel));
-
-		CPrintToChat(i, "%T", "LR Chose SetAllClass", i, prefix, chooser, targetLabel, className);
-	}
+	AJB_LR_ChatAllSetAllClassImpl("LR Chose SetAllClass", true, chooser, "", target, cls);
 }
 
 void AJB_LR_ChatAllSetAllClassApplied(const char[] chooserName, AJB_SetAllClassTarget target, TFClassType cls)
 {
-	char className[32];
-	AJB_TFClassName(cls, className, sizeof(className));
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		char targetLabel[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		AJB_LR_SetAllClassTargetLabel(i, target, targetLabel, sizeof(targetLabel));
-
-		CPrintToChat(i, "%T", "LR Applied SetAllClass", i, prefix, chooserName[0] != '\0' ? chooserName : "LR", targetLabel, className);
-	}
+	AJB_LR_ChatAllSetAllClassImpl("LR Applied SetAllClass", false, 0, chooserName, target, cls);
 }
 

@@ -105,7 +105,10 @@ void AJB_Balance_OnPlayerTeam(int client, int team)
 		return;
 	}
 
-	if (AJB_CountOnTeam(AJB_GetGuardsTeam()) <= AJB_MaxGuards())
+	// Count teams once — MaxGuardsFromCounts avoids re-scanning them inside.
+	int guards = AJB_CountOnTeam(AJB_GetGuardsTeam());
+	int maxGuards = AJB_MaxGuardsFromCounts(guards, AJB_CountOnTeam(AJB_GetPrisonersTeam()));
+	if (guards <= maxGuards)
 	{
 		return;
 	}
@@ -134,12 +137,14 @@ void AJB_Balance_BounceFrame(int userid)
 		return;
 	}
 
-	if (AJB_CountOnTeam(AJB_GetGuardsTeam()) <= AJB_MaxGuards())
+	int guards = AJB_CountOnTeam(AJB_GetGuardsTeam());
+	int maxGuards = AJB_MaxGuardsFromCounts(guards, AJB_CountOnTeam(AJB_GetPrisonersTeam()));
+	if (guards <= maxGuards)
 	{
 		return;
 	}
 
-	AJB_Balance_MoveToPrisoners(client, AJB_MaxGuards());
+	AJB_Balance_MoveToPrisoners(client, maxGuards);
 }
 
 // Prep just ended and the round is going live: enforce the ratio now that the pre-round free-for-all
@@ -165,9 +170,10 @@ int AJB_Balance_ReconcileGuards()
 	}
 
 	int guardsTeam = AJB_GetGuardsTeam();
-	int maxGuards = AJB_MaxGuards();
+	int guards = AJB_CountOnTeam(guardsTeam);
+	int maxGuards = AJB_MaxGuardsFromCounts(guards, AJB_CountOnTeam(AJB_GetPrisonersTeam()));
 
-	int excess = AJB_CountOnTeam(guardsTeam) - maxGuards;
+	int excess = guards - maxGuards;
 	if (excess <= 0)
 	{
 		return 0;

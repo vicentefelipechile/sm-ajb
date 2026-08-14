@@ -27,6 +27,31 @@ void AJB_CreateForwards()
 	g_hFwdFreekill = CreateGlobalForward("AJB_OnFreekillDetected", ET_Ignore, Param_Cell, Param_Cell);
 }
 
+void AJB_DeleteForwards()
+{
+	delete g_hFwdRoundState;
+	delete g_hFwdWarden;
+	delete g_hFwdRebel;
+	delete g_hFwdCellsOpened;
+	delete g_hFwdCellsClosed;
+	delete g_hFwdLastPrisoner;
+	delete g_hFwdWardenGiveLR;
+	delete g_hFwdLiveRoundBegin;
+	delete g_hFwdFreedayChanged;
+	delete g_hFwdPrepStart;
+	delete g_hFwdPrepEnd;
+	delete g_hFwdCombatDayStart;
+	delete g_hFwdPhaseTimerExpired;
+	delete g_hFwdGuardBounced;
+	delete g_hFwdFreedayAllStart;
+	delete g_hFwdModeChanged;
+	delete g_hFwdRoundWin;
+	delete g_hFwdFriendlyFire;
+	delete g_hFwdTeamPush;
+	delete g_hFwdWardenMarker;
+	delete g_hFwdFreekill;
+}
+
 // =========================================================================================================
 // Forward fire helpers (single place to Call_StartForward / Call_Finish)
 // =========================================================================================================
@@ -145,6 +170,7 @@ void AJB_RegisterNatives()
 	CreateNative("AJB_SetRebelOnHit", Native_SetRebelOnHit);
 	CreateNative("AJB_GetRebelOnHit", Native_GetRebelOnHit);
 	CreateNative("AJB_BeginCombatDay", Native_BeginCombatDay);
+	CreateNative("AJB_SetupSpecialDay", Native_SetupSpecialDay);
 	CreateNative("AJB_BeginFreedayAllCosmetic", Native_BeginFreedayAllCosmetic);
 	CreateNative("AJB_IsCombatDay", Native_IsCombatDay);
 	CreateNative("AJB_IsFreedayAllCosmetic", Native_IsFreedayAllCosmetic);
@@ -314,6 +340,12 @@ public int Native_GetRebelOnHit(Handle plugin, int numParams)
 public int Native_BeginCombatDay(Handle plugin, int numParams)
 {
 	AJB_BeginCombatDay();
+	return 0;
+}
+
+public int Native_SetupSpecialDay(Handle plugin, int numParams)
+{
+	AJB_SetupSpecialDay();
 	return 0;
 }
 

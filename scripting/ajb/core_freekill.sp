@@ -267,13 +267,14 @@ void AJB_Freekill_NotifyJudges(int attacker, int victims)
 		char prefix[32];
 		AJB_GetPrefix(i, prefix, sizeof(prefix));
 		CPrintToChat(i, "%T", "Freekill Detected", i, prefix, name, victims);
-		AJB_Freekill_ShowMenu(i);
+		// alreadyChecked: the loop above just ran CanJudge for this exact client.
+		AJB_Freekill_ShowMenu(i, true);
 	}
 }
 
-void AJB_Freekill_ShowMenu(int client)
+void AJB_Freekill_ShowMenu(int client, bool alreadyChecked = false)
 {
-	if (g_iFKPendingCulprit == 0 || !AJB_Freekill_CanJudge(client))
+	if (g_iFKPendingCulprit == 0 || (!alreadyChecked && !AJB_Freekill_CanJudge(client)))
 	{
 		return;
 	}
@@ -366,17 +367,7 @@ void AJB_Freekill_Resolve(int judge, bool punish)
 		ForcePlayerSuicide(culprit);
 	}
 
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
-		{
-			continue;
-		}
-
-		char prefix[32];
-		AJB_GetPrefix(i, prefix, sizeof(prefix));
-		CPrintToChat(i, "%T", punish ? "Freekill Punished" : "Freekill Dismissed", i, prefix, culpritName, judgeName);
-	}
+	AJB_ChatAll2S(punish ? "Freekill Punished" : "Freekill Dismissed", culpritName, judgeName);
 
 	LogMessage("[AJB-Freekill] %s by %s (culprit %s).", punish ? "PUNISHED" : "dismissed", judgeName, culpritName);
 }

@@ -46,6 +46,9 @@
 			}
 
 			// virtual void SetWinningTeam(int team, int iWinReason, bool bForceMapReset = true, bool bSwitchTeams = false, bool bDontAddScore = false)
+			// NOTE: x86 offsets only. On x64 servers the offset lookup fails (-1) and the
+			// Last Request round-end supercede silently disables — verify the x64 vtable
+			// offset with a tool (e.g. sourcemod dtools) before deploying to x64 hosts.
 			"SetWinningTeam"
 			{
 				"windows"	"165"

@@ -22,7 +22,7 @@
 // =========================================================================================================
 
 #define PLUGIN_VERSION "1.0.0"
-#define HUD_REFRESH    1.0
+#define HUD_REFRESH    2.0
 
 // =========================================================================================================
 // Plugin info
@@ -54,6 +54,7 @@ public void OnPluginStart()
 {
 	CreateConVar("sm_ajb_hud_version", PLUGIN_VERSION, "AJB HUD module version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	g_cvEnabled = CreateConVar("sm_ajb_hud_enabled", "1", "Enable AJB HUD extras.", _, true, 0.0, true, 1.0);
+	g_cvEnabled.AddChangeHook(OnHudEnabledChanged);
 
 	AutoExecConfig(true, "ajb_hud");
 
@@ -71,6 +72,9 @@ public void OnPluginStart()
 public void OnPluginEnd()
 {
 	AJB_Hud_StopTimer();
+
+	delete g_hHudSync;
+	g_hHudSync = null;
 }
 
 public void OnMapStart()
@@ -137,7 +141,23 @@ public void AJB_OnCellsOpened()
 void AJB_Hud_StartTimer()
 {
 	AJB_Hud_StopTimer();
+	if (!g_cvEnabled.BoolValue)
+	{
+		return;
+	}
 	g_hRefreshTimer = CreateTimer(HUD_REFRESH, Timer_HudRefresh, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+}
+
+void OnHudEnabledChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (convar.BoolValue)
+	{
+		AJB_Hud_StartTimer();
+	}
+	else
+	{
+		AJB_Hud_StopTimer();
+	}
 }
 
 void AJB_Hud_StopTimer()
@@ -167,7 +187,6 @@ void AJB_Hud_PaintAll()
 
 	// HUD params are global draw state for the following ShowSyncHudText calls, not per-client — set once.
 	SetHudTextParams(-1.0, 0.08, HUD_REFRESH + 0.15, 255, 220, 100, 255, 0, 0.0, 0.0, 0.0);
-
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || IsFakeClient(i))

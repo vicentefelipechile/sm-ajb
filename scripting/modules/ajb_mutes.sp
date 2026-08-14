@@ -247,6 +247,12 @@ void OnMuteCvarChanged(ConVar convar, const char[] oldValue, const char[] newVal
 // alive without a player_spawn event. Poll life state and refresh when it changes.
 Action Timer_LifeStateWatch(Handle timer)
 {
+	// Nothing to apply when the module, core or BaseComm is absent — skip the scan.
+	if (!g_cvEnabled.BoolValue || !g_bHasCore || !g_bHasBaseComm)
+	{
+		return Plugin_Continue;
+	}
+
 	bool changed = false;
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -480,6 +486,10 @@ Action Timer_VoiceRefresh(Handle timer)
 	return Plugin_Stop;
 }
 
+// Last-applied override per (recv, send) pair: a refresh only calls SetListenOverride
+// when the value actually changes, instead of re-writing the whole matrix every time.
+static ListenOverride g_LastVoice[MAXPLAYERS + 1][MAXPLAYERS + 1];
+
 void AJB_Voice_DoRefreshAll()
 {
 	if (!AJB_Voice_Enabled())
@@ -493,26 +503,32 @@ void AJB_Voice_DoRefreshAll()
 	// Parse the bypass flag string once for the whole matrix, not once per client.
 	int need = AJB_Voice_BypassBits();
 
-	// Precompute bypass so we don't re-check it in the inner loop.
+	// Snapshot every client's team/alive/bypass once; the O(N^2) inner loop then only
+	// reads arrays instead of calling natives per (recv, send) pair.
+	bool ingame[MAXPLAYERS + 1];
+	bool alive[MAXPLAYERS + 1];
+	int team[MAXPLAYERS + 1];
 	bool bypass[MAXPLAYERS + 1];
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		bypass[i] = AJB_Voice_FlagsMatch(i, need);
+		ingame[i] = IsClientInGame(i) && !IsFakeClient(i);
+		alive[i] = ingame[i] && IsPlayerAlive(i);
+		team[i] = ingame[i] ? GetClientTeam(i) : 0;
+		bypass[i] = ingame[i] && AJB_Voice_FlagsMatch(i, need);
 	}
 
 	for (int recv = 1; recv <= MaxClients; recv++)
 	{
-		if (!IsClientInGame(recv) || IsFakeClient(recv))
+		if (!ingame[recv])
 		{
 			continue;
 		}
 
-		bool recvDead = !IsPlayerAlive(recv);
-		int recvTeam = GetClientTeam(recv);
+		bool recvDead = !alive[recv];
 
 		for (int send = 1; send <= MaxClients; send++)
 		{
-			if (send == recv || !IsClientInGame(send) || IsFakeClient(send))
+			if (send == recv || !ingame[send])
 			{
 				continue;
 			}
@@ -524,14 +540,14 @@ void AJB_Voice_DoRefreshAll()
 				// A bypass-flag admin can speak to everyone and hear everyone.
 				override = Listen_Yes;
 			}
-			else if (!IsPlayerAlive(send))
+			else if (!alive[send])
 			{
 				if (!recvDead)
 				{
 					// Living NEVER hear the dead.
 					override = Listen_No;
 				}
-				else if (crossTeam || GetClientTeam(send) == recvTeam)
+				else if (crossTeam || team[send] == team[recv])
 				{
 					// Dead hear each other (all dead, or same-team only).
 					override = Listen_Yes;
@@ -557,7 +573,11 @@ void AJB_Voice_DoRefreshAll()
 				}
 			}
 
-			SetListenOverride(recv, send, override);
+			if (g_LastVoice[recv][send] != override)
+			{
+				g_LastVoice[recv][send] = override;
+				SetListenOverride(recv, send, override);
+			}
 		}
 	}
 }
@@ -611,6 +631,15 @@ void AJB_Voice_ClearAll()
 			}
 
 			SetListenOverride(recv, send, Listen_Default);
+		}
+	}
+
+	// Forget the last-applied matrix so a later refresh re-sends every override.
+	for (int recv = 1; recv <= MaxClients; recv++)
+	{
+		for (int send = 1; send <= MaxClients; send++)
+		{
+			g_LastVoice[recv][send] = Listen_Default;
 		}
 	}
 }
