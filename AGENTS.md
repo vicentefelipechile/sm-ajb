@@ -20,7 +20,7 @@ projects/ajb/
 │   └── include/ajb/*.inc      # shared api / enums / constants / phrases
 │   └── include/ff2r.inc, cfgmap.inc   # vendored from the FF2 Rewrite project (compile only)
 ├── translations/*.phrases.txt
-├── configs/                   # settings, prisoner loadout, per-map configs
+├── configs/                   # settings, warden menu, prisoner loadout, per-map configs
 └── gamedata/ajb.games.txt
 ```
 
@@ -209,6 +209,35 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_doors_list` | CONFIG | List configured door targetnames |
 | `sm_ajb_gen_config` | CONFIG | (Re)generate the per-map config stub from live entities (overwrites) |
 
+**Core — `ajb/core_warden_menu.sp`** (configurable warden menu)
+
+| Command | Access | Purpose |
+| --- | --- | --- |
+| `sm_ajb_menu_reload` | CONFIG | Reload `configs/ajb/warden_menu.cfg` (also reloads each map start) |
+| `sm_ajb_marker` | console | Warden/admin: place the 'come here' marker at the crosshair |
+| `sm_ajb_collisions` | console | Warden/admin: toggle teammate push |
+| `sm_ajb_friendlyfire` | console | Warden/admin: toggle friendly fire |
+| `sm_ajb_vote_yesno` | console | Warden: start a Yes/No vote |
+| `sm_ajb_vote_multi` | console | Warden: start a multiple-choice vote |
+| `sm_ajb_warden_markrebel` | console | Warden: mark a prisoner as rebel (pick list) |
+| `sm_ajb_warden_pardonrebel` | console | Warden: pardon a rebel (pick list) |
+| `sm_ajb_menu_next` / `sm_ajb_menu_prev` | console | Warden: warden menu page navigation |
+
+The warden menu layout is data-driven from `configs/ajb/warden_menu.cfg`
+(KeyValues, synced by deploy.ps1; missing file → built-in two-page menu, identical
+layout to the shipped default). First-level keys are pages (shown as `── name ──`
+headers); each entry is `"label" "command"`. Empty command value = un-numbered text
+line (free slot); `phrase:` label prefix = translation lookup; a page holds at most
+9 numbered items (Panel keys 1–9, extra dropped with a log); exit is always key 0/10.
+With more than one page a translated Prev/Next row is appended automatically (pages
+that define `sm_ajb_menu_next`/`sm_ajb_menu_prev` skip the auto entry for that
+direction; nav consumes numbered slots, so multi-page menus should stay ≤ 8 items).
+Items whose feature ConVar is off are hidden (marker/collisions/friendlyfire/votes/
+rebel control). On select the command runs as the warden via `FakeClientCommandEx`
+and the menu reopens, except for the screen-owning commands (`sm_ajb_lr` → fires the
+`AJB_OnWardenGiveLR` forward, `sm_ajb_uw`, votes, rebel picks, page nav). Dead warden
+may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
+
 **Core — `ajb/core_freekill.sp`**
 
 | Command | Access | Purpose |
@@ -342,6 +371,11 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_lr_zm_respawn` | `5` | Zombie Mode: seconds before a dead zombie respawns (1–30) |
 | `sm_ajb_lr_zm_spawn_protect` | `5` | Zombie Mode: invulnerability seconds after a zombie respawns (0–30) |
 | `sm_ajb_lr_zm_round_time` | `300` | Zombie Mode: total round duration in seconds, humans win on timeout if any remain (60–900) |
+| `sm_ajb_lr_cw_round_time` | `300` | Cell Wars: total round duration in seconds, survivors win on timeout (60–900) |
+| `sm_ajb_lr_cw_teleport_delay` | `4.0` | Cell Wars: seconds between jump teleports (0 = disabled) (0–30) |
+| `sm_ajb_lr_cw_camp_time` | `20` | Cell Wars: seconds in the same cell before camping damage starts (0 = disabled, ≤120) |
+| `sm_ajb_lr_cw_camp_damage` | `20` | Cell Wars: camping damage per second while in the same cell past camp_time (1–100) |
+| `sm_ajb_lr_cw_teleport_heal` | `10` | Cell Wars: HP restored on every jump teleport, capped at class max (0 = disabled) (0–100) |
 
 **Module — `ajb_mutes.sp`**
 

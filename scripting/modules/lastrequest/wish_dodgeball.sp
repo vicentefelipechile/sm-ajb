@@ -525,8 +525,17 @@ void AJB_LR_DB_SpawnRocket()
 		return;
 	}
 
-	// Pick a random starting team; rocket targets the opposite side.
-	g_iDBRocketTeam = GetRandomInt(2, 3);
+	// Classic dodgeball alternates the targeted side: each new rocket flips the team of
+	// the previous one (red → blue → red...), and the target is always the opposite team.
+	// Only the very first rocket of a round coin-flips its starting team.
+	if (g_iDBRocketTeam != 2 && g_iDBRocketTeam != 3)
+	{
+		g_iDBRocketTeam = GetRandomInt(2, 3);
+	}
+	else
+	{
+		g_iDBRocketTeam = (g_iDBRocketTeam == 2) ? 3 : 2;
+	}
 	AJB_LR_DB_SetTarget(AJB_LR_DB_GetRandomTarget(g_iDBRocketTeam == 2 ? 3 : 2));
 	g_fDBRocketSpeed = g_cvDBBaseSpeed.FloatValue;
 

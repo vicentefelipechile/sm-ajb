@@ -99,6 +99,16 @@ bool g_bFF2Active;
 int g_iFF2Boss;
 int g_iFF2OriginalTeam[MAXPLAYERS + 1];
 
+// Set while the boss is being set up: the RED chooser dies in the team transit, and that
+// setup suicide must not be treated as a boss defeat (see FF2_ApplyRound).
+bool g_bFF2Applying;
+
+Action Timer_FF2EndApplying(Handle timer)
+{
+	g_bFF2Applying = false;
+	return Plugin_Stop;
+}
+
 // sm_ajb_freekill_detect would flag the boss's AoE splash as a mass-freekill; parked during the round.
 ConVar g_cvFreekill;
 int g_iFreekillOld;
@@ -379,6 +389,12 @@ void FF2_ApplyRound(int chooserUserid, BossData cfg, int special)
 
 	int redTeam = AJB_GetPrisonersTeam();
 	int bossTeam = g_cvBossTeam.IntValue;
+	// The wish is boss-vs-mercenaries: a boss team equal to the mercenary team would
+	// leave one side empty and the round could never end. Guard against bad config.
+	if (bossTeam == redTeam)
+	{
+		bossTeam = AJB_GetGuardsTeam();
+	}
 
 	// Day-style round: full loadouts, no warden, no rebel rules, no jail clock.
 	// BeginCombatDay opens the cells and moves the state to SpecialDay; no further
@@ -390,9 +406,15 @@ void FF2_ApplyRound(int chooserUserid, BossData cfg, int special)
 	FF2_SetFreekillDetect(false);
 
 	// Snapshot real sides, fold every non-boss player onto RED as mercenaries.
+	// Only players actually on the boss team move (spectators stay out), and the move is
+	// a single direct ChangeClientTeam: the BLU→SPEC→RED double-call in the same frame
+	// is unreliable (the engine can drop the second call mid-suicide, leaving the player
+	// on BLU dead — and Frame_ArmRedPlayers only revives RED players). Direct cross-team
+	// changes kill, which is fine here: FF2 has no death-restore logic, and
+	// Frame_ArmRedPlayers respawns everyone on RED next frame.
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
+		if (!IsClientInGame(i))
 		{
 			continue;
 		}
@@ -403,15 +425,20 @@ void FF2_ApplyRound(int chooserUserid, BossData cfg, int special)
 			g_iFF2OriginalTeam[i] = team;
 		}
 
-		if (i != boss && team != redTeam)
+		if (i != boss && team == bossTeam)
 		{
-			AJB_ChangeTeamSafe(i, redTeam);
+			ChangeClientTeam(i, redTeam);
 		}
 	}
 
 	// Boss first: transit to the boss team so FF2's internal team set is a no-op, then create.
 	// Bosses_CreateFromConfig assigns health by player count, hooks the player and readies the
 	// loadout; the spawn below triggers Events_PlayerSpawn -> Bosses_Equip.
+	//
+	// The chooser is a RED prisoner, so the transit KILLS them (spec-transit suicide) and
+	// fires player_death with victim == g_iFF2Boss — without the applying guard that would
+	// broadcast a false "Boss Defeated" before the round even starts.
+	g_bFF2Applying = true;
 	AJB_ChangeTeamSafe(boss, bossTeam);
 	FF2R_CreateBoss(boss, cfg, bossTeam);
 	BossData bossCfg = FF2R_GetBossData(boss);
@@ -421,6 +448,8 @@ void FF2_ApplyRound(int chooserUserid, BossData cfg, int special)
 	}
 
 	TF2_RespawnPlayer(boss);
+	// Death events can land a frame late; keep suppressing through the setup window.
+	CreateTimer(1.0, Timer_FF2EndApplying, _, TIMER_FLAG_NO_MAPCHANGE);
 	RequestFrame(Frame_ArmRedPlayers);
 
 	if (!g_bSubpluginsPresent)
@@ -468,7 +497,7 @@ public void Frame_ArmRedPlayers(any data)
 
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!g_bFF2Active)
+	if (!g_bFF2Active || g_bFF2Applying)
 	{
 		return;
 	}
@@ -507,6 +536,7 @@ void FF2_RoundCleanup()
 	}
 
 	g_bFF2Active = false;
+	g_bFF2Applying = false;
 
 	// Remove the boss first so post-round deaths are not treated as boss events by FF2.
 	if (g_iFF2Boss > 0 && g_bFF2Loaded)

@@ -34,9 +34,6 @@
 
 #define AJB_WARDEN_WEIGHT_CAP   10
 
-// Paged warden menu: highest valid page index (0 = shortcuts, 1 = events).
-#define AJB_WARDEN_MENU_LAST_PAGE  1
-
 #define AJB_CONFIG_DIR          "configs/ajb"
 #define AJB_MAP_CONFIG_DIR      "configs/ajb/maps"
 

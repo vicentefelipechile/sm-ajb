@@ -92,7 +92,8 @@ Action Command_SettingsReload(int client, int args)
 {
 	AJB_Settings_Load();
 	AJB_RefreshModeActive();
-	AJB_Reply(client, "Settings Reloaded");
+	// Plain reply: no phrase dependency (translation tables are cached from server start).
+	ReplyToCommand(client, "[AJB] Settings reloaded.");
 	return Plugin_Handled;
 }
 

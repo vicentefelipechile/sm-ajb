@@ -1428,6 +1428,52 @@
 		"ru"		"{1} Cell Wars — никто не выжил."
 	}
 
+	"LR CW Cooldown"
+	{
+		"#format"	"{1:s}"
+		"en"		"Teleport on cooldown — {1}s left."
+		"es"		"Teletransporte en enfriamiento — quedan {1}s."
+		"las"		"Teletransporte en enfriamiento — quedan {1}s."
+		"de"		"Teleport in Abklingzeit — noch {1}s."
+		"fr"		"Téléportation en recharge — {1}s restantes."
+		"pt"		"Teleporte em recarga — {1}s restantes."
+		"ru"		"Телепорт перезаряжается — осталось {1} с."
+	}
+
+	"LR CW Camp Warn"
+	{
+		"en"		"You have been in this cell too long — MOVE or take damage!"
+		"es"		"¡Llevas demasiado tiempo en esta celda — MUÉVETE o recibirás daño!"
+		"las"		"¡Llevas demasiado tiempo en esta celda — MUÉVETE o recibirás daño!"
+		"de"		"Du bist zu lange in dieser Zelle — BEWEG DICH oder nimm Schaden!"
+		"fr"		"Vous êtes resté trop longtemps dans cette cellule — BOUGEZ ou prenez des dégâts !"
+		"pt"		"Você está há tempo demais nesta cela — MEXA-SE ou receba dano!"
+		"ru"		"Вы слишком долго в этой клетке — ДВИГАЙТЕСЬ или получайте урон!"
+	}
+
+	"LR CW Camp Damage"
+	{
+		"en"		"Camping damage!"
+		"es"		"¡Daño por camp!"
+		"las"		"¡Daño por camp!"
+		"de"		"Camper-Schaden!"
+		"fr"		"Dégâts de campement !"
+		"pt"		"Dano por camp!"
+		"ru"		"Урон за кемпинг!"
+	}
+
+	"LR CW Teleport Heal"
+	{
+		"#format"	"{1:d}"
+		"en"		"Jump bonus: +{1} HP!"
+		"es"		"¡Bonus por saltar: +{1} HP!"
+		"las"		"¡Bonus por saltar: +{1} HP!"
+		"de"		"Sprung-Bonus: +{1} HP!"
+		"fr"		"Bonus de saut : +{1} PV !"
+		"pt"		"Bônus por pular: +{1} HP!"
+		"ru"		"Бонус за прыжок: +{1} HP!"
+	}
+
 	"LR Wish Dodgeball"
 	{
 		"en"		"Dodgeball"

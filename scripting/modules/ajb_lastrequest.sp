@@ -192,10 +192,21 @@ bool g_bHGCheckQueued;
 bool g_bZMCheckQueued;
 bool g_bCWCheckQueued;
 int g_iCWLastButtons[MAXPLAYERS + 1];
+// Jump-teleport cooldown + camping: last teleport time and current cell per prisoner
+// so jump-spam is throttled and cell campers take damage (see wish_cell_wars.sp).
+float g_fCWLastTeleport[MAXPLAYERS + 1];
+int g_iCWLastCell[MAXPLAYERS + 1];
+float g_fCWCellSince[MAXPLAYERS + 1];
+bool g_bCWWarned[MAXPLAYERS + 1];
+Handle g_hCWCellTimer;
 Handle g_hCWEndTimer;
 bool g_PendingCWMeleeOnly;
 bool g_bCWDraftMelee;
 ConVar g_cvCWRoundTime;
+ConVar g_cvCWTeleportDelay;
+ConVar g_cvCWCampTime;
+ConVar g_cvCWCampDamage;
+ConVar g_cvCWTeleportHeal;
 
 // Admin self-pick: open the full wish menu regardless of team/alive state.
 bool g_bAdminForcingWish;
@@ -636,6 +647,10 @@ public void OnPluginStart()
 	g_cvZMSpawnProtect = CreateConVar("sm_ajb_lr_zm_spawn_protect", "5", "Zombie Mode: invulnerability seconds after a zombie respawns (spawn-camp protection).", _, true, 0.0, true, 30.0);
 	g_cvZMRoundTime = CreateConVar("sm_ajb_lr_zm_round_time", "300", "Zombie Mode: total round duration in seconds (humans win on timeout if any remain).", _, true, 60.0, true, 900.0);
 	g_cvCWRoundTime = CreateConVar("sm_ajb_lr_cw_round_time", "300", "Cell Wars: total round duration in seconds (survivors win on timeout).", _, true, 60.0, true, 900.0);
+	g_cvCWTeleportDelay = CreateConVar("sm_ajb_lr_cw_teleport_delay", "4.0", "Cell Wars: seconds between jump teleports (0 = disabled).", _, true, 0.0, true, 30.0);
+	g_cvCWCampTime = CreateConVar("sm_ajb_lr_cw_camp_time", "20.0", "Cell Wars: seconds in the same cell before camping damage starts (0 = disabled).", _, false, 0.0, true, 120.0);
+	g_cvCWCampDamage = CreateConVar("sm_ajb_lr_cw_camp_damage", "20.0", "Cell Wars: camping damage per second while in the same cell past camp_time.", _, true, 1.0, true, 100.0);
+	g_cvCWTeleportHeal = CreateConVar("sm_ajb_lr_cw_teleport_heal", "10.0", "Cell Wars: HP restored on every jump teleport (capped at class max, 0 = disabled).", _, true, 0.0, true, 100.0);
 	g_cvSniperMin = CreateConVar("sm_ajb_lr_sniper_min", "10.0", "Sniper: minimum interval in seconds between sniper shots.", _, true, 2.0, true, 300.0);
 	g_cvSniperMax = CreateConVar("sm_ajb_lr_sniper_max", "25.0", "Sniper: maximum interval in seconds between sniper shots.", _, true, 5.0, true, 600.0);
 	g_cvSniperForce = CreateConVar("sm_ajb_lr_sniper_force", "800.0", "Sniper: ragdoll / impact force impulse.", _, true, 100.0, true, 3000.0);
@@ -1409,6 +1424,11 @@ void AJB_LR_Cleanup(bool announce)
 		int blueTeam = AJB_GetGuardsTeam();
 		for (int i = 1; i <= MaxClients; i++)
 		{
+			g_fCWLastTeleport[i] = 0.0;
+			g_iCWLastCell[i] = -1;
+			g_fCWCellSince[i] = 0.0;
+			g_bCWWarned[i] = false;
+
 			if (g_bCWOriginalBlu[i])
 			{
 				g_bCWOriginalBlu[i] = false;

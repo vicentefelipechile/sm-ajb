@@ -119,6 +119,10 @@ void AJB_LR_ApplyCellWars(const char[] chooser, bool meleeOnly)
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_iCWLastButtons[i] = 0;
+		g_fCWLastTeleport[i] = 0.0;
+		g_iCWLastCell[i] = -1;
+		g_fCWCellSince[i] = GetGameTime();
+		g_bCWWarned[i] = false;
 	}
 
 	// Cell Wars needs cells CLOSED; BeginCombatDay would force-open and announce them, so
@@ -165,6 +169,12 @@ void AJB_LR_ApplyCellWars(const char[] chooser, bool meleeOnly)
 	AJB_LR_KillCWTimers();
 	g_hCWEndTimer = CreateTimer(roundTime, Timer_CWEnd, _, TIMER_FLAG_NO_MAPCHANGE);
 
+	// Camping check: only needs to run when the hazard is enabled.
+	if (g_cvCWCampTime.FloatValue > 0.0)
+	{
+		g_hCWCellTimer = CreateTimer(1.0, Timer_CWCellCheck, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+	}
+
 	AJB_LR_ChatAllCellWarsApplied(chooser, meleeOnly);
 }
 
@@ -192,6 +202,9 @@ void AJB_LR_CW_OnPlayerSpawn(int client)
 {
 	if (!g_bCellWars || !IsClientInGame(client) || IsFakeClient(client)) return;
 	if (GetClientTeam(client) < 2) return;
+	g_iCWLastCell[client] = -1;
+	g_fCWCellSince[client] = GetGameTime();
+	g_bCWWarned[client] = false;
 	g_bCWArmedThisFrame[client] = true;
 	RequestFrame(Frame_CWArmClient, GetClientUserId(client));
 }
@@ -222,6 +235,7 @@ Action Timer_CWEnd(Handle timer)
 	if (!g_bCellWars || !g_bHasCore || g_bCWEnding) return Plugin_Stop;
 
 	g_bCWEnding = true;
+	AJB_LR_KillCWCellTimer();
 	AJB_ChatAll("LR CW TimeUp");
 	AJB_ForceTeamWin(AJB_GetPrisonersTeam());
 	return Plugin_Stop;
@@ -277,8 +291,18 @@ void Frame_CWCheckWinner(any data)
 	}
 }
 
+void AJB_LR_KillCWCellTimer()
+{
+	if (g_hCWCellTimer != null)
+	{
+		delete g_hCWCellTimer;
+		g_hCWCellTimer = null;
+	}
+}
+
 void AJB_LR_KillCWTimers()
 {
+	AJB_LR_KillCWCellTimer();
 	if (g_hCWEndTimer != null)
 	{
 		delete g_hCWEndTimer;
@@ -317,11 +341,108 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 void AJB_LR_CW_TeleportToRandomSpawn(int client)
 {
+	// Cooldown throttles jump-spam: each jump is a commitment, not a reroll.
+	float delay = g_cvCWTeleportDelay.FloatValue;
+	if (delay > 0.0)
+	{
+		float wait = g_fCWLastTeleport[client] + delay - GetGameTime();
+		if (wait > 0.0)
+		{
+			char seconds[16];
+			Format(seconds, sizeof(seconds), "%.1f", wait);
+			PrintHintText(client, "%T", "LR CW Cooldown", client, seconds);
+			return;
+		}
+	}
+
 	if (g_iCWSpawnCount > 0)
 	{
 		int pick = GetRandomInt(0, g_iCWSpawnCount - 1);
 		float noVel[3];
 		TeleportEntity(client, g_vecCWSpawns[pick], NULL_VECTOR, noVel);
+		// Landing on a fresh cell resets both the teleport cooldown and the camp clock.
+		g_fCWLastTeleport[client] = GetGameTime();
+		g_iCWLastCell[client] = pick;
+		g_fCWCellSince[client] = GetGameTime();
+		g_bCWWarned[client] = false;
+
+		// Jump bonus: heal up to the class cap, so moving is rewarded, not just punished.
+		float heal = g_cvCWTeleportHeal.FloatValue;
+		if (heal > 0.0)
+		{
+			int hp = GetEntProp(client, Prop_Data, "m_iHealth");
+			int max = GetEntProp(client, Prop_Data, "m_iMaxHealth");
+			if (hp < max)
+			{
+				int gained = RoundToFloor(heal);
+				SetEntProp(client, Prop_Data, "m_iHealth", hp + gained > max ? max : hp + gained);
+				PrintHintText(client, "%T", "LR CW Teleport Heal", client, gained);
+			}
+		}
 	}
+}
+
+// Nearest RED spawn within 300 HU is the player's cell (spawns sit inside cell centers).
+int AJB_LR_CW_FindCell(int client)
+{
+	if (g_iCWSpawnCount <= 0) return -1;
+	float origin[3];
+	GetEntPropVector(client, Prop_Data, "m_vecOrigin", origin);
+	int best = -1;
+	float bestDist = 300.0 * 300.0;
+	for (int i = 0; i < g_iCWSpawnCount; i++)
+	{
+		float dist = AJB_GetDistanceSqr(origin, g_vecCWSpawns[i]);
+		if (dist < bestDist)
+		{
+			bestDist = dist;
+			best = i;
+		}
+	}
+	return best;
+}
+
+Action Timer_CWCellCheck(Handle timer)
+{
+	if (!g_bCellWars || g_bCWEnding) return Plugin_Continue;
+
+	float campTime = g_cvCWCampTime.FloatValue;
+	if (campTime <= 0.0) return Plugin_Continue;
+	float campDamage = g_cvCWCampDamage.FloatValue;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i) || !IsPlayerAlive(i)) continue;
+		if (GetClientTeam(i) != g_iCWRedTeam) continue;
+
+		int cell = AJB_LR_CW_FindCell(i);
+		if (cell < 0)
+		{
+			// Roaming past spawn range on a big cell: keep the clock running so camping
+			// at the far edge does not reset it; teleports always land on a spawn.
+			continue;
+		}
+		if (cell != g_iCWLastCell[i])
+		{
+			g_iCWLastCell[i] = cell;
+			g_fCWCellSince[i] = GetGameTime();
+			g_bCWWarned[i] = false;
+			continue;
+		}
+		if (GetGameTime() - g_fCWCellSince[i] < campTime) continue;
+
+		if (!g_bCWWarned[i])
+		{
+			g_bCWWarned[i] = true;
+			PrintHintText(i, "%T", "LR CW Camp Warn", i);
+		}
+		if (campDamage > 0.0)
+		{
+			// No attacker so the burn is never credited to another player.
+			SDKHooks_TakeDamage(i, 0, 0, campDamage, DMG_BURN);
+			PrintHintText(i, "%T", "LR CW Camp Damage", i);
+		}
+	}
+	return Plugin_Continue;
 }
 

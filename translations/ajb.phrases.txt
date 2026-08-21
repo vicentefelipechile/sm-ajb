@@ -753,6 +753,18 @@
 		"ru"		"Выход"
 	}
 
+	"Warden Alive Only"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} You must be alive."
+		"es"		"{1} Debes estar vivo."
+		"las"		"{1} Debes estar vivo."
+		"de"		"{1} Du musst am Leben sein."
+		"fr"		"{1} Vous devez être vivant."
+		"pt"		"{1} Você precisa estar vivo."
+		"ru"		"{1} Вы должны быть живы."
+	}
+
 	"Warden Mark Rebel Title"
 	{
 		"en"		"Mark as rebel"

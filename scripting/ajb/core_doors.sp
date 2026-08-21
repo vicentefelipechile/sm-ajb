@@ -402,7 +402,14 @@ bool AJB_OpenCellsInternal(bool announce)
 
 Action Timer_CellsOpenRetry(Handle timer)
 {
-	if (!g_bModeActive || g_RoundState != AJBState_CellsOpen)
+	// Re-fire the open unless the round is over. The state check must NOT gate on
+	// CellsOpen: combat/special-day opens (BeginCombatDay → SpecialDay) schedule this
+	// retry too, and if the first Open fire was ignored (door mid-animation from the
+	// round-start Close) the cells would stay shut with nobody able to open them.
+	if (!g_bModeActive
+		|| g_RoundState == AJBState_RoundEnd
+		|| g_RoundState == AJBState_Waiting
+		|| g_RoundState == AJBState_Disabled)
 	{
 		return Plugin_Stop;
 	}

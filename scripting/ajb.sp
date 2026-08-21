@@ -159,6 +159,7 @@ void AJB_FlagSet(int client, int flag, bool on)
 #include "ajb/core_collisions.sp"
 #include "ajb/core_friendlyfire.sp"
 #include "ajb/core_warden.sp"
+#include "ajb/core_warden_menu.sp"
 #include "ajb/core_warden_health.sp"
 #include "ajb/core_warden_label.sp"
 #include "ajb/core_rules.sp"
@@ -239,6 +240,7 @@ public void OnPluginStart()
 	AJB_Freekill_OnPluginStart();
 	AJB_Collisions_OnPluginStart();
 	AJB_FF_OnPluginStart();
+	AJB_WardenMenu_OnPluginStart();
 
 	AutoExecConfig(true, "ajb");
 	// Mid-map reload: hook packs already in the world (OnMapStart will not re-run).
@@ -380,6 +382,7 @@ public void OnPluginEnd()
 public void OnMapStart()
 {
 	AJB_Settings_OnMapStart();
+	AJB_WardenMenu_OnMapStart();
 	AJB_RefreshModeActive();
 	AJB_ResetPlayerFlags();
 	AJB_ClearWarden(false);
