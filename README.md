@@ -87,12 +87,53 @@ git push origin v1.2.4
 |--------|------|
 | `plugins/ajb.smx` | Core mode |
 | `plugins/ajb_hud.smx` | HUD extras |
-| `plugins/ajb_mutes.smx` | Prisoner mute rules |
+| `plugins/ajb_mutes.smx` | Warden mutes + living/dead voice channels |
 | `plugins/ajb_lastrequest.smx` | Last Request (incl. Freeday-all / War Day wishes) |
 | `plugins/ajb_admin.smx` | Admin menu |
 | `plugins/ajb_boosts.smx` | Round points + boosts |
 | `plugins/ajb_ff2.smx` | FF2 Boss wish (optional; needs Freak Fortress 2 installed on the server) |
 | `plugins/ajb_dummy.smx` | API smoke test (optional) |
+
+## Voice channels and warden mutes
+
+Open **Voice / mutes** from the warden menu or use `sm_ajb_mutes`. Only the current,
+living warden can change a player's round-scoped mute. Selecting a dead player sets
+the mute they will have on revival. Admin targets remain selectable so the warden
+receives an explicit exemption message instead of silently failing.
+
+Voice rules while AJB and `sm_ajb_mute_enabled 1` are active:
+
+| Speaker | Living listener | Dead/spectator listener | Admin listener (`b` or root) |
+| --- | --- | --- | --- |
+| Living, not warden-muted | Heard | Heard | Heard |
+| Living, warden-muted | Not heard | Not heard | Heard |
+| Dead or spectating, regardless of stored warden mute | Not heard | Heard, across teams | Heard |
+| Admin (`b` or root), alive or dead | Heard | Heard | Heard |
+
+The admin exemption is mandatory, not a ConVar or command override. It applies to
+both speech and hearing. Freeday, rebel, team and LR status never change mutes.
+Death suspends the warden mute; revival restores it. Normal spawns refresh routing
+after 0.1 seconds; revives without a spawn event and admin-flag changes are detected
+within approximately 1.1 seconds, including after map changes. Dead Ringer is not death.
+
+Warden death/resignation/replacement does not erase their mute decisions; the new
+warden can change them. Round end/start, map changes, disconnects and mode/module
+disable clear those decisions. Dead/living channels remain separate during postround.
+Waiting/disabled AJB and module unload restore the game's normal voice routing.
+
+AJB uses listener overrides, not BaseComm mutes. Administrative sanctions and players'
+personal voice blocks take precedence, even for admins; AJB never removes them.
+The former `sm_ajb_mute_prisoners`, `sm_ajb_mute_unmute_freeday`,
+`sm_ajb_mute_unmute_lr`, `sm_ajb_mute_deadtalk`, `sm_ajb_mute_deadtalk_crossteam`
+and `sm_ajb_mute_bypass_flags` settings are retired. Remove them from older
+`cfg/sourcemod/ajb_mutes.cfg` files; only `sm_ajb_mute_enabled` remains.
+
+Regression self-check: compile `scripting/tests/voice_policy.sp` with the same include
+paths as the modules and load its output on a SourceMod test server. It checks all 32
+voice-policy combinations and mandatory admin flags. In TF2, also verify death/revive,
+warden replacement, round end/restart, slot reuse, map change, core unload/reload and
+that a BaseComm mute survives all of those transitions. An old submenu must not apply
+a decision after a round restart. These engine transitions require live testing.
 
 ## FF2 Boss wish (`ajb_ff2`) — server requirements
 

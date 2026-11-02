@@ -178,6 +178,7 @@ void AJB_WardenMenu_LoadBuiltin()
 	AJB_WardenMenu_BuiltinEntry("phrase:Warden Menu Marker", "sm_ajb_marker");
 	AJB_WardenMenu_BuiltinEntry("phrase:Warden Menu Collisions Enable", "sm_ajb_collisions");
 	AJB_WardenMenu_BuiltinEntry("phrase:Warden Menu FriendlyFire Enable", "sm_ajb_friendlyfire");
+	AJB_WardenMenu_BuiltinEntry("phrase:Warden Menu Mutes", "sm_ajb_mutes");
 	AJB_WardenMenu_BuiltinEntry("phrase:Warden Header Manage", "");
 	AJB_WardenMenu_BuiltinEntry("phrase:Warden Menu Resign", "sm_ajb_uw");
 	AJB_WardenMenu_EndPage();
@@ -442,6 +443,11 @@ void AJB_Warden_PanelItemLabel(int client, const char[] cmd, const char[] label,
 // Item hidden when its feature ConVar is off (mirrors the old built-in menu gating).
 bool AJB_Warden_MenuCommandGated(const char[] cmd)
 {
+	if (StrEqual(cmd, "sm_ajb_mutes"))
+	{
+		ConVar enabled = FindConVar("sm_ajb_mute_enabled");
+		return !CommandExists(cmd) || enabled == null || !enabled.BoolValue;
+	}
 	if (StrEqual(cmd, "sm_ajb_marker"))
 	{
 		return g_cvMarkerEnabled == null || !g_cvMarkerEnabled.BoolValue;
@@ -472,6 +478,7 @@ bool AJB_Warden_MenuCommandGated(const char[] cmd)
 bool AJB_Warden_MenuCommandOwnsMenu(const char[] cmd)
 {
 	return StrEqual(cmd, "sm_ajb_uw")
+		|| StrEqual(cmd, "sm_ajb_mutes")
 		|| StrEqual(cmd, "sm_ajb_vote_yesno")
 		|| StrEqual(cmd, "sm_ajb_vote_multi")
 		|| StrEqual(cmd, "sm_ajb_warden_markrebel")

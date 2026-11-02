@@ -1,5 +1,73 @@
 "Phrases"
 {
+	"Warden Menu Mutes"
+	{
+		"en" "Voice / mutes"
+		"es" "Voz / mutes"
+		"las" "Voz / mutes"
+	}
+	"Warden Mutes Title"
+	{
+		"en" "Round voice control"
+		"es" "Control de voz de la ronda"
+		"las" "Control de voz de la ronda"
+	}
+	"Warden Mutes Mute"
+	{
+		"#format" "{1:N}"
+		"en" "Mute {1}"
+		"es" "Mutear a {1}"
+		"las" "Mutear a {1}"
+	}
+	"Warden Mutes Unmute"
+	{
+		"#format" "{1:N}"
+		"en" "Unmute {1}"
+		"es" "Desmutear a {1}"
+		"las" "Desmutear a {1}"
+	}
+	"Warden Mutes Mute Dead"
+	{
+		"#format" "{1:N}"
+		"en" "Mute {1} on revive (dead)"
+		"es" "Mutear a {1} al revivir (muerto)"
+		"las" "Mutear a {1} al revivir (muerto)"
+	}
+	"Warden Mutes Unmute Dead"
+	{
+		"#format" "{1:N}"
+		"en" "Clear revive mute: {1} (dead)"
+		"es" "Quitar mute al revivir: {1} (muerto)"
+		"las" "Quitar mute al revivir: {1} (muerto)"
+	}
+	"Warden Mutes Admin Exempt"
+	{
+		"#format" "{1:s}"
+		"en" "{1} You cannot mute an administrator."
+		"es" "{1} No puedes mutear a un administrador."
+		"las" "{1} No puedes mutear a un administrador."
+	}
+	"Warden Mutes Target Gone"
+	{
+		"#format" "{1:s}"
+		"en" "{1} That player is no longer available."
+		"es" "{1} Ese jugador ya no está disponible."
+		"las" "{1} Ese jugador ya no está disponible."
+	}
+	"Warden Mutes Applied"
+	{
+		"#format" "{1:s},{2:N},{3:N}"
+		"en" "{1} {2} muted {3} until round end."
+		"es" "{1} {2} muteó a {3} hasta el fin de ronda."
+		"las" "{1} {2} muteó a {3} hasta el fin de ronda."
+	}
+	"Warden Mutes Removed"
+	{
+		"#format" "{1:s},{2:N},{3:N}"
+		"en" "{1} {2} unmuted {3}."
+		"es" "{1} {2} desmuteó a {3}."
+		"las" "{1} {2} desmuteó a {3}."
+	}
 	// =====================================================================================
 	// Prefix — passed as {1} into chat/reply phrases (do not hardcode in every line)
 	// =====================================================================================

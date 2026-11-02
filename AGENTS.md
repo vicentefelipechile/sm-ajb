@@ -281,6 +281,12 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | `sm_ajb_lr_force <#userid\|name>` | GENERIC | Force LR menu for a living prisoner |
 | `sm_reopenlr`, `sm_ajb_reopenlr` | console | Prisoner: reopen your LR menu if a map vote / external menu closed it |
 
+**Module — `ajb_mutes.sp`**
+
+| Command | Access | Purpose |
+| --- | --- | --- |
+| `sm_ajb_mutes` | console | Living warden: manage round-scoped player mutes; admins (`b`/root) are always exempt |
+
 **Module — `ajb_ff2.sp`**
 
 | Command | Access | Purpose |
@@ -381,13 +387,15 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 
 | ConVar | Default | Purpose |
 | --- | --- | --- |
-| `sm_ajb_mute_enabled` | `1` | Enable AJB mute rules |
-| `sm_ajb_mute_prisoners` | `1` | 1 = mute prisoners while jail round is active |
-| `sm_ajb_mute_unmute_freeday` | `1` | 1 = do not mute freeday prisoners |
-| `sm_ajb_mute_unmute_lr` | `1` | 1 = unmute when round enters Last Request |
-| `sm_ajb_mute_deadtalk` | `1` | 1 = dead players heard only by each other, not the living |
-| `sm_ajb_mute_deadtalk_crossteam` | `1` | 1 = all dead hear each other; 0 = only dead teammates |
-| `sm_ajb_mute_bypass_flags` | `b` | Admin flag(s) that can always talk to/hear everyone (empty = nobody) |
+| `sm_ajb_mute_enabled` | `1` | Enable warden mutes and fixed living/dead voice channels |
+
+Voice policy is in `include/ajb/voice.inc`; see README's channel matrix. Admins with
+`ADMFLAG_GENERIC` or `ADMFLAG_ROOT` always hear/speak across AJB restrictions, including
+warden mutes; attempts to mute them show an exemption message. BaseComm and personal
+mutes still take precedence. No BaseComm state is changed by this module. Freeday,
+rebel, LR and team changes do not change warden decisions. Death suspends the mute;
+revival restores it. Round boundaries, disconnects and mode/module disable reset it.
+Postround retains the living/dead split. The old automatic-mute/bypass ConVars are retired.
 
 **Module — `ajb_ff2.sp`** (persisted to `cfg/sourcemod/ajb_ff2.cfg`)
 
