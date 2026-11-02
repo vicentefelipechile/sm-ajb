@@ -48,12 +48,13 @@ Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in this SourceMod tree.
 
 ## Testing / GitHub releases
 
-GitHub Actions compiles the core and every standalone module with SourceMod 1.12.0.7260
+GitHub Actions compiles the core and every standalone module with the latest SourceMod 1.12.x
 on pushes to `master`, PRs targeting it, and tags. A new tag publishes a GitHub release
 only after compilation succeeds and its commit is verified as reachable from `master`.
 The workflow must exist in the tagged commit. It uses the built-in `GITHUB_TOKEN`.
+If the release already exists, the release Action uploads or replaces `ajb.zip` there.
 
-`build.ps1 -Package` downloads pinned compile includes, builds into a temporary directory,
+`build.ps1 -Package` downloads current compile includes, builds into a temporary directory,
 and creates `dist/ajb.zip` with fresh plugins, translations, gamedata and `configs/ajb/`.
 For a standalone checkout, pass `-ScriptingPath C:/sourcemod-sdk/addons/sourcemod/scripting`.
 Extract the ZIP into `tf/`; preserve local configs when upgrading. Runtime dependencies

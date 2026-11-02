@@ -14,8 +14,8 @@ $Stage = Join-Path ([System.IO.Path]::GetTempPath()) "ajb-$([guid]::NewGuid())"
 $Install = Join-Path $Stage "addons/sourcemod"
 $OutputPath = if ($Package) { "$Install/plugins" } else { "$PSScriptRoot/plugins" }
 $Includes = if ($Package) { "$Stage/include" } else { "$ScriptingPath/include" }
-$MoreColors = "https://raw.githubusercontent.com/DoctorMcKay/sourcemod-plugins/6c7ffca2b580b3b313ee2027ac4dd12b7fad226a/scripting/include/morecolors.inc"
-$TF2Attributes = "https://raw.githubusercontent.com/FlaminSarge/tf2attributes/eb4006a8bbde1ff46546784bcb1cca9d23e945c0/scripting/include/tf2attributes.inc"
+$MoreColors = "https://raw.githubusercontent.com/DoctorMcKay/sourcemod-plugins/master/scripting/include/morecolors.inc"
+$TF2Attributes = "https://raw.githubusercontent.com/FlaminSarge/tf2attributes/master/scripting/include/tf2attributes.inc"
 
 if (-not (Test-Path $Compiler)) {
     $Compiler = Join-Path $ScriptingPath "spcomp64.exe"
