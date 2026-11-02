@@ -8,6 +8,7 @@ TF2-native jailbreak mode for SourceMod.
 ```
 projects/ajb/
 ├── README.md
+├── build.ps1
 ├── deploy.ps1
 ├── plugins/                   # Compiled .smx (project output)
 ├── scripting/
@@ -43,6 +44,38 @@ From `addons/sourcemod`:
 ```
 
 Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in this SourceMod tree.
+`deploy.ps1` delegates compilation to `build.ps1`, also used by CI.
+
+## Testing / GitHub releases
+
+GitHub Actions compiles the core and every standalone module with SourceMod 1.12.0.7260
+on pushes to `master`, PRs targeting it, and tags. A new tag publishes a GitHub release
+only after compilation succeeds and its commit is verified as reachable from `master`.
+The workflow must exist in the tagged commit. It uses the built-in `GITHUB_TOKEN`.
+
+`build.ps1 -Package` downloads pinned compile includes, builds into a temporary directory,
+and creates `dist/ajb.zip` with fresh plugins, translations, gamedata and `configs/ajb/`.
+For a standalone checkout, pass `-ScriptingPath C:/sourcemod-sdk/addons/sourcemod/scripting`.
+Extract the ZIP into `tf/`; preserve local configs when upgrading. Runtime dependencies
+are installed separately. To publish after pushing the workflow to `master`:
+
+```sh
+git tag -a v1.2.4 -m "Release v1.2.4"
+git push origin v1.2.4
+```
+
+### SourceMod testing references
+
+- [Compilation](https://wiki.alliedmods.net/Compiling_SourceMod_Plugins) checks SourcePawn;
+  it does not test gameplay.
+- [SourcePawn's regression suite](https://github.com/alliedmodders/sourcepawn#testing)
+  tests the compiler/VM, not AJB.
+- [SourceMod's mock tests](https://github.com/alliedmodders/sourcemod/blob/master/.github/workflows/mocktest.yml)
+  use `hl2sdk-mock`; AJB requires the real TF2 engine for integration tests.
+- [Official installation checks](https://wiki.alliedmods.net/Managing_your_SourceMod_installation#How_to_test_if_your_plugin_is_installed_correctly):
+  run `sm plugins list`, `sm plugins info ajb` and `sm exts list` on a test server;
+  inspect `logs/errors_*.log`. Use `sm_ajb_dummy_status` for the existing API smoke test,
+  then exercise prep/live transitions, doors, LR, round cleanup and map changes in TF2.
 
 ## Modules
 

@@ -1,8 +1,14 @@
+// =========================================================================================================
+// Taunt commands and attachment visibility validation
+// =========================================================================================================
+
 #pragma semicolon 1
 #pragma newdecls required
 
 #include <sourcemod>
+#include <sdkhooks>
 #include <sdktools>
+
 #include <ajb/ajb>
 
 public Plugin myinfo = 
@@ -10,7 +16,7 @@ public Plugin myinfo =
 	name = "AJB - Taunts",
 	author = "Antigravity",
 	description = "Victory Lap and Zoomin' Broom taunt commands",
-	version = "1.0.0",
+	version = "1.0.1",
 	url = ""
 };
 
@@ -24,7 +30,38 @@ public void OnPluginStart()
 	
 	RegConsoleCmd("sm_rps", Command_RockPaperScissors, "Play the Rock Paper Scissors taunt");
 	RegConsoleCmd("sm_rockpaperscissors", Command_RockPaperScissors, "Play the Rock Paper Scissors taunt");
+
+	// Existing attachments have already spawned when the plugin is loaded late.
+	int entity = -1;
+	while ((entity = FindEntityByClassname(entity, "*")) != -1)
+	{
+		OnAttachmentSpawnPost(entity);
+	}
 }
+
+// =========================================================================================================
+// Attachment visibility
+// =========================================================================================================
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if (HasEntProp(entity, Prop_Send, "m_bValidatedAttachedEntity"))
+	{
+		SDKHook(entity, SDKHook_SpawnPost, OnAttachmentSpawnPost);
+	}
+}
+
+void OnAttachmentSpawnPost(int entity)
+{
+	if (HasEntProp(entity, Prop_Send, "m_bValidatedAttachedEntity"))
+	{
+		SetEntProp(entity, Prop_Send, "m_bValidatedAttachedEntity", 1);
+	}
+}
+
+// =========================================================================================================
+// Taunt commands
+// =========================================================================================================
 
 public Action Command_VictoryLap(int client, int args)
 {

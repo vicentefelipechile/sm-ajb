@@ -1,0 +1,68 @@
+# =======================================================================================================
+# Build AJB and publish tags from master.
+# =======================================================================================================
+
+name: Build and release
+
+on:
+  push:
+    branches: [master]
+    tags: ['**']
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event.deleted != true
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require tag commit on master
+        if: github.ref_type == 'tag'
+        run: git merge-base --is-ancestor HEAD origin/master
+
+      - name: Set up SourcePawn
+        uses: rumblefrog/setup-sp@1b616aebc2c70430364571e2b4ad4b719164c1f7
+        with:
+          version: '1.12.7260'
+          github-token: ${{ github.token }}
+
+      - name: Build release package
+        run: ./build.ps1 -ScriptingPath $env:scriptingPath -Package
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ajb-package
+          path: dist/ajb.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: github.ref_type == 'tag' && github.event.created
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ajb-package
+          path: dist
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" dist/ajb.zip --verify-tag --target master --generate-notes
