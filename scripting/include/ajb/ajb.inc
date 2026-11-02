@@ -67,8 +67,9 @@ forward void AJB_OnGuardBounced(int client);
 forward void AJB_OnCombatDayStart();
 // Server-wide cosmetic freeday-all (cells open, no warden claim).
 forward void AJB_OnFreedayAllStart();
+// Actual engine cvar changes while AJB is active, including LR and external changes.
 forward void AJB_OnFriendlyFireChanged(bool enabled);
-// Teammate push (tf_avoidteammates_pushaway) toggled by warden.
+// Teammate push (tf_avoidteammates_pushaway), independent of friendly fire.
 forward void AJB_OnTeamPushChanged(bool enabled);
 // Crit splash freekill blocked; judges get the decision menu after this.
 forward void AJB_OnFreekillDetected(int attacker, int victimCount);

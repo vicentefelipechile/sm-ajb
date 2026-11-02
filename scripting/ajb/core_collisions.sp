@@ -1,15 +1,14 @@
 // =========================================================================================================
 // Teammate push / collisions
-// - "El empuje entre compañeros" = TF2's teammate avoidance push (tf_avoidteammates_pushaway).
-//   Teammates are never solid to each other; the engine just nudges overlapping teammates apart.
-// - Default OFF every new round (AJB_Collisions_ResetForRound from Event_RoundStart).
-// - The warden can toggle it live from the first page of the warden menu.
+// AJB keeps teammates non-solid and lets the warden toggle their avoidance push independently of damage.
 // =========================================================================================================
 
 ConVar g_cvCollisionsControl;      // gate: warden may toggle push from the menu
-ConVar g_cvEngineAvoidPushaway;    // tf_avoidteammates_pushaway (replicated → clients follow)
-
-bool g_bTeamPush;                  // current runtime state (false = push disabled)
+ConVar g_cvEngineAvoidPushaway;
+ConVar g_cvEngineAvoidTeammates;
+bool g_bCollisionsPolicyActive;
+int g_iSavedAvoidPushaway;
+int g_iSavedAvoidTeammates;
 
 void AJB_Collisions_OnPluginStart()
 {
@@ -24,46 +23,82 @@ void AJB_Collisions_OnPluginStart()
 	{
 		LogError("[AJB] tf_avoidteammates_pushaway not found — teammate push control disabled.");
 	}
-}
-
-// Restore TF2's stock teammate push on unload so we don't leave a global cvar forced.
-void AJB_Collisions_OnPluginEnd()
-{
-	if (g_cvEngineAvoidPushaway != null)
+	else
 	{
-		g_cvEngineAvoidPushaway.SetInt(1);
+		g_cvEngineAvoidPushaway.AddChangeHook(AJB_Collisions_OnPushChanged);
+	}
+
+	g_cvEngineAvoidTeammates = FindConVar("tf_avoidteammates");
+	if (g_cvEngineAvoidTeammates == null)
+	{
+		LogError("[AJB] tf_avoidteammates not found — teammate push control disabled.");
+	}
+	else
+	{
+		g_cvEngineAvoidTeammates.AddChangeHook(AJB_Collisions_OnAvoidChanged);
 	}
 }
 
-// Push is off by default at the start of every round.
+void AJB_Collisions_ApplyPolicy()
+{
+	if (g_cvEngineAvoidPushaway == null || g_cvEngineAvoidTeammates == null
+		|| g_bCollisionsPolicyActive == g_bModeActive)
+	{
+		return;
+	}
+
+	g_bCollisionsPolicyActive = g_bModeActive;
+	if (g_bModeActive)
+	{
+		g_iSavedAvoidPushaway = g_cvEngineAvoidPushaway.IntValue;
+		g_iSavedAvoidTeammates = g_cvEngineAvoidTeammates.IntValue;
+		AJB_Collisions_ResetForRound();
+	}
+	else
+	{
+		g_cvEngineAvoidPushaway.SetInt(g_iSavedAvoidPushaway);
+		g_cvEngineAvoidTeammates.SetInt(g_iSavedAvoidTeammates);
+	}
+}
+
 void AJB_Collisions_ResetForRound()
 {
-	g_bTeamPush = false;
-	AJB_Collisions_Apply();
-}
-
-// Push the runtime state onto the engine cvar (replicated to clients).
-void AJB_Collisions_Apply()
-{
-	if (g_cvEngineAvoidPushaway == null)
+	if (!g_bCollisionsPolicyActive)
 	{
 		return;
 	}
 
-	g_cvEngineAvoidPushaway.SetInt(g_bTeamPush ? 1 : 0);
+	g_cvEngineAvoidTeammates.SetInt(1);
+	g_cvEngineAvoidPushaway.SetInt(0);
 }
 
-// Warden toggle from the menu: flip, apply, announce to everyone.
+void AJB_Collisions_OnAvoidChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	// Pushaway cannot control collisions if another config makes teammates solid.
+	if (g_bModeActive && g_bCollisionsPolicyActive && !convar.BoolValue)
+	{
+		convar.SetInt(1);
+	}
+}
+
+void AJB_Collisions_OnPushChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (!g_bModeActive || (StringToInt(oldValue) != 0) == convar.BoolValue)
+	{
+		return;
+	}
+
+	AJB_FireTeamPushChanged(convar.BoolValue);
+	AJB_WardenMenu_Refresh();
+}
+
 void AJB_Collisions_Toggle()
 {
-	if (g_cvCollisionsControl == null || !g_cvCollisionsControl.BoolValue)
+	if (!g_bCollisionsPolicyActive || g_cvCollisionsControl == null || !g_cvCollisionsControl.BoolValue)
 	{
 		return;
 	}
 
-	g_bTeamPush = !g_bTeamPush;
-	AJB_Collisions_Apply();
-
-	AJB_ChatAll(g_bTeamPush ? "Collisions Enabled" : "Collisions Disabled");
-	AJB_FireTeamPushChanged(g_bTeamPush);
+	g_cvEngineAvoidPushaway.SetInt(g_cvEngineAvoidPushaway.BoolValue ? 0 : 1);
+	AJB_ChatAll(g_cvEngineAvoidPushaway.BoolValue ? "Collisions Enabled" : "Collisions Disabled");
 }

@@ -85,6 +85,7 @@ int g_iWarden;
 int g_iWardenLastRound[MAXPLAYERS + 1];
 int g_iWardenRoundSerial;
 int g_iWardenMenuPage[MAXPLAYERS + 1];   // current page of the paged warden menu
+bool g_bWardenMenuOpen[MAXPLAYERS + 1];
 // Per-player boolean state packed into one bitfield cell (was 4 separate bool arrays).
 // Access only through AJB_FlagGet / AJB_FlagSet below.
 #define AJB_PF_REBEL            (1 << 0)   // prisoner is a rebel
@@ -366,14 +367,14 @@ public void OnPluginEnd()
 	AJB_ClearWarden(false);
 	AJB_Sentry_OnPluginEnd();
 	AJB_Movement_OnPluginEnd();
-	AJB_Collisions_OnPluginEnd();
-	AJB_FF_OnPluginEnd();
 	// Restore stock engine freeze if fallback changed it.
 	if (g_bModeActive)
 	{
 		g_bModeActive = false;
 		AJB_FireModeChanged(false);
 	}
+	AJB_Collisions_ApplyPolicy();
+	AJB_FF_ApplyPolicy();
 	AJB_ApplyEngineMovementPolicy();
 	// Forwards last — nothing may fire after the plugin starts unloading.
 	AJB_DeleteForwards();
@@ -420,6 +421,11 @@ public void OnMapStart()
 public void OnConfigsExecuted()
 {
 	AJB_RefreshModeActive();
+	if (g_bModeActive)
+	{
+		AJB_Collisions_ResetForRound();
+		AJB_FF_ResetForRound();
+	}
 }
 
 public void OnMapEnd()
@@ -437,6 +443,8 @@ public void OnMapEnd()
 		g_bModeActive = false;
 		AJB_FireModeChanged(false);
 	}
+	AJB_Collisions_ApplyPolicy();
+	AJB_FF_ApplyPolicy();
 	g_RoundState = AJBState_Disabled;
 }
 
@@ -446,6 +454,7 @@ public void OnClientPutInServer(int client)
 	AJB_FlagSet(client, AJB_PF_FREEDAY_PENDING, false);
 	g_iWardenLastRound[client] = 0;
 	g_iWardenMenuPage[client] = 0;
+	g_bWardenMenuOpen[client] = false;
 	AJB_HookClient(client);
 }
 

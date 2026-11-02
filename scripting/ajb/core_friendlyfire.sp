@@ -11,7 +11,8 @@ ConVar g_cvFFProtectGuards;    // 1 = guards cannot damage each other even with 
 ConVar g_cvEngineFriendlyFire; // mp_friendlyfire
 ConVar g_cvEngineSvTags;       // sv_tags (re-tagged as a side effect of mp_friendlyfire)
 
-bool g_bFriendlyFire;          // current runtime state (false = FF disabled)
+bool g_bFFPolicyActive;
+int g_iSavedFriendlyFire;
 
 void AJB_FF_OnPluginStart()
 {
@@ -32,21 +33,43 @@ void AJB_FF_OnPluginStart()
 	{
 		LogError("[AJB] mp_friendlyfire not found — friendly fire control disabled.");
 	}
+	else
+	{
+		g_cvEngineFriendlyFire.AddChangeHook(AJB_FF_OnChanged);
+	}
 
 	g_cvEngineSvTags = FindConVar("sv_tags");
 }
 
-// Friendly fire is off by default at the start of every round.
-void AJB_FF_ResetForRound()
+void AJB_FF_ApplyPolicy()
 {
-	g_bFriendlyFire = false;
-	AJB_FF_Apply();
+	if (g_cvEngineFriendlyFire == null || g_bFFPolicyActive == g_bModeActive)
+	{
+		return;
+	}
+
+	g_bFFPolicyActive = g_bModeActive;
+	if (g_bModeActive)
+	{
+		g_iSavedFriendlyFire = g_cvEngineFriendlyFire.IntValue;
+		AJB_FF_ResetForRound();
+	}
+	else
+	{
+		AJB_FF_Set(g_iSavedFriendlyFire);
+	}
 }
 
-// Push the runtime state onto the engine cvar.
-// mp_friendlyfire is FCVAR_NOTIFY: changing it spams "server cvar changed" to every
-// client and re-tags sv_tags. Strip NOTIFY from both around the write, then restore.
-void AJB_FF_Apply()
+void AJB_FF_ResetForRound()
+{
+	if (g_bFFPolicyActive)
+	{
+		AJB_FF_Set(0);
+	}
+}
+
+// Suppress the engine's cvar/tag announcements; AJB supplies its own translated toggle message.
+void AJB_FF_Set(int value)
 {
 	if (g_cvEngineFriendlyFire == null)
 	{
@@ -63,7 +86,7 @@ void AJB_FF_Apply()
 		g_cvEngineSvTags.Flags = tagFlags & ~FCVAR_NOTIFY;
 	}
 
-	g_cvEngineFriendlyFire.SetInt(g_bFriendlyFire ? 1 : 0);
+	g_cvEngineFriendlyFire.SetInt(value);
 
 	g_cvEngineFriendlyFire.Flags = ffFlags;
 	if (g_cvEngineSvTags != null)
@@ -72,26 +95,24 @@ void AJB_FF_Apply()
 	}
 }
 
-// Warden toggle from the menu: flip, apply, announce to everyone.
-void AJB_FF_Toggle()
+void AJB_FF_OnChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	if (g_cvFFControl == null || !g_cvFFControl.BoolValue)
+	if (!g_bModeActive || (StringToInt(oldValue) != 0) == convar.BoolValue)
 	{
 		return;
 	}
 
-	g_bFriendlyFire = !g_bFriendlyFire;
-	AJB_FF_Apply();
-
-	AJB_ChatAll(g_bFriendlyFire ? "FriendlyFire Enabled" : "FriendlyFire Disabled");
-	AJB_FireFriendlyFireChanged(g_bFriendlyFire);
+	AJB_FireFriendlyFireChanged(convar.BoolValue);
+	AJB_WardenMenu_Refresh();
 }
 
-// Restore stock friendly fire on unload so we don't leave the global cvar forced.
-void AJB_FF_OnPluginEnd()
+void AJB_FF_Toggle()
 {
-	if (g_cvEngineFriendlyFire != null)
+	if (!g_bFFPolicyActive || g_cvFFControl == null || !g_cvFFControl.BoolValue)
 	{
-		g_cvEngineFriendlyFire.SetInt(0);
+		return;
 	}
+
+	AJB_FF_Set(g_cvEngineFriendlyFire.BoolValue ? 0 : 1);
+	AJB_ChatAll(g_cvEngineFriendlyFire.BoolValue ? "FriendlyFire Enabled" : "FriendlyFire Disabled");
 }

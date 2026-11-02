@@ -838,6 +838,15 @@ public void OnLibraryRemoved(const char[] name)
 // Core forwards / events
 // =========================================================================================================
 
+public void AJB_OnModeChanged(bool enabled)
+{
+	if (!enabled)
+	{
+		AJB_LR_Cleanup(false);
+		AJB_LR_ClearPendingWish();
+	}
+}
+
 public void AJB_OnLastPrisoner(int client)
 {
 	if (!AJB_LR_CanRun())

@@ -34,12 +34,12 @@ char g_szWardenMenuEntryCmd[AJB_WARDEN_MENU_MAX_PAGES][AJB_WARDEN_MENU_MAX_ENTRI
 int g_iWardenMenuEntryCount[AJB_WARDEN_MENU_MAX_PAGES];
 int g_iWardenMenuPageCount;
 
-// key (1..9) → entry index in the currently shown page; -1 = unmapped; the negative
-// sentinels below are the auto-appended page navigation. Rebuilt on every
-// AJB_Warden_ShowMenu so config reloads can never desync a stale mapping.
+// A panel's key mapping is valid only for the config revision that drew it.
 #define AJB_WARDEN_KEY_AUTO_PREV  -2
 #define AJB_WARDEN_KEY_AUTO_NEXT  -3
 int g_iWardenKeyEntry[MAXPLAYERS + 1][11];
+int g_iWardenMenuRevision;
+int g_iWardenPanelRevision[MAXPLAYERS + 1];
 
 void AJB_WardenMenu_OnPluginStart()
 {
@@ -72,6 +72,7 @@ Action Command_MenuReload(int client, int args)
 
 void AJB_WardenMenu_Load()
 {
+	g_iWardenMenuRevision++;
 	g_iWardenMenuPageCount = 0;
 
 	char path[PLATFORM_MAX_PATH];
@@ -223,7 +224,7 @@ void AJB_WardenMenu_EndPage()
 // maps to the config entry drawn on it (g_iWardenKeyEntry).
 void AJB_Warden_ShowMenu(int client)
 {
-	if (!AJB_IsValidClient(client) || !AJB_IsWarden(client))
+	if (!g_bModeActive || !AJB_IsValidClient(client) || !AJB_IsWarden(client))
 	{
 		return;
 	}
@@ -335,8 +336,44 @@ void AJB_Warden_ShowMenu(int client)
 	panel.CurrentKey = 10;
 	panel.DrawItem(line);
 
-	panel.Send(client, AJB_Warden_PanelHandler, MENU_TIME_FOREVER);
+	g_bWardenMenuOpen[client] = panel.Send(client, AJB_Warden_PanelHandler, MENU_TIME_FOREVER);
+	g_iWardenPanelRevision[client] = g_iWardenMenuRevision;
 	delete panel;
+}
+
+void AJB_WardenMenu_Refresh()
+{
+	if (g_bModeActive && AJB_IsValidClient(g_iWarden) && g_bWardenMenuOpen[g_iWarden])
+	{
+		RequestFrame(Frame_RefreshWardenMenu, GetClientUserId(g_iWarden));
+	}
+}
+
+void Frame_RefreshWardenMenu(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	// External cvar changes must not steal a vote, LR picker, or another plugin's menu.
+	if (AJB_IsValidClient(client) && g_bWardenMenuOpen[client]
+		&& g_iWardenPanelRevision[client] == g_iWardenMenuRevision
+		&& GetClientMenu(client) == MenuSource_RawPanel)
+	{
+		AJB_Warden_ShowMenu(client);
+	}
+}
+
+void Frame_WardenMenuAfterCommand(int userid)
+{
+	// SourceMod runs frame callbacks before FakeClientCommandEx, so redraw one frame later.
+	RequestFrame(Frame_ReopenWardenMenu, userid);
+}
+
+void Frame_ReopenWardenMenu(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (AJB_IsValidClient(client) && GetClientMenu(client) == MenuSource_None)
+	{
+		AJB_Warden_ShowMenu(client);
+	}
 }
 
 // Section header rendered as "── <name> ──" on its own, un-numbered Panel line.
@@ -384,12 +421,14 @@ void AJB_Warden_PanelItemLabel(int client, const char[] cmd, const char[] label,
 
 	if (StrEqual(cmd, "sm_ajb_collisions"))
 	{
-		Format(out, maxlen, "%T", g_bTeamPush ? "Warden Menu Collisions Disable" : "Warden Menu Collisions Enable", client);
+		Format(out, maxlen, "%T",
+			g_cvEngineAvoidPushaway.BoolValue ? "Warden Menu Collisions Disable" : "Warden Menu Collisions Enable", client);
 		return;
 	}
 	if (StrEqual(cmd, "sm_ajb_friendlyfire"))
 	{
-		Format(out, maxlen, "%T", g_bFriendlyFire ? "Warden Menu FriendlyFire Disable" : "Warden Menu FriendlyFire Enable", client);
+		Format(out, maxlen, "%T",
+			g_cvEngineFriendlyFire.BoolValue ? "Warden Menu FriendlyFire Disable" : "Warden Menu FriendlyFire Enable", client);
 		return;
 	}
 
@@ -409,11 +448,12 @@ bool AJB_Warden_MenuCommandGated(const char[] cmd)
 	}
 	if (StrEqual(cmd, "sm_ajb_collisions"))
 	{
-		return g_cvCollisionsControl == null || !g_cvCollisionsControl.BoolValue;
+		return g_cvCollisionsControl == null || !g_cvCollisionsControl.BoolValue
+			|| g_cvEngineAvoidPushaway == null || g_cvEngineAvoidTeammates == null;
 	}
 	if (StrEqual(cmd, "sm_ajb_friendlyfire"))
 	{
-		return g_cvFFControl == null || !g_cvFFControl.BoolValue;
+		return g_cvFFControl == null || !g_cvFFControl.BoolValue || g_cvEngineFriendlyFire == null;
 	}
 	if (StrEqual(cmd, "sm_ajb_vote_yesno") || StrEqual(cmd, "sm_ajb_vote_multi"))
 	{
@@ -453,6 +493,10 @@ bool AJB_Warden_MenuCommandAllowedDead(const char[] cmd)
 public int AJB_Warden_PanelHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	// Panels are freed right after Send; nothing to delete on End. ESC/timeout → close.
+	if (action == MenuAction_Select || action == MenuAction_Cancel)
+	{
+		g_bWardenMenuOpen[param1] = false;
+	}
 	if (action != MenuAction_Select)
 	{
 		return 0;
@@ -471,7 +515,12 @@ public int AJB_Warden_PanelHandler(Menu menu, MenuAction action, int param1, int
 		return 0;
 	}
 
-	// Config may have been reloaded since the panel was drawn — validate the mapping.
+	if (g_iWardenPanelRevision[client] != g_iWardenMenuRevision)
+	{
+		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		return 0;
+	}
+
 	int page = g_iWardenMenuPage[client];
 	int entry = (key >= 1 && key <= 9) ? g_iWardenKeyEntry[client][key] : -1;
 
@@ -527,7 +576,7 @@ public int AJB_Warden_PanelHandler(Menu menu, MenuAction action, int param1, int
 	FakeClientCommandEx(client, cmd);
 	if (!AJB_Warden_MenuCommandOwnsMenu(cmd))
 	{
-		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
+		RequestFrame(Frame_WardenMenuAfterCommand, GetClientUserId(client));
 	}
 
 	return 0;

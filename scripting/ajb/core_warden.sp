@@ -19,6 +19,7 @@ void AJB_SetWarden(int client, bool announce)
 	g_iWardenLastRound[client] = g_iWardenRoundSerial;
 	// New wardenship always starts on the first menu page.
 	g_iWardenMenuPage[client] = 0;
+	g_bWardenMenuOpen[client] = false;
 
 	// Strip vision from previous warden; grant native see-enemy-health to the new one.
 	if (old > 0 && IsClientInGame(old))
@@ -62,6 +63,7 @@ void AJB_ClearWarden(bool announce)
 
 	int old = g_iWarden;
 	g_iWarden = 0;
+	g_bWardenMenuOpen[old] = false;
 
 	if (old > 0 && IsClientInGame(old))
 	{

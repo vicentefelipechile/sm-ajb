@@ -28,6 +28,8 @@ void AJB_ApplyEngineCvarPolicy()
 	AJB_ApplyEngineArenaQueuePolicy();
 	AJB_ApplyEngineTeamsUnbalancePolicy();
 	AJB_ApplyEngineAllTalkPolicy();
+	AJB_Collisions_ApplyPolicy();
+	AJB_FF_ApplyPolicy();
 }
 
 // Back-compat name used across core_rounds / OnPluginEnd.
@@ -219,11 +221,16 @@ void AJB_RefreshModeActive()
 	}
 
 	g_bModeActive = now;
+	// Modules must release their round effects before the core restores the server's cvars.
+	if (was && !now)
+	{
+		AJB_FireModeChanged(false);
+	}
 	AJB_ApplyEngineCvarPolicy();
 
-	if (was != now)
+	if (!was && now)
 	{
-		AJB_FireModeChanged(now);
+		AJB_FireModeChanged(true);
 	}
 }
 
