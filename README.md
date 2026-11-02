@@ -46,6 +46,9 @@ From `addons/sourcemod`:
 Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in this SourceMod tree.
 `deploy.ps1` delegates compilation to `build.ps1`, also used by CI.
 
+Global settings live in `configs/ajb/ajb_setting.cfg`. Deploy preserves existing settings.
+When upgrading from a ZIP, preserve your server configuration instead of replacing it with defaults.
+
 ## Testing / GitHub releases
 
 GitHub Actions compiles the core and every standalone module with the latest SourceMod 1.12.x

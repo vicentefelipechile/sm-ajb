@@ -199,7 +199,7 @@ public void OnPluginStart()
 	CreateConVar("sm_ajb_version", AJB_PLUGIN_VERSION, "Another Jailbreak version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
 
 	g_cvEnabled = CreateConVar("sm_ajb_enabled", "1", "Master switch for Another Jailbreak.", _, true, 0.0, true, 1.0);
-	g_cvForce = CreateConVar("sm_ajb_force", "0", "1 = force AJB on even if the map prefix does not match. Prefixes live in configs/ajb/settings.cfg (map_prefixes).", _, true, 0.0, true, 1.0);
+	g_cvForce = CreateConVar("sm_ajb_force", "0", "1 = force AJB on even if the map prefix does not match. Prefixes live in configs/ajb/ajb_setting.cfg (map_prefixes).", _, true, 0.0, true, 1.0);
 	g_cvGuardsTeam = CreateConVar("sm_ajb_guards_team", "3", "Team index for guards (TF2 BLU = 3).", _, true, 2.0, true, 3.0);
 	g_cvPrisonersTeam = CreateConVar("sm_ajb_prisoners_team", "2", "Team index for prisoners (TF2 RED = 2).", _, true, 2.0, true, 3.0);
 	// Enforced by core_balance: guards are capped to ~1 per this many prisoners (0 = no cap).

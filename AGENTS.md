@@ -58,7 +58,7 @@ Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in the SourceMod tree. Inclu
 .\projects\ajb\deploy.ps1 -SyncOnly     # sync translations/configs/gamedata, no compile
 ```
 
-Deploy syncs translations, per-map/dodgeball configs, prisoner_loadout/settings and
+Deploy syncs translations, per-map/dodgeball configs, prisoner_loadout/ajb_setting and
 `gamedata/ajb.games.txt`; it prints a per-plugin SHA256 so a stale live `.smx` is obvious.
 
 `ajb.sp` is compiled explicitly; every `modules/*.sp` is compiled to its own `.smx`. The
@@ -250,7 +250,7 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 
 | Command | Access | Purpose |
 | --- | --- | --- |
-| `sm_ajb_settings_reload` | CONFIG | Reload `configs/ajb/settings.cfg` |
+| `sm_ajb_settings_reload` | CONFIG | Reload `configs/ajb/ajb_setting.cfg` |
 | `sm_ajb_prisoner_loadout_reload` | CONFIG | Reload `configs/ajb/prisoner_loadout.cfg` |
 
 **Module — `ajb_admin.sp`**

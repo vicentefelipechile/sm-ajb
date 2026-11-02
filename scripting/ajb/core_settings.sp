@@ -1,8 +1,9 @@
 // =========================================================================================================
-// configs/ajb/settings.cfg — teleports + freeday policy
+// configs/ajb/ajb_setting.cfg — teleports + freeday policy
 // =========================================================================================================
 
-#define AJB_SETTINGS_FILE  "configs/ajb/settings.cfg"
+#define AJB_SETTINGS_FILE  "configs/ajb/ajb_setting.cfg"
+#define AJB_SETTINGS_LEGACY_FILE  "configs/ajb/settings.cfg"
 
 #define AJB_MAX_MAP_PREFIXES  16
 
@@ -57,7 +58,7 @@ float g_fFreedayBeamSent[MAXPLAYERS + 1];
 
 void AJB_Settings_OnPluginStart()
 {
-	RegAdminCmd("sm_ajb_settings_reload", Command_SettingsReload, ADMFLAG_CONFIG, "Reload configs/ajb/settings.cfg");
+	RegAdminCmd("sm_ajb_settings_reload", Command_SettingsReload, ADMFLAG_CONFIG, "Reload configs/ajb/ajb_setting.cfg");
 	AJB_Settings_Load();
 }
 
@@ -122,6 +123,25 @@ void AJB_Settings_Load()
 
 	if (!FileExists(path))
 	{
+		char legacyPath[PLATFORM_MAX_PATH];
+		BuildPath(Path_SM, legacyPath, sizeof(legacyPath), AJB_SETTINGS_LEGACY_FILE);
+		if (FileExists(legacyPath))
+		{
+			// The KeyValues format is unchanged; renaming preserves custom values and comments.
+			if (RenameFile(path, legacyPath))
+			{
+				LogMessage("[AJB] Migrated %s to %s.", AJB_SETTINGS_LEGACY_FILE, AJB_SETTINGS_FILE);
+			}
+			else
+			{
+				LogError("[AJB] Could not migrate %s to %s; loading the legacy file.", AJB_SETTINGS_LEGACY_FILE, AJB_SETTINGS_FILE);
+				strcopy(path, sizeof(path), legacyPath);
+			}
+		}
+	}
+
+	if (!FileExists(path))
+	{
 		LogMessage("[AJB] %s missing — using defaults.", AJB_SETTINGS_FILE);
 		return;
 	}
@@ -139,7 +159,7 @@ void AJB_Settings_Load()
 	AJB_Settings_LoadMapPrefixes(kv);
 	delete kv;
 
-	LogMessage("[AJB] settings.cfg: warden_only_dmg=%d trail=%d prefixes=%d (teleports are per-map).",
+	LogMessage("[AJB] ajb_setting.cfg: warden_only_dmg=%d trail=%d prefixes=%d (teleports are per-map).",
 		g_bFreedayWardenOnlyDamage, g_bFreedayTrail, g_iMapPrefixCount);
 }
 

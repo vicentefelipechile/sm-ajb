@@ -44,7 +44,13 @@ function Sync-Assets {
     Write-Host "Syncing AJB configs (prisoner_loadout, …)..."
     $projCfg = Join-Path $AjbRoot "configs"
     Get-ChildItem -Path $projCfg -File -ErrorAction SilentlyContinue | ForEach-Object {
-        Copy-Item -Force $_.FullName (Join-Path $CfgAjb $_.Name)
+        $destination = Join-Path $CfgAjb $_.Name
+        # Do not replace customized server settings with bundled defaults.
+        if ($_.Name -eq "ajb_setting.cfg" -and ((Test-Path $destination) -or (Test-Path (Join-Path $CfgAjb "settings.cfg")))) {
+            Write-Host "Keeping existing AJB settings."
+        } else {
+            Copy-Item -Force $_.FullName $destination
+        }
     }
 
     Write-Host "Syncing gamedata..."
