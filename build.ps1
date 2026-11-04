@@ -13,9 +13,10 @@ $Sources = @(Get-Item "$PSScriptRoot/scripting/ajb.sp") + @(Get-ChildItem "$PSSc
 $Stage = Join-Path ([System.IO.Path]::GetTempPath()) "ajb-$([guid]::NewGuid())"
 $Install = Join-Path $Stage "addons/sourcemod"
 $OutputPath = if ($Package) { "$Install/plugins" } else { "$PSScriptRoot/plugins" }
-$Includes = if ($Package) { "$Stage/include" } else { "$ScriptingPath/include" }
+$Includes = "$Stage/include"
 $MoreColors = "https://raw.githubusercontent.com/DoctorMcKay/sourcemod-plugins/master/scripting/include/morecolors.inc"
 $TF2Attributes = "https://raw.githubusercontent.com/FlaminSarge/tf2attributes/master/scripting/include/tf2attributes.inc"
+$FF2Includes = "https://raw.githubusercontent.com/Batfoxkid/Freak-Fortress-2-Rewrite/main/addons/sourcemod/scripting/include"
 
 if (-not (Test-Path $Compiler)) {
     $Compiler = Join-Path $ScriptingPath "spcomp64.exe"
@@ -25,8 +26,10 @@ if (-not (Test-Path $Compiler)) {
 }
 
 try {
+    New-Item -ItemType Directory -Path $Includes | Out-Null
+    Invoke-WebRequest "$FF2Includes/cfgmap.inc" -OutFile "$Includes/cfgmap.inc"
+    Invoke-WebRequest "$FF2Includes/ff2r.inc" -OutFile "$Includes/ff2r.inc"
     if ($Package) {
-        New-Item -ItemType Directory -Path $Includes | Out-Null
         Invoke-WebRequest $MoreColors -OutFile "$Includes/morecolors.inc"
         Invoke-WebRequest $TF2Attributes -OutFile "$Includes/tf2attributes.inc"
     }
@@ -50,7 +53,7 @@ try {
         Compress-Archive -Path "$Stage/addons" -DestinationPath "$PSScriptRoot/dist/ajb.zip" -Force
     }
 } finally {
-    if ($Package -and (Test-Path $Stage)) {
+    if (Test-Path $Stage) {
         Remove-Item $Stage -Recurse -Force
     }
 }

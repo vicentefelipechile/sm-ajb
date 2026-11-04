@@ -45,6 +45,8 @@ From `addons/sourcemod`:
 
 Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in this SourceMod tree.
 `deploy.ps1` delegates compilation to `build.ps1`, also used by CI.
+Every build downloads the FF2 compile headers into a temporary include directory;
+an internet connection is required. The repository's symlinks remain unchanged.
 
 Global settings live in `configs/ajb/ajb_setting.cfg`. Deploy preserves existing settings.
 When upgrading from a ZIP, preserve your server configuration instead of replacing it with defaults.
