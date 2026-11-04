@@ -18,7 +18,7 @@ projects/ajb/
 │   ├── modules/ajb_*.sp       # standalone plugins that consume the core API
 │   ├── modules/lastrequest/   # LR wish fragments #included by ajb_lastrequest.sp
 │   └── include/ajb/*.inc      # shared api / enums / constants / phrases
-│   └── include/ff2r.inc, cfgmap.inc   # URL symlinks; build.ps1 downloads compile headers
+│   └── include/ff2r.inc, cfgmap.inc   # vendored from the FF2 Rewrite project (compile only)
 ├── translations/*.phrases.txt
 ├── configs/                   # settings, warden menu, prisoner loadout, per-map configs
 └── gamedata/ajb.games.txt
@@ -150,9 +150,8 @@ into the Last Request menu through the external wish hooks in `include/ajb/lrwis
 index >= `LR_WISH_BUILTIN_COUNT`. The LR module does not know about the FF2 wish: it only
 closes its own menu state when the external plugin returns `Plugin_Handled`.
 
-Compile-time only: `include/ff2r.inc` + `include/cfgmap.inc` are URL symlinks; `build.ps1`
-downloads the FF2 Rewrite headers into a temporary include directory for every build.
-(`cfgmap.inc` is a pure SourcePawn parser — **no extension needed**; it
+Compile-time only: `include/ff2r.inc` + `include/cfgmap.inc` are vendored from the FF2
+Rewrite project (`cfgmap.inc` is a pure SourcePawn parser — **no extension needed**; it
 defines `CFGMAP_FF2R` so the `BossData`/`ConfigMap` methodmaps in `ff2r.inc` are available).
 
 Dependency matrix — *blocked* means the wish cannot run; *degraded* means it runs with
