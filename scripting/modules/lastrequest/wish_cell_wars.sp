@@ -355,9 +355,29 @@ void AJB_LR_CW_TeleportToRandomSpawn(int client)
 		}
 	}
 
-	if (g_iCWSpawnCount > 0)
+	int currentCell = AJB_LR_CW_FindCell(client);
+	if (currentCell < 0)
 	{
-		int pick = GetRandomInt(0, g_iCWSpawnCount - 1);
+		currentCell = g_iCWLastCell[client];
+	}
+	bool occupied[sizeof(g_vecCWSpawns)];
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (i == client || !IsClientInGame(i) || IsFakeClient(i) || !IsPlayerAlive(i)) continue;
+		if (GetClientTeam(i) != g_iCWRedTeam) continue;
+
+		int cell = AJB_LR_CW_FindCell(i);
+		if (cell >= 0)
+		{
+			occupied[cell] = true;
+		}
+	}
+
+	int destinations[sizeof(g_vecCWSpawns)];
+	int count = AJB_CW_GetTeleportCells(occupied, g_iCWSpawnCount, currentCell, destinations);
+	if (count > 0)
+	{
+		int pick = destinations[GetRandomInt(0, count - 1)];
 		float noVel[3];
 		TeleportEntity(client, g_vecCWSpawns[pick], NULL_VECTOR, noVel);
 		// Landing on a fresh cell resets both the teleport cooldown and the camp clock.
@@ -375,14 +395,18 @@ void AJB_LR_CW_TeleportToRandomSpawn(int client)
 			if (hp < max)
 			{
 				int gained = RoundToFloor(heal);
-				SetEntProp(client, Prop_Data, "m_iHealth", hp + gained > max ? max : hp + gained);
-				PrintHintText(client, "%T", "LR CW Teleport Heal", client, gained);
+				if (gained > max - hp) gained = max - hp;
+				if (gained > 0)
+				{
+					SetEntProp(client, Prop_Data, "m_iHealth", hp + gained);
+					PrintHintText(client, "%T", "LR CW Teleport Heal", client, gained);
+				}
 			}
 		}
 	}
 }
 
-// Nearest RED spawn within 300 HU is the player's cell (spawns sit inside cell centers).
+// shortcut: nearest RED spawn within 300 HU approximates a cell; use map bounds for ambiguous layouts.
 int AJB_LR_CW_FindCell(int client)
 {
 	if (g_iCWSpawnCount <= 0) return -1;
@@ -416,13 +440,8 @@ Action Timer_CWCellCheck(Handle timer)
 		if (GetClientTeam(i) != g_iCWRedTeam) continue;
 
 		int cell = AJB_LR_CW_FindCell(i);
-		if (cell < 0)
-		{
-			// Roaming past spawn range on a big cell: keep the clock running so camping
-			// at the far edge does not reset it; teleports always land on a spawn.
-			continue;
-		}
-		if (cell != g_iCWLastCell[i])
+		// Leaving spawn range must not suspend camping damage or reset the clock.
+		if (cell >= 0 && cell != g_iCWLastCell[i])
 		{
 			g_iCWLastCell[i] = cell;
 			g_fCWCellSince[i] = GetGameTime();

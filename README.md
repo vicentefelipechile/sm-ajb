@@ -135,6 +135,30 @@ warden replacement, round end/restart, slot reuse, map change, core unload/reloa
 that a BaseComm mute survives all of those transitions. An old submenu must not apply
 a decision after a round restart. These engine transitions require live testing.
 
+## Cell Wars movement and camping
+
+Jumping teleports a living RED player to a different spawn occupied by another living
+human RED player. Empty destinations and the current cell are excluded; with no eligible
+destination, jumping does not teleport, heal or reset the camping clock. This filters jump
+teleports, not TF2's initial spawn placement.
+
+| ConVar | Default | Effect |
+| --- | --- | --- |
+| `sm_ajb_lr_cw_teleport_delay` | `4.0` | Seconds between successful teleports; `0` removes the cooldown. |
+| `sm_ajb_lr_cw_teleport_heal` | `10.0` | HP gained per successful teleport, capped at maximum health; `0` disables healing. |
+| `sm_ajb_lr_cw_camp_time` | `20.0` | Seconds in one cell before camping damage; `0` disables it at mode start. |
+| `sm_ajb_lr_cw_camp_damage` | `20.0` | Camping damage applied every second after the limit. |
+
+These settings are persisted in `cfg/sourcemod/ajb_lastrequest.cfg`. Cells are approximated
+by the nearest RED spawn within 300 units, not physical cell bounds. Walking beyond that
+range does not suspend camping damage. Maps with several spawns per cell can still treat
+those spawns as different cells and need map-specific bounds for exact detection.
+
+Regression self-check: compile `scripting/tests/cellwars_destinations.sp` with the module
+include paths and load it on a SourceMod test server. It checks all 80 occupancy/current-cell
+combinations and an empty spawn list. In TF2, verify dead/BLU/bot exclusion, cooldown, capped
+healing, no eligible destination, camping outside spawn range and round cleanup.
+
 ## FF2 Boss wish (`ajb_ff2`) — server requirements
 
 `ajb_ff2` adds a "FF2 Boss" Last Request wish that runs the next live round as a Freak

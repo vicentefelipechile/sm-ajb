@@ -378,7 +378,7 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | `sm_ajb_lr_zm_spawn_protect` | `5` | Zombie Mode: invulnerability seconds after a zombie respawns (0–30) |
 | `sm_ajb_lr_zm_round_time` | `300` | Zombie Mode: total round duration in seconds, humans win on timeout if any remain (60–900) |
 | `sm_ajb_lr_cw_round_time` | `300` | Cell Wars: total round duration in seconds, survivors win on timeout (60–900) |
-| `sm_ajb_lr_cw_teleport_delay` | `4.0` | Cell Wars: seconds between jump teleports (0 = disabled) (0–30) |
+| `sm_ajb_lr_cw_teleport_delay` | `4.0` | Cell Wars: seconds between jump teleports (0 = no cooldown) (0–30) |
 | `sm_ajb_lr_cw_camp_time` | `20` | Cell Wars: seconds in the same cell before camping damage starts (0 = disabled, ≤120) |
 | `sm_ajb_lr_cw_camp_damage` | `20` | Cell Wars: camping damage per second while in the same cell past camp_time (1–100) |
 | `sm_ajb_lr_cw_teleport_heal` | `10` | Cell Wars: HP restored on every jump teleport, capped at class max (0 = disabled) (0–100) |

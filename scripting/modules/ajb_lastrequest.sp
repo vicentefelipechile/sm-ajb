@@ -20,6 +20,7 @@
 
 #include <ajb/lrwish>
 #include <ajb/phrases>
+#include <ajb/cellwars>
 
 #define PLUGIN_VERSION "1.3.0"
 
@@ -647,7 +648,7 @@ public void OnPluginStart()
 	g_cvZMSpawnProtect = CreateConVar("sm_ajb_lr_zm_spawn_protect", "5", "Zombie Mode: invulnerability seconds after a zombie respawns (spawn-camp protection).", _, true, 0.0, true, 30.0);
 	g_cvZMRoundTime = CreateConVar("sm_ajb_lr_zm_round_time", "300", "Zombie Mode: total round duration in seconds (humans win on timeout if any remain).", _, true, 60.0, true, 900.0);
 	g_cvCWRoundTime = CreateConVar("sm_ajb_lr_cw_round_time", "300", "Cell Wars: total round duration in seconds (survivors win on timeout).", _, true, 60.0, true, 900.0);
-	g_cvCWTeleportDelay = CreateConVar("sm_ajb_lr_cw_teleport_delay", "4.0", "Cell Wars: seconds between jump teleports (0 = disabled).", _, true, 0.0, true, 30.0);
+	g_cvCWTeleportDelay = CreateConVar("sm_ajb_lr_cw_teleport_delay", "4.0", "Cell Wars: seconds between jump teleports (0 = no cooldown).", _, true, 0.0, true, 30.0);
 	g_cvCWCampTime = CreateConVar("sm_ajb_lr_cw_camp_time", "20.0", "Cell Wars: seconds in the same cell before camping damage starts (0 = disabled).", _, false, 0.0, true, 120.0);
 	g_cvCWCampDamage = CreateConVar("sm_ajb_lr_cw_camp_damage", "20.0", "Cell Wars: camping damage per second while in the same cell past camp_time.", _, true, 1.0, true, 100.0);
 	g_cvCWTeleportHeal = CreateConVar("sm_ajb_lr_cw_teleport_heal", "10.0", "Cell Wars: HP restored on every jump teleport (capped at class max, 0 = disabled).", _, true, 0.0, true, 100.0);
