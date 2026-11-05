@@ -1,5 +1,5 @@
 // =========================================================================================================
-// Another Jailbreak — Dummy module (Passive API Smoke Test & Diagnostics)
+// Another Jailbreak — Dummy module (Passive API Diagnostics)
 // Strictly informational and read-only. Proves API attach/detach and logs forwards
 // without interfering in gameplay or modifying game state.
 // =========================================================================================================
@@ -20,7 +20,7 @@ public Plugin myinfo =
 {
 	name        = "Another Jailbreak - Dummy & Diagnostics",
 	author      = "SummerTYT",
-	description = "Another Jailbreak — Passive API smoke test & read-only diagnostic module.",
+	description = "Another Jailbreak — Passive API diagnostics (read-only).",
 	version     = PLUGIN_VERSION,
 	url         = ""
 };
@@ -32,6 +32,17 @@ Handle g_hHudSync = null;
 
 public void OnPluginStart()
 {
+	PrintToServer("================================================================================");
+	PrintToServer("================================================================================");
+	PrintToServer("                     AJB DUMMY - OPTIONAL DIAGNOSTICS ONLY");
+	PrintToServer("================================================================================");
+	PrintToServer("  THIS PLUGIN IS NOT REQUIRED TO RUN ANOTHER JAILBREAK.");
+	PrintToServer("  Its only purpose is to help verify that the project and its API are working.");
+	PrintToServer("  It provides read-only status checks, debug output and event logging.");
+	PrintToServer("  You can safely leave ajb_dummy.smx unloaded during normal gameplay.");
+	PrintToServer("================================================================================");
+	PrintToServer("================================================================================");
+
 	CreateConVar("sm_ajb_dummy_version", PLUGIN_VERSION, "AJB Dummy module version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
 
 	// Strictly informational commands

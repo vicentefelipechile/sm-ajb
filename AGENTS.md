@@ -6,10 +6,17 @@ load on any other engine (`AskPluginLoad2` checks `Engine_TF2`).
 This file is the entry point for coding agents. The git repo root is `projects/ajb/`,
 which lives inside a full SourceMod tree at `addons/sourcemod/`.
 
+Keep `README.md` limited to installation, main commands and configuration. Internal
+architecture, release procedures, gameplay edge cases and maintenance references belong here.
+
+Limit validation work to compilation.
+
 ## Layout
 
 ```
 projects/ajb/
+├── README.md                  # short user-facing guide
+├── build.ps1                  # compile / build release ZIP
 ├── deploy.ps1                 # compile + deploy + asset sync
 ├── plugins/                   # compile output (.smx), committed
 ├── scripting/
@@ -46,6 +53,19 @@ CellsLocked → CellsOpen → LRChoosing/LRChosen → SpecialDay → RoundEnd. T
 (`core_rounds.sp`) is the single point where the preround ends and the round goes live —
 team balance and auto-warden both fire from there. Never apply live-round rules during prep.
 
+### Plugin roles
+
+| Plugin | Role |
+| --- | --- |
+| `plugins/ajb.smx` | Core mode |
+| `plugins/ajb_hud.smx` | HUD extras |
+| `plugins/ajb_mutes.smx` | Warden mutes + living/dead voice channels |
+| `plugins/ajb_lastrequest.smx` | Last Request wishes, including Freeday-all / War Day |
+| `plugins/ajb_admin.smx` | Admin menu and guard bans |
+| `plugins/ajb_boosts.smx` | Round points + boosts |
+| `plugins/ajb_ff2.smx` | Optional FF2 Boss wish; requires Freak Fortress 2 on the server |
+| `plugins/ajb_dummy.smx` | Optional, read-only API diagnostics |
+
 ## Build & deploy
 
 Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in the SourceMod tree. Include dirs:
@@ -60,6 +80,11 @@ Requires `scripting/spcomp.exe` (or `spcomp64.exe`) in the SourceMod tree. Inclu
 
 Deploy syncs translations, per-map/dodgeball configs, prisoner_loadout/ajb_setting and
 `gamedata/ajb.games.txt`; it prints a per-plugin SHA256 so a stale live `.smx` is obvious.
+`deploy.ps1` delegates compilation to `build.ps1`, also used by CI. Project output stays in
+`projects/ajb/plugins/`; the server loads the copies in `addons/sourcemod/plugins/`.
+
+Global settings live in `configs/ajb/ajb_setting.cfg`. Deploy preserves existing settings.
+When upgrading from a ZIP, preserve server configuration instead of replacing it with defaults.
 
 `ajb.sp` is compiled explicitly; every `modules/*.sp` is compiled to its own `.smx`. The
 core fragments (`ajb/core_*.sp`) are **not** compiled directly — they are included by
@@ -81,10 +106,37 @@ Editing a `modules/*.sp` compiles/deploys/reloads that module by its own name.
 If `bridge_status` reports disconnected (map change / server down), the deploy still lands
 in `plugins/`; it loads on next server start or a later `reload_plugin`.
 
+### CI and GitHub releases
+
+GitHub Actions compiles the core and every standalone module with the latest SourceMod 1.12.x
+on pushes to `master`, PRs targeting it, and tags. A new tag publishes a GitHub release only
+after compilation succeeds and its commit is verified as reachable from `master`. The workflow
+must exist in the tagged commit. It uses the built-in `GITHUB_TOKEN`; an existing release has
+its `ajb.zip` asset uploaded or replaced.
+
+`build.ps1 -Package` downloads current `morecolors.inc` and `tf2attributes.inc` compile includes,
+builds in a temporary directory, and creates `dist/ajb.zip` containing fresh plugins,
+translations, gamedata and `configs/ajb/`. For a standalone checkout, pass
+`-ScriptingPath C:/sourcemod-sdk/addons/sourcemod/scripting`. Extract the ZIP into `tf/`,
+preserving local configs. Runtime dependencies are installed separately.
+
+Release example, only when the user requests publication and the workflow is already on `master`:
+
+```sh
+git tag -a v1.2.4 -m "Release v1.2.4"
+git push origin v1.2.4
+```
+
 ## Conventions
 
 - **English** for all code, comments, identifiers, log strings. Chat/translation strings
   may be Spanish/other via `translations/*.phrases.txt`.
+- **Menu text is not chat text.** Keep interface labels brief, put shared context once in
+  the title, and use names in player lists with short actions in submenus. Chat notices may
+  contain full explanations; do not shorten them as part of a menu cleanup. When a phrase
+  serves both, give the menu its own phrase instead of changing the chat output.
+- Author: **SummerTYT**. Version ConVars: `sm_ajb_*_version`. Shared phrase helpers pass the
+  `Prefix` key as `{1}`. Boosts are gameplay effects, not a store, shop or cosmetics system.
 - Section separators are `//` + `=` to **105 columns** (see any existing file).
 - Comments explain **why**, not what. Keep them to a single line; do not over-comment or
   narrate obvious code. One concise line beats a paragraph.
@@ -132,6 +184,96 @@ in `plugins/`; it loads on next server start or a later `reload_plugin`.
 missing, `AJB_DB_Connect` falls back to the stock `storage-local` SQLite entry. The table
 (`ajb_guardbans`) is created portably for SQLite or MySQL.
 
+## Dodgeball visual setup
+
+Open `!ajb` → **Dodgeball**, or `sm_ajb_db_menu`. Requires admin + config access and the
+Last Request module; no wish needs to be running. The editor lives in
+`modules/lastrequest/wish_dodgeball_editor.sp`, included by `ajb_lastrequest.sp`.
+
+- RED/BLU spawns are placed at the admin's feet. Rocket placement opens **Ceiling** / **Eyes**.
+- **Arena** contains center/bottom placement and **Increase range** / **Decrease range**
+  buttons (128 units per press). Enabled menu sizes stay within 128–8192 units.
+- **No barriers** disables boundary visuals and damage. Increasing restores the default
+  1500-unit radius. Shared radius rules live in `include/ajb/dodgeball.inc`.
+- Colored spawn markers and the actual amber arena geometry are sent only to the editing
+  admin throughout the Dodgeball menus. Back, Exit, another menu, disconnect, map end and
+  module unload stop the preview; short-lived effects expire without leaving entities behind.
+- Every action saves to `configs/ajb/dodgeball/<map>.cfg`; incomplete setups show missing
+  spawns. Existing configs remain compatible, including spawn coordinates `0 0 0`.
+  Missing keys, not zero-length vectors, mean an incomplete setup.
+- Without an explicit center, the rocket position remains the legacy center/bottom fallback.
+- Ceiling placement sweeps an 8-unit half-size hull upward to the first obstruction,
+  including grates, glass, props and moving brushes. It backs off 24 units and checks free
+  space again; an obstructed placement is refused rather than traced through to another roof.
+- During a live Dodgeball round the editor is preview-only. Saves are also rejected
+  server-side, including selections from menus opened before the round became live.
+
+`sm_ajb_db_setspawn <red|blu|rocket|center> [radius]` remains available. Rocket placement uses
+eye position; center without a radius preserves the existing range. Radius `0` means no barriers.
+Exports use a temporary file before replacing the config; unreadable configs are not overwritten.
+
+## Zombie Mode team changes
+
+After the infection grace period, losing the last connected zombie automatically infects a
+random living RED human. Dead BLU zombies waiting to respawn still count, so killing one does
+not infect an extra human. Joining BLU gives the zombie loadout and normal zombie respawn.
+During grace, its end must not infect another human if a zombie already exists.
+
+AJB guard bans remain stored but do not block the zombie role; enforcement resumes when the
+wish ends or Last Request unloads. With no living humans, zombies win instead of attempting
+to select from an empty list.
+
+## Cell Wars movement and camping
+
+Jumping teleports a living RED player to a different spawn occupied by another living human
+RED player. Dead/BLU/bot occupants, empty destinations and the current cell are excluded.
+With no eligible destination, jumping does not teleport, heal or reset the camping clock.
+This filters jump teleports, not TF2's initial spawn placement.
+
+`sm_ajb_lr_cw_teleport_delay`, `sm_ajb_lr_cw_teleport_heal`, `sm_ajb_lr_cw_camp_time` and
+`sm_ajb_lr_cw_camp_damage` are persisted in `cfg/sourcemod/ajb_lastrequest.cfg`; defaults and
+bounds are in the ConVar reference below. Delay `0` removes the cooldown; heal `0` disables
+healing; camp time `0` disables camping damage. Healing is capped at class maximum HP.
+
+Cells are approximated by the nearest RED spawn within 300 units, not physical cell bounds.
+Walking beyond that range does not suspend camping damage. Maps with several spawns per
+cell can treat those spawns as different cells and need map-specific bounds for exact detection.
+
+## Voice channels and warden mutes
+
+Open **Voice** from the warden menu or use `sm_ajb_mutes`. The list shows player names;
+selecting one opens **Mute** / **Unmute**, with status and round scope in the title. Only the
+current, living warden may change the decision. For dead players, it applies on revival.
+Admin targets remain selectable so the warden receives an explicit exemption message.
+
+Voice policy lives in `include/ajb/voice.inc`. While AJB and `sm_ajb_mute_enabled 1` are active:
+
+| Speaker | Living listener | Dead/spectator listener | Admin listener (`b` or root) |
+| --- | --- | --- | --- |
+| Living, not warden-muted | Heard | Heard | Heard |
+| Living, warden-muted | Not heard | Not heard | Heard |
+| Dead or spectating, regardless of stored warden mute | Not heard | Heard, across teams | Heard |
+| Admin (`b` or root), alive or dead | Heard | Heard | Heard |
+
+The admin exemption is mandatory, not a ConVar or command override, and applies to both
+speech and hearing. BaseComm and personal mutes still take precedence, even for admins.
+AJB uses listener overrides and never changes or removes BaseComm mute state.
+
+Freeday, rebel, team and LR changes do not alter warden decisions. Death suspends the mute;
+revival restores it. Normal spawns refresh routing after 0.1 seconds; revives without spawn
+events and admin-flag changes are detected within approximately 1.1 seconds. Dead Ringer
+is not death.
+
+Warden death, resignation or replacement does not erase decisions; the new warden can change
+them. Round boundaries, map changes, disconnects and mode/module disable clear them.
+Postround retains the living/dead split; waiting/disabled AJB and module unload restore
+normal game routing. A stale submenu must not apply a decision after a round restart.
+
+The former `sm_ajb_mute_prisoners`, `sm_ajb_mute_unmute_freeday`, `sm_ajb_mute_unmute_lr`,
+`sm_ajb_mute_deadtalk`, `sm_ajb_mute_deadtalk_crossteam` and `sm_ajb_mute_bypass_flags`
+ConVars are retired. Remove them from older `cfg/sourcemod/ajb_mutes.cfg` files; only
+`sm_ajb_mute_enabled` remains.
+
 ## Auto-warden
 
 At preround end (`AJB_ScheduleAutoWarden`), if `sm_ajb_warden_auto 1` and no warden is set,
@@ -159,7 +301,7 @@ features off. `sm_ajb_ff2_status` prints a live diagnosis.
 
 | Dependency | If missing → | Behavior |
 | --- | --- | --- |
-| `ff2r` library (`freak_fortress_2.smx`) | **Blocked** | Module loads; menu item disabled (label "requires Freak Fortress 2"). Nothing else changes. |
+| `ff2r` library (`freak_fortress_2.smx`) | **Blocked** | Module loads; menu item disabled (label "Unavailable"). Nothing else changes. |
 | Bosses precached (`FF2R_GetGamemodeType() < 1`) | **Blocked** | FF2 loaded but no charset/boss pack (e.g. `characters.cfg` missing or a map entry with `enable -1`); item disabled. |
 | Ability subplugins (`plugins/freaks/`) | **Degraded** | Boss spawns with model/weapons/health/sounds/HUD but **no rage/abilities** (they live in `ff2r_*_abilities.smx`). Chat warning on apply. |
 | TF2Items / TF2Attributes / TF2Utils | **Degraded** | FF2 falls back internally (fewer weapon attributes, no ability lag comp). |
@@ -173,6 +315,17 @@ plus `translations`, `gamedata/ff2.txt`, `data/freak_fortress_2/`, `configs/frea
 and `custom/ff2r_defaults` → `tf/custom/`. FF2's `data/.../maps.cfg` ships `"*" { "enable" "0" }`,
 so on jailbreak maps bosses are precached but FF2 never runs the gamemode — exactly what the
 loader needs. Only bosses of the active pack (`ff2_current` / pack vote) appear in the picker.
+
+Owner installation reference:
+
+1. Download the **New Install Package** from
+   [Freak-Fortress-2-Rewrite releases](https://github.com/Batfoxkid/Freak-Fortress-2-Rewrite/releases).
+2. Install the plugin, ability subplugins, translations, gamedata, data, configs and custom
+   assets at the paths above. Optional DLCs include Epic-Scout, Gray-Mann and Blitzkrieg.
+3. Restart the server, or load the plugin and change the map. `sm plugins list` and `ff2`
+   expose its state; `ff2` should show `Status: Ready` on jailbreak maps.
+4. `sm_ajb_ff2_status` prints AJB's dependency diagnosis. Missing ability subplugins leave
+   the boss without rage/abilities rather than preventing it from spawning.
 
 Boss round flow (modeled on the LR's Zombie Mode): applied in `AJB_OnLiveRoundBegin`;
 `AJB_BeginCombatDay` + `AJB_ClearWarden` + `AJB_SetRebelOnHit(false)` + `AJB_ClearPhaseTimer`;
@@ -281,6 +434,8 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | `sm_ajb_lr` | console | Warden: grant Last Request to a prisoner |
 | `sm_ajb_lr_force <#userid\|name>` | GENERIC | Force LR menu for a living prisoner |
 | `sm_reopenlr`, `sm_ajb_reopenlr` | console | Prisoner: reopen your LR menu if a map vote / external menu closed it |
+| `sm_ajb_db_menu` | CONFIG | Open the private visual Dodgeball map editor |
+| `sm_ajb_db_setspawn <red\|blu\|rocket\|center> [radius]` | CONFIG | Save a Dodgeball point; radius `0` disables barriers |
 
 **Module — `ajb_mutes.sp`**
 
@@ -390,13 +545,8 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | --- | --- | --- |
 | `sm_ajb_mute_enabled` | `1` | Enable warden mutes and fixed living/dead voice channels |
 
-Voice policy is in `include/ajb/voice.inc`; see README's channel matrix. Admins with
-`ADMFLAG_GENERIC` or `ADMFLAG_ROOT` always hear/speak across AJB restrictions, including
-warden mutes; attempts to mute them show an exemption message. BaseComm and personal
-mutes still take precedence. No BaseComm state is changed by this module. Freeday,
-rebel, LR and team changes do not change warden decisions. Death suspends the mute;
-revival restores it. Round boundaries, disconnects and mode/module disable reset it.
-Postround retains the living/dead split. The old automatic-mute/bypass ConVars are retired.
+See **Voice channels and warden mutes** above for the channel matrix, admin exemption,
+round-scoped decisions, BaseComm precedence and retired ConVars.
 
 **Module — `ajb_ff2.sp`** (persisted to `cfg/sourcemod/ajb_ff2.cfg`)
 

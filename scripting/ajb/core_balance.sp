@@ -207,7 +207,7 @@ int AJB_Balance_ReconcileGuards()
 	return moved;
 }
 
-// Admin: force the JB balance right now (handy while testing, or to fix a lopsided live round).
+// Admin override for a lopsided live round.
 Action Command_AjbBalance(int client, int args)
 {
 	if (!g_bModeActive)
