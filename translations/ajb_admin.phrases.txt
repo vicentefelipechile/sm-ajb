@@ -2,16 +2,16 @@
 {
 	"DB Editor"
 	{
-		"en" "Dodgeball setup"
-		"es" "Configurar Dodgeball"
-		"las" "Configurar Dodgeball"
+		"en" "Dodgeball"
+		"es" "Dodgeball"
+		"las" "Dodgeball"
 	}
 	"DB Editor Title"
 	{
 		"#format" "{1:s},{2:s},{3:s}"
-		"en" "Dodgeball - automatic preview\nRED: {1} | BLU: {2} | Rocket: {3}\nWalk to a point and select. Changes save automatically."
-		"es" "Dodgeball - vista previa automática\nRED: {1} | BLU: {2} | Cohete: {3}\nMuévete al punto y selecciona. Guardado automático."
-		"las" "Dodgeball - vista previa automática\nRED: {1} | BLU: {2} | Cohete: {3}\nMuévete al punto y selecciona. Guardado automático."
+		"en" "Dodgeball\nRED: {1} · BLU: {2}\nRocket: {3}"
+		"es" "Dodgeball\nRED: {1} · BLU: {2}\nCohete: {3}"
+		"las" "Dodgeball\nRED: {1} · BLU: {2}\nCohete: {3}"
 	}
 	"DB Configured"
 	{
@@ -27,27 +27,27 @@
 	}
 	"DB Set Red"
 	{
-		"en" "Place RED spawn at my feet"
-		"es" "Colocar spawn RED a mis pies"
-		"las" "Colocar spawn RED a mis pies"
+		"en" "RED spawn here"
+		"es" "Spawn RED aquí"
+		"las" "Spawn RED aquí"
 	}
 	"DB Set Blu"
 	{
-		"en" "Place BLU spawn at my feet"
-		"es" "Colocar spawn BLU a mis pies"
-		"las" "Colocar spawn BLU a mis pies"
+		"en" "BLU spawn here"
+		"es" "Spawn BLU aquí"
+		"las" "Spawn BLU aquí"
 	}
 	"DB Set Rocket"
 	{
-		"en" "Place rocket spawn..."
-		"es" "Colocar spawn del cohete..."
-		"las" "Colocar spawn del cohete..."
+		"en" "Rocket"
+		"es" "Cohete"
+		"las" "Cohete"
 	}
 	"DB Arena"
 	{
-		"en" "Arena center / barriers"
-		"es" "Centro de la zona / barreras"
-		"las" "Centro de la zona / barreras"
+		"en" "Arena"
+		"es" "Zona"
+		"las" "Zona"
 	}
 	"DB Rocket Title"
 	{
@@ -57,21 +57,21 @@
 	}
 	"DB Rocket Ceiling"
 	{
-		"en" "At the ceiling above me"
-		"es" "En el techo sobre mí"
-		"las" "En el techo sobre mí"
+		"en" "Ceiling"
+		"es" "Techo"
+		"las" "Techo"
 	}
 	"DB Rocket Eyes"
 	{
-		"en" "At my current eye position"
-		"es" "En mi posición actual (ojos)"
-		"las" "En mi posición actual (ojos)"
+		"en" "Eyes"
+		"es" "Ojos"
+		"las" "Ojos"
 	}
 	"DB Set Center"
 	{
-		"en" "Place arena center / bottom at my feet"
-		"es" "Colocar centro / fondo de la zona a mis pies"
-		"las" "Colocar centro / fondo de la zona a mis pies"
+		"en" "Center here"
+		"es" "Centro aquí"
+		"las" "Centro aquí"
 	}
 	"DB Increase"
 	{
@@ -94,15 +94,21 @@
 	"DB Radius"
 	{
 		"#format" "{1:.0f}"
-		"en" "Current range: {1} units"
-		"es" "Rango actual: {1} unidades"
-		"las" "Rango actual: {1} unidades"
+		"en" "Range: {1}"
+		"es" "Rango: {1}"
+		"las" "Rango: {1}"
 	}
 	"DB Preview Legend"
 	{
-		"en" "DODGEBALL PREVIEW (only you)\nRed: RED spawn | Blue: BLU spawn\nYellow: rocket | Green: center / bottom\nAmber: arena barriers"
-		"es" "VISTA PREVIA DODGEBALL (solo tú)\nRojo: spawn RED | Azul: spawn BLU\nAmarillo: cohete | Verde: centro / fondo\nÁmbar: barreras de la zona"
-		"las" "VISTA PREVIA DODGEBALL (solo tú)\nRojo: spawn RED | Azul: spawn BLU\nAmarillo: cohete | Verde: centro / fondo\nÁmbar: barreras de la zona"
+		"en" "RED: red · BLU: blue\nRocket: yellow · Center: green\nBarriers: amber"
+		"es" "RED: rojo · BLU: azul\nCohete: amarillo · Centro: verde\nBarreras: ámbar"
+		"las" "RED: rojo · BLU: azul\nCohete: amarillo · Centro: verde\nBarreras: ámbar"
+	}
+	"DB Read Only"
+	{
+		"en" "Read-only"
+		"es" "Solo lectura"
+		"las" "Solo lectura"
 	}
 	"DB Saved"
 	{
@@ -314,24 +320,34 @@
 
 	"Admin Menu Pick Wish"
 	{
-		"en"		"Pick wish (admin)"
-		"es"		"Elegir deseo (admin)"
-		"las"		"Elegir deseo (admin)"
-		"de"		"Wunsch wählen (Admin)"
-		"fr"		"Choisir un souhait (admin)"
-		"pt"		"Escolher desejo (admin)"
-		"ru"		"Выбрать желание (админ)"
+		"en"		"Pick wish"
+		"es"		"Elegir deseo"
+		"las"		"Elegir deseo"
+		"de"		"Wunsch wählen"
+		"fr"		"Choisir un souhait"
+		"pt"		"Escolher desejo"
+		"ru"		"Выбрать желание"
 	}
 
 	"Admin Menu Guard Ban"
 	{
-		"en"		"Ban from guards (BLU)"
-		"es"		"Banear del equipo azul (guardias)"
-		"las"		"Banear del equipo azul (guardias)"
-		"de"		"Von Wachen bannen (BLU)"
-		"fr"		"Bannir des gardes (BLU)"
-		"pt"		"Banir dos guardas (BLU)"
-		"ru"		"Забанить в охране (BLU)"
+		"en"		"Guard ban"
+		"es"		"Ban de guardias"
+		"las"		"Ban de guardias"
+		"de"		"Wachen-Bann"
+		"fr"		"Ban des gardes"
+		"pt"		"Ban de guardas"
+		"ru"		"Бан охраны"
+	}
+	"Admin Guard Ban Title"
+	{
+		"en"		"Guard ban · Permanent"
+		"es"		"Ban de guardias · Permanente"
+		"las"		"Ban de guardias · Permanente"
+		"de"		"Wachen-Bann · Permanent"
+		"fr"		"Ban des gardes · Permanent"
+		"pt"		"Ban de guardas · Permanente"
+		"ru"		"Бан охраны · Навсегда"
 	}
 
 	"Admin Menu Give Boost"
@@ -358,13 +374,13 @@
 
 	"Admin Menu Reload Doors"
 	{
-		"en"		"Reload door config"
-		"es"		"Recargar config de puertas"
-		"las"		"Recargar config de puertas"
-		"de"		"Tür-Config neu laden"
-		"fr"		"Recharger la config des portes"
-		"pt"		"Recarregar config de portas"
-		"ru"		"Перезагрузить конфиг дверей"
+		"en"		"Reload config"
+		"es"		"Recargar config"
+		"las"		"Recargar config"
+		"de"		"Config neu laden"
+		"fr"		"Recharger la config"
+		"pt"		"Recarregar config"
+		"ru"		"Перезагрузить конфиг"
 	}
 
 	"Admin Menu List Doors"
@@ -392,25 +408,25 @@
 	"Admin Boost Give Title"
 	{
 		"#format"	"{1:N},{2:d}"
-		"en"		"Give points to {1} (has {2})"
-		"es"		"Dar puntos a {1} (tiene {2})"
-		"las"		"Dar puntos a {1} (tiene {2})"
-		"de"		"Punkte an {1} geben (hat {2})"
-		"fr"		"Donner des points à {1} (a {2})"
-		"pt"		"Dar pontos a {1} (tem {2})"
-		"ru"		"Выдать очки {1} (есть {2})"
+		"en"		"Give points\n{1} · {2}"
+		"es"		"Dar puntos\n{1} · {2}"
+		"las"		"Dar puntos\n{1} · {2}"
+		"de"		"Punkte geben\n{1} · {2}"
+		"fr"		"Donner des points\n{1} · {2}"
+		"pt"		"Dar pontos\n{1} · {2}"
+		"ru"		"Выдать очки\n{1} · {2}"
 	}
 
 	"Admin Boost Take Title"
 	{
 		"#format"	"{1:N},{2:d}"
-		"en"		"Take points from {1} (has {2})"
-		"es"		"Quitar puntos a {1} (tiene {2})"
-		"las"		"Quitar puntos a {1} (tiene {2})"
-		"de"		"Punkte von {1} nehmen (hat {2})"
-		"fr"		"Retirer des points à {1} (a {2})"
-		"pt"		"Retirar pontos de {1} (tem {2})"
-		"ru"		"Забрать очки у {1} (есть {2})"
+		"en"		"Take points\n{1} · {2}"
+		"es"		"Quitar puntos\n{1} · {2}"
+		"las"		"Quitar puntos\n{1} · {2}"
+		"de"		"Punkte nehmen\n{1} · {2}"
+		"fr"		"Retirer des points\n{1} · {2}"
+		"pt"		"Retirar pontos\n{1} · {2}"
+		"ru"		"Забрать очки\n{1} · {2}"
 	}
 
 	"Admin Boost Give N"

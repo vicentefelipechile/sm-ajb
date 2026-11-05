@@ -2,43 +2,64 @@
 {
 	"Warden Menu Mutes"
 	{
-		"en" "Voice / mutes"
-		"es" "Voz / mutes"
-		"las" "Voz / mutes"
+		"en" "Voice"
+		"es" "Voz"
+		"las" "Voz"
 	}
 	"Warden Mutes Title"
 	{
-		"en" "Round voice control"
-		"es" "Control de voz de la ronda"
-		"las" "Control de voz de la ronda"
+		"en" "Voice"
+		"es" "Voz"
+		"las" "Voz"
+	}
+	"Warden Mutes Player Title"
+	{
+		"#format" "{1:N},{2:s}"
+		"en" "{1}\nVoice · This round\n{2}"
+		"es" "{1}\nVoz · Esta ronda\n{2}"
+		"las" "{1}\nVoz · Esta ronda\n{2}"
 	}
 	"Warden Mutes Mute"
 	{
-		"#format" "{1:N}"
-		"en" "Mute {1}"
-		"es" "Mutear a {1}"
-		"las" "Mutear a {1}"
+		"en" "Mute"
+		"es" "Mutear"
+		"las" "Mutear"
 	}
 	"Warden Mutes Unmute"
 	{
-		"#format" "{1:N}"
-		"en" "Unmute {1}"
-		"es" "Desmutear a {1}"
-		"las" "Desmutear a {1}"
+		"en" "Unmute"
+		"es" "Desmutear"
+		"las" "Desmutear"
 	}
-	"Warden Mutes Mute Dead"
+	"Warden Mutes Status Muted"
 	{
-		"#format" "{1:N}"
-		"en" "Mute {1} on revive (dead)"
-		"es" "Mutear a {1} al revivir (muerto)"
-		"las" "Mutear a {1} al revivir (muerto)"
+		"en" "Muted"
+		"es" "Muteado"
+		"las" "Muteado"
 	}
-	"Warden Mutes Unmute Dead"
+	"Warden Mutes Status Clear"
 	{
-		"#format" "{1:N}"
-		"en" "Clear revive mute: {1} (dead)"
-		"es" "Quitar mute al revivir: {1} (muerto)"
-		"las" "Quitar mute al revivir: {1} (muerto)"
+		"en" "Unmuted"
+		"es" "Sin mute"
+		"las" "Sin mute"
+	}
+	"Warden Mutes Status Dead Muted"
+	{
+		"en" "Dead · Muted on revive"
+		"es" "Muerto · Mute al revivir"
+		"las" "Muerto · Mute al revivir"
+	}
+	"Warden Mutes Status Dead Clear"
+	{
+		"en" "Dead · Unmuted on revive"
+		"es" "Muerto · Sin mute al revivir"
+		"las" "Muerto · Sin mute al revivir"
+	}
+	"Warden Mutes Status Admin"
+	{
+		"en" "Admin · Exempt"
+		"es" "Admin · Exento"
+		"las" "Admin · Exento"
 	}
 	"Warden Mutes Admin Exempt"
 	{
@@ -371,24 +392,24 @@
 
 	"Warden Menu Vote YesNo"
 	{
-		"en"		"Create Yes / No vote"
-		"es"		"Crear votación Sí / No"
-		"las"		"Crear votación Sí / No"
-		"de"		"Ja / Nein-Abstimmung erstellen"
-		"fr"		"Créer un vote Oui / Non"
-		"pt"		"Criar votação Sim / Não"
-		"ru"		"Создать голосование Да / Нет"
+		"en"		"Yes / No vote"
+		"es"		"Votación Sí / No"
+		"las"		"Votación Sí / No"
+		"de"		"Ja / Nein-Abstimmung"
+		"fr"		"Vote Oui / Non"
+		"pt"		"Votação Sim / Não"
+		"ru"		"Голосование Да / Нет"
 	}
 
 	"Warden Menu Vote Multi"
 	{
-		"en"		"Create multiple-choice vote"
-		"es"		"Crear votación de selección múltiple"
-		"las"		"Crear votación de selección múltiple"
-		"de"		"Auswahl-Abstimmung erstellen"
-		"fr"		"Créer un vote à choix multiples"
-		"pt"		"Criar votação de múltipla escolha"
-		"ru"		"Создать голосование с выбором"
+		"en"		"Multiple-choice vote"
+		"es"		"Votación múltiple"
+		"las"		"Votación múltiple"
+		"de"		"Auswahl-Abstimmung"
+		"fr"		"Vote à choix multiples"
+		"pt"		"Votação múltipla"
+		"ru"		"Голосование с выбором"
 	}
 
 	// Text shown floating on the map annotation (no prefix — it is a world callout).
@@ -491,13 +512,13 @@
 
 	"Warden Vote Audience Title"
 	{
-		"en"		"Select Vote Target Group:"
-		"es"		"Selecciona el grupo a votar:"
-		"las"		"Selecciona el grupo a votar:"
-		"de"		"Wähle die Zielgruppe für die Abstimmung:"
-		"fr"		"Sélectionnez le groupe cible :"
-		"pt"		"Selecione o grupo-alvo da votação:"
-		"ru"		"Выберите целевую группу голосования:"
+		"en"		"Voters"
+		"es"		"Votantes"
+		"las"		"Votantes"
+		"de"		"Abstimmende"
+		"fr"		"Votants"
+		"pt"		"Votantes"
+		"ru"		"Участники голосования"
 	}
 
 	"Warden Vote Target REDs"
@@ -903,24 +924,24 @@
 
 	"Warden Resign Confirm Yes"
 	{
-		"en"		"Yes, resign"
-		"es"		"Sí, renunciar"
-		"las"		"Sí, renunciar"
-		"de"		"Ja, abgeben"
-		"fr"		"Oui, abandonner"
-		"pt"		"Sim, renunciar"
-		"ru"		"Да, снять"
+		"en"		"Resign"
+		"es"		"Renunciar"
+		"las"		"Renunciar"
+		"de"		"Abgeben"
+		"fr"		"Abandonner"
+		"pt"		"Renunciar"
+		"ru"		"Снять"
 	}
 
 	"Warden Resign Confirm No"
 	{
-		"en"		"No, go back"
-		"es"		"No, volver"
-		"las"		"No, volver"
-		"de"		"Nein, zurück"
-		"fr"		"Non, retour"
-		"pt"		"Não, voltar"
-		"ru"		"Нет, назад"
+		"en"		"Cancel"
+		"es"		"Cancelar"
+		"las"		"Cancelar"
+		"de"		"Abbrechen"
+		"fr"		"Annuler"
+		"pt"		"Cancelar"
+		"ru"		"Отмена"
 	}
 
 	"No Cell Access"
@@ -1148,35 +1169,35 @@
 	"Freekill Menu Title"
 	{
 		"#format"	"{1:s},{2:d}"
-		"en"		"Mass freekill by {1} ({2} prisoners)"
-		"es"		"Freekill masivo de {1} ({2} prisioneros)"
-		"las"		"Freekill masivo de {1} ({2} prisioneros)"
-		"de"		"Massen-Freekill durch {1} ({2} Gefangene)"
-		"fr"		"Freekill de masse par {1} ({2} prisonniers)"
-		"pt"		"Freekill em massa de {1} ({2} prisioneiros)"
-		"ru"		"Масс-фрикилл от {1} ({2} заключённых)"
+		"en"		"Freekill\n{1} · {2} prisoners"
+		"es"		"Freekill\n{1} · {2} prisioneros"
+		"las"		"Freekill\n{1} · {2} prisioneros"
+		"de"		"Freekill\n{1} · {2} Gefangene"
+		"fr"		"Freekill\n{1} · {2} prisonniers"
+		"pt"		"Freekill\n{1} · {2} prisioneiros"
+		"ru"		"Фрикилл\n{1} · {2} заключённых"
 	}
 
 	"Freekill Menu Punish"
 	{
-		"en"		"Punish (slay the guard)"
-		"es"		"Castigar (matar al guardia)"
-		"las"		"Castigar (matar al guardia)"
-		"de"		"Bestrafen (Wache töten)"
-		"fr"		"Punir (tuer le garde)"
-		"pt"		"Punir (matar o guarda)"
-		"ru"		"Наказать (убить охранника)"
+		"en"		"Slay guard"
+		"es"		"Matar guardia"
+		"las"		"Matar guardia"
+		"de"		"Wache töten"
+		"fr"		"Tuer le garde"
+		"pt"		"Matar guarda"
+		"ru"		"Убить охранника"
 	}
 
 	"Freekill Menu Dismiss"
 	{
-		"en"		"Dismiss (false positive)"
-		"es"		"Descartar (falso positivo)"
-		"las"		"Descartar (falso positivo)"
-		"de"		"Verwerfen (Fehlalarm)"
-		"fr"		"Rejeter (faux positif)"
-		"pt"		"Descartar (falso positivo)"
-		"ru"		"Отклонить (ложное срабатывание)"
+		"en"		"Dismiss"
+		"es"		"Descartar"
+		"las"		"Descartar"
+		"de"		"Verwerfen"
+		"fr"		"Rejeter"
+		"pt"		"Descartar"
+		"ru"		"Отклонить"
 	}
 
 	// {1}=prefix, {2}=culprit name, {3}=judge name

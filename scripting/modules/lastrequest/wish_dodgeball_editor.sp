@@ -186,7 +186,7 @@ void AJB_LR_DB_ShowEditor(int client, int page = 0)
 	}
 	if (g_bDodgeball)
 	{
-		Format(line, sizeof(line), "%T", "DB Round Active", client);
+		Format(line, sizeof(line), "%T", "DB Read Only", client);
 		menu.AddItem("", line, ITEMDRAW_DISABLED);
 	}
 	menu.ExitBackButton = true;

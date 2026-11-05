@@ -78,13 +78,13 @@ void AJB_LR_HG_ClassOptionLabel(int client, char[] buffer, int maxlen)
 {
 	if (g_bHGDraftClassRandom)
 	{
-		Format(buffer, maxlen, "%T", "LR HG Class Random", client);
+		Format(buffer, maxlen, "%T", "LR HG Menu Class Random", client);
 		return;
 	}
 
 	if (g_HGDraftClass == TFClass_Unknown)
 	{
-		Format(buffer, maxlen, "%T", "LR HG Class Any", client);
+		Format(buffer, maxlen, "%T", "LR HG Menu Class Any", client);
 		return;
 	}
 
@@ -161,9 +161,9 @@ void AJB_LR_ShowHungerGamesClassMenu(int prisoner)
 	Format(title, sizeof(title), "%T", "LR HG Class Title", prisoner);
 	menu.SetTitle(title);
 
-	Format(line, sizeof(line), "%T", "LR HG Class Any", prisoner);
+	Format(line, sizeof(line), "%T", "LR HG Menu Class Any", prisoner);
 	menu.AddItem("any", line);
-	Format(line, sizeof(line), "%T", "LR HG Class Random", prisoner);
+	Format(line, sizeof(line), "%T", "LR HG Menu Class Random", prisoner);
 	menu.AddItem("random", line);
 
 	static const TFClassType kClasses[] = {

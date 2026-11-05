@@ -28,6 +28,7 @@ bool g_bWasAlive[MAXPLAYERS + 1];
 int g_iLastFlags[MAXPLAYERS + 1];
 int g_iMuteRevision;
 int g_iMenuRevision[MAXPLAYERS + 1];
+int g_iPlayerMenuPosition[MAXPLAYERS + 1];
 Handle g_hLifeWatch;
 Handle g_hVoiceRefresh;
 ListenOverride g_LastVoice[MAXPLAYERS + 1][MAXPLAYERS + 1];
@@ -168,22 +169,40 @@ void AJB_Mutes_ShowMenu(int client, int position = 0)
 		{
 			continue;
 		}
-		char info[12], line[160];
+		char info[12], name[MAX_NAME_LENGTH];
 		IntToString(GetClientUserId(i), info, sizeof(info));
-		char phrase[40] = "Warden Mutes Mute";
-		if (!IsPlayerAlive(i))
-		{
-			strcopy(phrase, sizeof(phrase), g_bWardenMuted[i] ? "Warden Mutes Unmute Dead" : "Warden Mutes Mute Dead");
-		}
-		else if (g_bWardenMuted[i])
-		{
-			strcopy(phrase, sizeof(phrase), "Warden Mutes Unmute");
-		}
-		Format(line, sizeof(line), "%T", phrase, client, i);
-		menu.AddItem(info, line);
+		GetClientName(i, name, sizeof(name));
+		menu.AddItem(info, name);
 	}
 	menu.ExitBackButton = true;
 	menu.DisplayAt(client, position, MENU_TIME_FOREVER);
+}
+
+void AJB_Mutes_ShowPlayerMenu(int client, int target)
+{
+	g_iMenuRevision[client] = g_iMuteRevision;
+	bool exempt = AJB_Voice_IsAdmin(GetUserFlagBits(target));
+	char status[64];
+	if (exempt) Format(status, sizeof(status), "%T", "Warden Mutes Status Admin", client);
+	else if (!IsPlayerAlive(target))
+	{
+		Format(status, sizeof(status), "%T", g_bWardenMuted[target]
+			? "Warden Mutes Status Dead Muted" : "Warden Mutes Status Dead Clear", client);
+	}
+	else Format(status, sizeof(status), "%T", g_bWardenMuted[target]
+		? "Warden Mutes Status Muted" : "Warden Mutes Status Clear", client);
+
+	Menu menu = new Menu(MenuHandler_MutePlayer);
+	menu.SetTitle("%T", "Warden Mutes Player Title", client, target, status);
+	char info[16], line[64];
+	Format(info, sizeof(info), "%d:1", GetClientUserId(target));
+	Format(line, sizeof(line), "%T", "Warden Mutes Mute", client);
+	menu.AddItem(info, line, exempt || g_bWardenMuted[target] ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+	Format(info, sizeof(info), "%d:0", GetClientUserId(target));
+	Format(line, sizeof(line), "%T", "Warden Mutes Unmute", client);
+	menu.AddItem(info, line, exempt || !g_bWardenMuted[target] ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 // =========================================================================================================
@@ -417,10 +436,56 @@ public int MenuHandler_Mutes(Menu menu, MenuAction action, int client, int item)
 	}
 	else
 	{
-		g_bWardenMuted[target] = !g_bWardenMuted[target];
-		AJB_Voice_DoRefreshAll();
-		AJB_ChatAll2N(g_bWardenMuted[target] ? "Warden Mutes Applied" : "Warden Mutes Removed", client, target);
+		g_iPlayerMenuPosition[client] = menu.Selection;
+		AJB_Mutes_ShowPlayerMenu(client, target);
+		return 0;
 	}
 	AJB_Mutes_ShowMenu(client, menu.Selection);
+	return 0;
+}
+
+public int MenuHandler_MutePlayer(Menu menu, MenuAction action, int client, int item)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+	if (action == MenuAction_Cancel)
+	{
+		if (item == MenuCancel_ExitBack && AJB_Mutes_CanControl(client))
+		{
+			AJB_Mutes_ShowMenu(client, g_iPlayerMenuPosition[client]);
+		}
+		return 0;
+	}
+	if (action != MenuAction_Select || !AJB_Mutes_CanControl(client)) return 0;
+	if (g_iMenuRevision[client] != g_iMuteRevision)
+	{
+		AJB_Mutes_ShowMenu(client);
+		return 0;
+	}
+
+	char info[16], parts[2][12];
+	menu.GetItem(item, info, sizeof(info));
+	if (ExplodeString(info, ":", parts, sizeof(parts), sizeof(parts[])) != 2) return 0;
+	int target = GetClientOfUserId(StringToInt(parts[0]));
+	if (target == 0 || !IsClientInGame(target) || IsFakeClient(target))
+	{
+		AJB_Chat(client, "Warden Mutes Target Gone");
+	}
+	else if (AJB_Voice_IsAdmin(GetUserFlagBits(target)))
+	{
+		AJB_Chat(client, "Warden Mutes Admin Exempt");
+	}
+	else
+	{
+		g_bWardenMuted[target] = parts[1][0] == '1';
+		AJB_Voice_DoRefreshAll();
+		AJB_ChatAll2N(g_bWardenMuted[target] ? "Warden Mutes Applied" : "Warden Mutes Removed", client, target);
+		AJB_Mutes_ShowPlayerMenu(client, target);
+		return 0;
+	}
+	AJB_Mutes_ShowMenu(client, g_iPlayerMenuPosition[client]);
 	return 0;
 }

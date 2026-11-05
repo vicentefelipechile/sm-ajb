@@ -24,24 +24,24 @@
 
 	"LR Wish FF2 Missing"
 	{
-		"en"		"FF2 Boss (requires Freak Fortress 2)"
-		"es"		"Jefe FF2 (requiere Freak Fortress 2)"
-		"las"		"Jefe FF2 (requiere Freak Fortress 2)"
-		"de"		"FF2-Boss (erfordert Freak Fortress 2)"
-		"fr"		"Boss FF2 (requiert Freak Fortress 2)"
-		"pt"		"Chefe FF2 (requer Freak Fortress 2)"
-		"ru"		"Босс FF2 (требуется Freak Fortress 2)"
+		"en"		"FF2 Boss · Unavailable"
+		"es"		"Jefe FF2 · No disponible"
+		"las"		"Jefe FF2 · No disponible"
+		"de"		"FF2-Boss · Nicht verfügbar"
+		"fr"		"Boss FF2 · Indisponible"
+		"pt"		"Chefe FF2 · Indisponível"
+		"ru"		"Босс FF2 · Недоступен"
 	}
 
 	"FF2 Picker Title"
 	{
-		"en"		"FF2 Boss - pick a boss"
-		"es"		"Jefe FF2 - elige un jefe"
-		"las"		"Jefe FF2 - elige un jefe"
-		"de"		"FF2-Boss - wähle einen Boss"
-		"fr"		"Boss FF2 - choisissez un boss"
-		"pt"		"Chefe FF2 - escolha um chefe"
-		"ru"		"Босс FF2 - выберите босса"
+		"en"		"FF2 Boss"
+		"es"		"Jefe FF2"
+		"las"		"Jefe FF2"
+		"de"		"FF2-Boss"
+		"fr"		"Boss FF2"
+		"pt"		"Chefe FF2"
+		"ru"		"Босс FF2"
 	}
 
 	"LR Chose FF2"

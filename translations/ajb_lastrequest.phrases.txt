@@ -202,13 +202,13 @@
 
 	"LR Grant Menu Title"
 	{
-		"en"		"Grant Last Request — Select Prisoner"
-		"es"		"Otorgar Último Deseo — Seleccionar Prisionero"
-		"las"		"Otorgar Último Deseo — Seleccionar Prisionero"
-		"de"		"Last Request gewähren — Gefangenen auswählen"
-		"fr"		"Accorder un Last Request — Sélectionner un prisonnier"
-		"pt"		"Conceder Last Request — Selecionar Prisioneiro"
-		"ru"		"Выдать Last Request — Выберите заключённого"
+		"en"		"Grant Last Request"
+		"es"		"Dar deseo"
+		"las"		"Dar deseo"
+		"de"		"Last Request gewähren"
+		"fr"		"Accorder un Last Request"
+		"pt"		"Conceder Last Request"
+		"ru"		"Выдать Last Request"
 	}
 
 	"LR Granted By Warden"
@@ -249,13 +249,13 @@
 
 	"LR Wish Menu Title"
 	{
-		"en"		"Last Request — pick a wish"
-		"es"		"Deseo — elige"
-		"las"		"Deseo — elige"
-		"de"		"Last Request — wähle einen Wunsch"
-		"fr"		"Last Request — choisissez un souhait"
-		"pt"		"Last Request — escolha um desejo"
-		"ru"		"Last Request — выберите желание"
+		"en"		"Last Request"
+		"es"		"Deseos"
+		"las"		"Deseos"
+		"de"		"Last Request"
+		"fr"		"Last Request"
+		"pt"		"Desejos"
+		"ru"		"Желания"
 	}
 
 	"LR Aborted"
@@ -340,8 +340,8 @@
 	"LR Wish SetAllClass"
 	{
 		"en"		"Set All Class"
-		"es"		"Clase designada (Set All Class)"
-		"las"		"Clase designada (Set All Class)"
+		"es"		"Clase designada"
+		"las"		"Clase designada"
 		"de"		"Set All Class"
 		"fr"		"Set All Class"
 		"pt"		"Set All Class"
@@ -406,12 +406,12 @@
 	"LR Wish HideSeek"
 	{
 		"en"		"Hide and Seek"
-		"es"		"Escondite (Hide and Seek)"
-		"las"		"Escondite (Hide and Seek)"
-		"de"		"Verstecken (Hide and Seek)"
-		"fr"		"Cache-cache (Hide and Seek)"
-		"pt"		"Esconde-esconde (Hide and Seek)"
-		"ru"		"Прятки (Hide and Seek)"
+		"es"		"Escondite"
+		"las"		"Escondite"
+		"de"		"Verstecken"
+		"fr"		"Cache-cache"
+		"pt"		"Esconde-esconde"
+		"ru"		"Прятки"
 	}
 
 	"LR Wish HungerGames"
@@ -438,13 +438,13 @@
 
 	"LR HG Menu Title"
 	{
-		"en"		"Hunger Games — options"
-		"es"		"Hunger Games — opciones"
-		"las"		"Hunger Games — opciones"
-		"de"		"Hunger Games — Optionen"
-		"fr"		"Hunger Games — options"
-		"pt"		"Hunger Games — opções"
-		"ru"		"Hunger Games — опции"
+		"en"		"Hunger Games"
+		"es"		"Hunger Games"
+		"las"		"Hunger Games"
+		"de"		"Hunger Games"
+		"fr"		"Hunger Games"
+		"pt"		"Hunger Games"
+		"ru"		"Hunger Games"
 	}
 
 	"LR HG Opt Class"
@@ -483,13 +483,13 @@
 
 	"LR HG Opt Confirm"
 	{
-		"en"		"Confirm Hunger Games"
-		"es"		"Confirmar Hunger Games"
-		"las"		"Confirmar Hunger Games"
-		"de"		"Hunger Games bestätigen"
-		"fr"		"Confirmer Hunger Games"
-		"pt"		"Confirmar Hunger Games"
-		"ru"		"Подтвердить Hunger Games"
+		"en"		"Confirm"
+		"es"		"Confirmar"
+		"las"		"Confirmar"
+		"de"		"Bestätigen"
+		"fr"		"Confirmer"
+		"pt"		"Confirmar"
+		"ru"		"Подтвердить"
 	}
 
 	"LR HG Opt Back"
@@ -523,6 +523,28 @@
 		"fr"		"N'importe (garder la classe)"
 		"pt"		"Qualquer (manter classe)"
 		"ru"		"Любой (оставить класс)"
+	}
+
+	"LR HG Menu Class Any"
+	{
+		"en"		"Current"
+		"es"		"Actual"
+		"las"		"Actual"
+		"de"		"Aktuell"
+		"fr"		"Actuelle"
+		"pt"		"Atual"
+		"ru"		"Текущий"
+	}
+
+	"LR HG Menu Class Random"
+	{
+		"en"		"Shared random"
+		"es"		"Aleatoria común"
+		"las"		"Aleatoria común"
+		"de"		"Zufällig für alle"
+		"fr"		"Aléatoire commune"
+		"pt"		"Aleatória comum"
+		"ru"		"Случайный общий"
 	}
 
 	"LR HG Class Random"
@@ -644,13 +666,13 @@
 
 	"LR SetAllClass Menu Title"
 	{
-		"en"		"Set All Class — options"
-		"es"		"Clase designada — opciones"
-		"las"		"Clase designada — opciones"
-		"de"		"Set All Class — Optionen"
-		"fr"		"Set All Class — options"
-		"pt"		"Set All Class — opções"
-		"ru"		"Set All Class — опции"
+		"en"		"Set All Class"
+		"es"		"Clase designada"
+		"las"		"Clase designada"
+		"de"		"Set All Class"
+		"fr"		"Set All Class"
+		"pt"		"Set All Class"
+		"ru"		"Set All Class"
 	}
 
 	"LR SetAllClass Target Title"
@@ -701,13 +723,13 @@
 
 	"LR SetAllClass Opt Confirm"
 	{
-		"en"		"Confirm Set All Class"
-		"es"		"Confirmar Clase Designada"
-		"las"		"Confirmar Clase Designada"
-		"de"		"Set All Class bestätigen"
-		"fr"		"Confirmer Set All Class"
-		"pt"		"Confirmar Set All Class"
-		"ru"		"Подтвердить Set All Class"
+		"en"		"Confirm"
+		"es"		"Confirmar"
+		"las"		"Confirmar"
+		"de"		"Bestätigen"
+		"fr"		"Confirmer"
+		"pt"		"Confirmar"
+		"ru"		"Подтвердить"
 	}
 
 	"LR SetAllClass Opt Back"
@@ -1164,13 +1186,13 @@
 
 	"LR Freeday Others Confirm"
 	{
-		"en"		"Confirm selection"
-		"es"		"Confirmar selección"
-		"las"		"Confirmar selección"
-		"de"		"Auswahl bestätigen"
-		"fr"		"Confirmer la sélection"
-		"pt"		"Confirmar seleção"
-		"ru"		"Подтвердить выбор"
+		"en"		"Confirm"
+		"es"		"Confirmar"
+		"las"		"Confirmar"
+		"de"		"Bestätigen"
+		"fr"		"Confirmer"
+		"pt"		"Confirmar"
+		"ru"		"Подтвердить"
 	}
 
 	"LR Freeday Others Need One"
@@ -1199,13 +1221,13 @@
 
 	"LR Freeday Others Review Yes"
 	{
-		"en"		"Yes, confirm"
-		"es"		"Sí, confirmar"
-		"las"		"Sí, confirmar"
-		"de"		"Ja, bestätigen"
-		"fr"		"Oui, confirmer"
-		"pt"		"Sim, confirmar"
-		"ru"		"Да, подтвердить"
+		"en"		"Confirm"
+		"es"		"Confirmar"
+		"las"		"Confirmar"
+		"de"		"Bestätigen"
+		"fr"		"Confirmer"
+		"pt"		"Confirmar"
+		"ru"		"Подтвердить"
 	}
 
 	"LR Freeday Others Review No"
@@ -1348,24 +1370,24 @@
 
 	"LR CW Menu Title"
 	{
-		"en"		"Cell Wars — options"
-		"es"		"Cell Wars — opciones"
-		"las"		"Cell Wars — opciones"
-		"de"		"Cell Wars — Optionen"
-		"fr"		"Cell Wars — options"
-		"pt"		"Cell Wars — opções"
-		"ru"		"Cell Wars — опции"
+		"en"		"Cell Wars"
+		"es"		"Cell Wars"
+		"las"		"Cell Wars"
+		"de"		"Cell Wars"
+		"fr"		"Cell Wars"
+		"pt"		"Cell Wars"
+		"ru"		"Cell Wars"
 	}
 
 	"LR CW Opt Confirm"
 	{
-		"en"		"Confirm Cell Wars"
-		"es"		"Confirmar Cell Wars"
-		"las"		"Confirmar Cell Wars"
-		"de"		"Cell Wars bestätigen"
-		"fr"		"Confirmer Cell Wars"
-		"pt"		"Confirmar Cell Wars"
-		"ru"		"Подтвердить Cell Wars"
+		"en"		"Confirm"
+		"es"		"Confirmar"
+		"las"		"Confirmar"
+		"de"		"Bestätigen"
+		"fr"		"Confirmer"
+		"pt"		"Confirmar"
+		"ru"		"Подтвердить"
 	}
 
 	"LR Chose CellWars"

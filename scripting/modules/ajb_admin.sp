@@ -592,19 +592,19 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 	}
 	else if (StrEqual(info, "setw"))
 	{
-		AJB_Admin_ShowPlayerPick(client, "setw", fromTop);
+		AJB_Admin_ShowPlayerPick(client, "setw", fromTop, "Admin Menu Set Warden");
 	}
 	else if (StrEqual(info, "rebel"))
 	{
-		AJB_Admin_ShowPlayerPick(client, "rebel", fromTop);
+		AJB_Admin_ShowPlayerPick(client, "rebel", fromTop, "Admin Menu Toggle Rebel");
 	}
 	else if (StrEqual(info, "freeday"))
 	{
-		AJB_Admin_ShowPlayerPick(client, "freeday", fromTop);
+		AJB_Admin_ShowPlayerPick(client, "freeday", fromTop, "Admin Menu Toggle Freeday");
 	}
 	else if (StrEqual(info, "forcelr"))
 	{
-		AJB_Admin_ShowPlayerPick(client, "forcelr", fromTop);
+		AJB_Admin_ShowPlayerPick(client, "forcelr", fromTop, "Admin Menu Force LR");
 	}
 	else if (StrEqual(info, "pickwish"))
 	{
@@ -614,7 +614,7 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 	}
 	else if (StrEqual(info, "guardban"))
 	{
-		AJB_Admin_ShowPlayerPick(client, "guardban", fromTop);
+		AJB_Admin_ShowPlayerPick(client, "guardban", fromTop, "Admin Guard Ban Title");
 	}
 	else if (StrEqual(info, "giveboost"))
 	{
@@ -624,7 +624,7 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 			AJB_Admin_ReturnToCat(client, fromTop);
 			return 0;
 		}
-		AJB_Admin_ShowPlayerPick(client, "giveboost", fromTop);
+		AJB_Admin_ShowPlayerPick(client, "giveboost", fromTop, "Admin Menu Give Boost");
 	}
 	else if (StrEqual(info, "takeboost"))
 	{
@@ -634,7 +634,7 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 			AJB_Admin_ReturnToCat(client, fromTop);
 			return 0;
 		}
-		AJB_Admin_ShowPlayerPick(client, "takeboost", fromTop);
+		AJB_Admin_ShowPlayerPick(client, "takeboost", fromTop, "Admin Menu Take Boost");
 	}
 	else if (StrEqual(info, "doorsr"))
 	{
@@ -650,10 +650,10 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 	return 0;
 }
 
-void AJB_Admin_ShowPlayerPick(int client, const char[] mode, bool fromAdminTopMenu)
+void AJB_Admin_ShowPlayerPick(int client, const char[] mode, bool fromAdminTopMenu, const char[] titlePhrase)
 {
 	Menu menu = new Menu(MenuHandler_PlayerPick);
-	menu.SetTitle("%T", "Admin Pick Player", client);
+	menu.SetTitle("%T", titlePhrase, client);
 
 	for (int i = 1; i <= MaxClients; i++)
 	{

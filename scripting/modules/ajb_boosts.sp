@@ -480,12 +480,6 @@ void AJB_Boosts_ShowMenu(int client)
 {
 	Menu menu = new Menu(MenuHandler_Boosts);
 
-	// Title layout:
-	//   Boosts
-	//   ------
-	//   Points: N
-	//   Spent: N
-	//   ------
 	char title[192];
 	Format(title, sizeof(title), "%T", "Boosts Menu Title", client, g_Boost[client].points, g_Boost[client].spentThisRound);
 	menu.SetTitle(title);
