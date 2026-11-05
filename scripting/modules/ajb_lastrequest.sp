@@ -21,8 +21,10 @@
 #include <ajb/lrwish>
 #include <ajb/phrases>
 #include <ajb/cellwars>
+#include <ajb/weapons>
 
 #define PLUGIN_VERSION "1.3.0"
+#define AJB_LASTREQUEST_LIBRARY "ajb_lastrequest"
 
 #define LR_SUICIDE_DELAY   5.0
 #define LR_HOT_DPS         8.0
@@ -630,6 +632,18 @@ public MRESReturn Detour_SetWinningTeam(DHookReturn hReturn, DHookParam hParams)
 	return MRES_Ignored;
 }
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	CreateNative("AJB_LR_IsZombieMode", Native_LR_IsZombieMode);
+	RegPluginLibrary(AJB_LASTREQUEST_LIBRARY);
+	return APLRes_Success;
+}
+
+public int Native_LR_IsZombieMode(Handle plugin, int numParams)
+{
+	return g_bZombieMode && AJB_LR_CanRun();
+}
+
 public void OnPluginStart()
 {
 	CreateConVar("sm_ajb_lr_version", PLUGIN_VERSION, "AJB Last Request module version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
@@ -707,6 +721,7 @@ public void OnPluginStart()
 
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
+	HookEvent("player_team", Event_ZMPlayerTeam, EventHookMode_Post);
 	HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_PostNoCopy);
 	// Pre: swallow engine auto-wins while HG is live; only g_bHGEnding ends (last standing / timeout).
 	HookEvent("teamplay_round_win", Event_RoundWinPre, EventHookMode_Pre);
@@ -969,6 +984,12 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 	if (g_bCellWars)
 	{
 		AJB_LR_CW_OnPlayerSpawn(client);
+		return;
+	}
+
+	if (g_bDodgeball)
+	{
+		RequestFrame(Frame_DBPreparePlayer, GetClientUserId(client));
 		return;
 	}
 

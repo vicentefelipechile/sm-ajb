@@ -18,6 +18,7 @@
 #undef REQUIRE_PLUGIN
 #include <ajb/ajb>
 #include <ajb/boosts>
+#include <ajb/lastrequest>
 #define REQUIRE_PLUGIN
 
 #include <ajb/phrases>
@@ -157,6 +158,31 @@ public void OnLibraryRemoved(const char[] name)
 	else if (StrEqual(name, "adminmenu"))
 	{
 		g_hAdminMenu = null;
+	}
+	else if (StrEqual(name, AJB_LASTREQUEST_LIBRARY))
+	{
+		RequestFrame(Frame_RecheckGuardBans);
+	}
+}
+
+public void AJB_OnRoundStateChange(AJBRoundState oldState, AJBRoundState newState)
+{
+	if (oldState == AJBState_SpecialDay && newState != AJBState_SpecialDay)
+	{
+		RequestFrame(Frame_RecheckGuardBans);
+	}
+}
+
+void Frame_RecheckGuardBans(any data)
+{
+	if (!g_bHasCore)
+	{
+		return;
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		AJB_EnforceGuardBan(i);
 	}
 }
 
@@ -987,13 +1013,7 @@ public void OnCacheLoaded(Database db, DBResultSet results, const char[] error, 
 	}
 
 	// Enforce against anyone already sitting on guards (e.g. late plugin load).
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && !IsFakeClient(i))
-		{
-			AJB_EnforceGuardBan(i);
-		}
-	}
+	Frame_RecheckGuardBans(0);
 }
 
 public void OnWriteDone(Database db, DBResultSet results, const char[] error, any data)
@@ -1140,7 +1160,13 @@ int AJB_ResolveSteamID64(int client, const char[] arg, char[] out, int maxlen)
 
 void AJB_EnforceGuardBan(int client)
 {
-	if (client < 1 || client > MaxClients || !IsClientInGame(client) || IsFakeClient(client))
+	if (!g_bHasCore || client < 1 || client > MaxClients || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	// The ban remains stored; BLU is a zombie role only while this wish is active.
+	if (LibraryExists(AJB_LASTREQUEST_LIBRARY) && AJB_LR_IsZombieMode())
 	{
 		return;
 	}

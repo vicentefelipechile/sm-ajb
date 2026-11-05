@@ -175,6 +175,55 @@ void Frame_ZMArmClient(int userid)
 	}
 }
 
+void Event_ZMPlayerTeam(Event event, const char[] name, bool dontBroadcast)
+{
+	if (!g_bZombieMode || g_bZMEnding || event.GetBool("disconnect"))
+	{
+		return;
+	}
+
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client) || g_bZMTeamSwap[client])
+	{
+		return;
+	}
+
+	int team = event.GetInt("team");
+	if (team == event.GetInt("oldteam"))
+	{
+		return;
+	}
+
+	// Late joiners must also return to the human side when the wish ends.
+	if (g_iZMOriginalTeam[client] == 0 && (team == AJB_GetPrisonersTeam() || team == AJB_GetGuardsTeam()))
+	{
+		g_iZMOriginalTeam[client] = AJB_GetPrisonersTeam();
+	}
+
+	g_iZMHits[client] = 0;
+	g_bZMPendingInfect[client] = false;
+	g_iZMPendingInfectBy[client] = 0;
+	AJB_LR_ZM_KillRespawnTimer(client);
+
+	if (team == AJB_GetGuardsTeam())
+	{
+		if (IsPlayerAlive(client))
+		{
+			RequestFrame(Frame_ZMArmClient, GetClientUserId(client));
+		}
+		else
+		{
+			AJB_LR_ZM_ScheduleRespawn(client);
+		}
+	}
+
+	if (!g_bZMCheckQueued)
+	{
+		g_bZMCheckQueued = true;
+		RequestFrame(Frame_ZMCheckWinner);
+	}
+}
+
 Action AJB_LR_ZM_OnTakeDamage(int victim, int attacker, float damage)
 {
 	if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients)
@@ -513,32 +562,11 @@ Action Timer_ZMGraceEnd(Handle timer)
 	}
 
 	g_bZMGrace = false;
-
-	int redTeam = AJB_GetPrisonersTeam();
-	int candidates[MAXPLAYERS];
-	int count = 0;
-	for (int i = 1; i <= MaxClients; i++)
+	Frame_ZMCheckWinner(true);
+	if (!g_bZMEnding)
 	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
-		{
-			candidates[count++] = i;
-		}
+		AJB_ChatAll("LR ZM Grace End");
 	}
-
-	if (count < 1)
-	{
-		g_bZMEnding = true;
-		AJB_ChatAll("LR ZM NoHumans");
-		if (g_bHasCore)
-		{
-			AJB_ForceTeamWin(AJB_GetGuardsTeam());
-		}
-		return Plugin_Stop;
-	}
-
-	int pick = candidates[GetRandomInt(0, count - 1)];
-	AJB_LR_ZM_Infect(pick, 0, true);
-	AJB_ChatAll("LR ZM Grace End");
 	return Plugin_Stop;
 }
 
@@ -578,7 +606,7 @@ Action Timer_ZMEnd(Handle timer)
 	return Plugin_Stop;
 }
 
-void Frame_ZMCheckWinner(any data)
+void Frame_ZMCheckWinner(any patientZero)
 {
 	g_bZMCheckQueued = false;
 
@@ -594,12 +622,26 @@ void Frame_ZMCheckWinner(any data)
 	}
 
 	int redTeam = AJB_GetPrisonersTeam();
+	int blueTeam = AJB_GetGuardsTeam();
+	int humans[MAXPLAYERS];
 	int aliveHumans = 0;
+	int zombies = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
+		if (!IsClientInGame(i) || IsFakeClient(i))
 		{
-			aliveHumans++;
+			continue;
+		}
+
+		int team = GetClientTeam(i);
+		// Dead zombies still own the role while waiting for their respawn timer.
+		if (team == blueTeam)
+		{
+			zombies++;
+		}
+		else if (team == redTeam && IsPlayerAlive(i))
+		{
+			humans[aliveHumans++] = i;
 		}
 	}
 
@@ -607,7 +649,18 @@ void Frame_ZMCheckWinner(any data)
 	{
 		g_bZMEnding = true;
 		AJB_ChatAll("LR ZM Zombies Win");
-		AJB_ForceTeamWin(AJB_GetGuardsTeam());
+		AJB_ForceTeamWin(blueTeam);
+		return;
+	}
+
+	if (zombies == 0)
+	{
+		int replacement = humans[GetRandomInt(0, aliveHumans - 1)];
+		AJB_LR_ZM_Infect(replacement, 0, patientZero != 0);
+		if (GetClientTeam(replacement) != blueTeam)
+		{
+			LogError("[AJB-LR] Failed to replace missing zombie with client %d.", replacement);
+		}
 	}
 }
 

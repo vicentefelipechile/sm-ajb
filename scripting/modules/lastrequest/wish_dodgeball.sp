@@ -5,6 +5,7 @@
 // =========================================================================================================
 
 #define DB_CFG_DIR "configs/ajb/dodgeball"
+#define DB_STOCK_FLAMETHROWER 21
 
 // Arena boundary visuals: dual rings + vertical posts so the safe radius is readable in 3D.
 #define DB_ZONE_REDRAW      0.50
@@ -369,55 +370,19 @@ void AJB_LR_DoDodgeball(int prisoner)
 void AJB_LR_ApplyDodgeball(const char[] chooser)
 {
 	g_bDodgeball = true;
-	AJB_OpenCells();
 
 	if (g_bHasCore)
 	{
-		AJB_SetRoundState(AJBState_SpecialDay);
-		AJB_ClearWarden();
+		// Combat day also cancels queued JB ratio bounces before they can respawn players at cells.
+		AJB_BeginCombatDay();
+		AJB_SetupSpecialDay();
 	}
-
-	float noVel[3];
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || !IsPlayerAlive(i))
+		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			continue;
-		}
-
-		// Teleport each player to their team's side.
-		if (AJB_IsGuard(i))
-		{
-			TeleportEntity(i, g_vecDBBluSpawn, NULL_VECTOR, noVel);
-		}
-		else
-		{
-			TeleportEntity(i, g_vecDBRedSpawn, NULL_VECTOR, noVel);
-		}
-
-		TF2_SetPlayerClass(i, TFClass_Pyro);
-		TF2_RegeneratePlayer(i);
-
-		// Phlog (594) and Dragon's Fury (1178) cannot airblast — replace with stock.
-		int primary = GetPlayerWeaponSlot(i, 0);
-		if (primary != -1)
-		{
-			int defIdx = GetEntProp(primary, Prop_Send, "m_iItemDefinitionIndex");
-			if (defIdx == 594 || defIdx == 1178)
-			{
-				TF2_RemoveWeaponSlot(i, 0);
-				primary = GivePlayerItem(i, "tf_weapon_flamethrower");
-			}
-		}
-
-		TF2_RemoveWeaponSlot(i, 1); // Remove Secondary
-		TF2_RemoveWeaponSlot(i, 2); // Remove Melee
-
-		primary = GetPlayerWeaponSlot(i, 0);
-		if (primary != -1)
-		{
-			SetEntPropEnt(i, Prop_Send, "m_hActiveWeapon", primary);
+			RequestFrame(Frame_DBPreparePlayer, GetClientUserId(i));
 		}
 	}
 
@@ -443,6 +408,55 @@ void AJB_LR_ApplyDodgeball(const char[] chooser)
 	CreateTimer(3.0, Timer_DBSpawnRocket, _, TIMER_FLAG_NO_MAPCHANGE);
 
 	AJB_LR_ChatAllQueuedApplied(chooser, "LR Applied Dodgeball");
+}
+
+void Frame_DBPreparePlayer(int userid)
+{
+	if (!g_bDodgeball || !AJB_LR_CanRun())
+	{
+		return;
+	}
+
+	int client = GetClientOfUserId(userid);
+	if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client) || GetClientTeam(client) < AJB_TEAM_RED)
+	{
+		return;
+	}
+
+	TF2_SetPlayerClass(client, TFClass_Pyro);
+	TF2_RegeneratePlayer(client);
+
+	// Regeneration and respawns must finish before the arena teleport.
+	float noVel[3];
+	if (AJB_IsGuard(client))
+	{
+		TeleportEntity(client, g_vecDBBluSpawn, NULL_VECTOR, noVel);
+	}
+	else
+	{
+		TeleportEntity(client, g_vecDBRedSpawn, NULL_VECTOR, noVel);
+	}
+
+	int primary = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
+	int defIndex = primary != -1 ? GetEntProp(primary, Prop_Send, "m_iItemDefinitionIndex") : -1;
+	// Phlog and Dragon's Fury cannot airblast; a missing primary needs the same fallback.
+	if (primary == -1 || defIndex == 594 || defIndex == 1178)
+	{
+		TF2_RemoveWeaponSlot(client, TFWeaponSlot_Primary);
+		primary = AJB_GiveStockWeapon(client, "tf_weapon_flamethrower", DB_STOCK_FLAMETHROWER);
+	}
+
+	// Verify the fallback really equipped before stripping the player's remaining weapons.
+	if (primary == -1 || GetPlayerWeaponSlot(client, TFWeaponSlot_Primary) != primary)
+	{
+		LogError("[AJB-LR] Dodgeball primary equip failed for client %d.", client);
+		return;
+	}
+
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Secondary);
+	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Melee);
+	SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", primary);
+	SetEntProp(client, Prop_Send, "m_iAmmo", 200, _, 1);
 }
 
 // ---------------------------------------------------------------------------------------------------------

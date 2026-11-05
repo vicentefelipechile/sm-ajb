@@ -94,6 +94,23 @@ git push origin v1.2.4
 | `plugins/ajb_ff2.smx` | FF2 Boss wish (optional; needs Freak Fortress 2 installed on the server) |
 | `plugins/ajb_dummy.smx` | API smoke test (optional) |
 
+## Zombie Mode team changes
+
+After the infection grace period, losing the last connected zombie automatically infects a random
+living RED human. Dead BLU zombies waiting to respawn still count, so killing one does not infect
+an extra human. Joining BLU during this wish gives the zombie loadout and normal zombie respawn.
+AJB guard bans remain stored but do not block the zombie role; enforcement resumes when the wish ends.
+
+Regression check on a TF2 test server with three human clients:
+
+1. Start Zombie Mode, wait for Patient Zero, then disconnect that zombie: one living RED must become BLU.
+2. Kill the only zombie instead: no extra RED converts, and the zombie respawns after the configured delay.
+3. Move the only zombie to Spectator: a living RED must replace them without waiting for a death.
+4. Guard-ban a RED, then have them join BLU: they must respawn as a melee zombie and remain on BLU.
+5. Repeat the BLU join during grace: its end must not infect an extra human if a zombie already exists.
+6. End the wish or unload Last Request: the ban must still prevent that player from playing as a guard.
+7. Leave no living humans: zombies must win instead of attempting to select from an empty list.
+
 ## Voice channels and warden mutes
 
 Open **Voice / mutes** from the warden menu or use `sm_ajb_mutes`. Only the current,
