@@ -17,6 +17,10 @@
 
 bool g_bDB1v1Mode;
 float g_fDBArenaRadiusSq;
+bool g_bDBRedSet;
+bool g_bDBBluSet;
+bool g_bDBRocketSet;
+bool g_bDBCenterSet;
 
 // Precomputed arena post geometry (12 posts × bottom/top/mid) so the 0.5s redraw
 // never recomputes sine/cosine — only the TE setup + send remains per tick.
@@ -142,7 +146,7 @@ Action Timer_DBZoneVisual(Handle timer)
 	return Plugin_Continue;
 }
 
-void AJB_LR_DB_DrawZone()
+void AJB_LR_DB_DrawZone(int client = 0)
 {
 	if (g_iDBBeam <= 0 || !g_bDBZoneCached)
 	{
@@ -170,7 +174,8 @@ void AJB_LR_DB_DrawZone()
 			0.0,
 			color,
 			10);
-		TE_SendToAll();
+		if (client > 0) TE_SendToClient(client);
+		else TE_SendToAll();
 
 		// Horizontal bottom beam
 		TE_SetupBeamPoints(
@@ -186,7 +191,8 @@ void AJB_LR_DB_DrawZone()
 			0.0,
 			color,
 			10);
-		TE_SendToAll();
+		if (client > 0) TE_SendToClient(client);
+		else TE_SendToAll();
 
 		// Horizontal middle beam
 		TE_SetupBeamPoints(
@@ -202,7 +208,8 @@ void AJB_LR_DB_DrawZone()
 			0.0,
 			color,
 			10);
-		TE_SendToAll();
+		if (client > 0) TE_SendToClient(client);
+		else TE_SendToAll();
 
 		// Horizontal top beam
 		TE_SetupBeamPoints(
@@ -218,7 +225,8 @@ void AJB_LR_DB_DrawZone()
 			0.0,
 			color,
 			10);
-		TE_SendToAll();
+		if (client > 0) TE_SendToClient(client);
+		else TE_SendToAll();
 	}
 }
 
@@ -242,81 +250,100 @@ public Action Cmd_SetDBSpawn(int client, int args)
 
 	char arg[32];
 	GetCmdArg(1, arg, sizeof(arg));
-
-	float origin[3];
-	GetClientAbsOrigin(client, origin);
-
-	char map[64];
-	GetCurrentMap(map, sizeof(map));
-
-	char path[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, path, sizeof(path), "%s/%s.cfg", DB_CFG_DIR, map);
-
-	KeyValues kv = new KeyValues("DodgeballMap");
-	if (FileExists(path))
-	{
-		kv.ImportFromFile(path);
-	}
-
-	if (StrEqual(arg, "red", false))
-	{
-		kv.SetVector("red", origin);
-		g_vecDBRedSpawn = origin;
-		ReplyToCommand(client, "Set RED Dodgeball spawn to %.1f %.1f %.1f", origin[0], origin[1], origin[2]);
-	}
-	else if (StrEqual(arg, "blu", false))
-	{
-		kv.SetVector("blu", origin);
-		g_vecDBBluSpawn = origin;
-		ReplyToCommand(client, "Set BLU Dodgeball spawn to %.1f %.1f %.1f", origin[0], origin[1], origin[2]);
-	}
-	else if (StrEqual(arg, "rocket", false))
-	{
-		kv.SetVector("rocket", origin);
-		g_vecDBRocketSpawn = origin;
-		ReplyToCommand(client, "Set Rocket spawn to %.1f %.1f %.1f", origin[0], origin[1], origin[2]);
-	}
-	else if (StrEqual(arg, "center", false))
-	{
-		float radius = 1000.0;
-		if (args >= 2)
-		{
-			char radArg[32];
-			GetCmdArg(2, radArg, sizeof(radArg));
-			radius = StringToFloat(radArg);
-		}
-		kv.SetVector("center", origin);
-		kv.SetFloat("radius", radius);
-		g_vecDBArenaCenter = origin;
-		g_fDBArenaRadius = radius;
-		g_fDBArenaRadiusSq = radius * radius;
-		ReplyToCommand(client, "Set Arena Center to %.1f %.1f %.1f with Radius %.1f", origin[0], origin[1], origin[2], radius);
-	}
-	else
+	for (int i = 0; arg[i] != '\0'; i++) arg[i] = CharToLower(arg[i]);
+	if (!StrEqual(arg, "red") && !StrEqual(arg, "blu") && !StrEqual(arg, "rocket") && !StrEqual(arg, "center"))
 	{
 		ReplyToCommand(client, "Invalid type. Use red, blu, rocket, or center.");
-		delete kv;
 		return Plugin_Handled;
 	}
 
-	char dir[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, dir, sizeof(dir), "%s", DB_CFG_DIR);
-	if (!DirExists(dir))
+	float radius = -1.0;
+	if (StrEqual(arg, "center") && args >= 2)
 	{
-		CreateDirectory(dir, 511);
+		char radArg[32];
+		GetCmdArg(2, radArg, sizeof(radArg));
+		if (StringToFloatEx(radArg, radius) != strlen(radArg) || !AJB_DB_IsRadiusValid(radius))
+		{
+			AJB_Chat(client, "DB Invalid Radius");
+			return Plugin_Handled;
+		}
 	}
 
-	kv.Rewind();
-	kv.ExportToFile(path);
+	float origin[3];
+	GetClientAbsOrigin(client, origin);
+	if (StrEqual(arg, "rocket")) GetClientEyePosition(client, origin);
+	AJB_LR_DB_SavePoint(client, arg, origin, radius);
+	return Plugin_Handled;
+}
+
+bool AJB_LR_DB_SavePoint(int client, const char[] key, const float origin[3], float radius = -1.0)
+{
+	if (g_bDodgeball)
+	{
+		AJB_Chat(client, "DB Round Active");
+		return false;
+	}
+	if (!StrEqual(key, "radius") && !IsPlayerAlive(client))
+	{
+		AJB_Chat(client, "DB Alive Required");
+		return false;
+	}
+	if (StrEqual(key, "rocket") && !AJB_LR_DB_RocketSpaceClear(origin))
+	{
+		AJB_Chat(client, "DB Rocket Blocked");
+		return false;
+	}
+
+	char map[64], path[PLATFORM_MAX_PATH], dir[PLATFORM_MAX_PATH];
+	GetCurrentMap(map, sizeof(map));
+	BuildPath(Path_SM, path, sizeof(path), "%s/%s.cfg", DB_CFG_DIR, map);
+	BuildPath(Path_SM, dir, sizeof(dir), "%s", DB_CFG_DIR);
+	KeyValues kv = new KeyValues("DodgeballMap");
+	if (FileExists(path) && !kv.ImportFromFile(path))
+	{
+		LogError("[AJB-LR] Refusing to overwrite unreadable Dodgeball config: %s", path);
+		delete kv;
+		AJB_Chat(client, "DB Save Failed");
+		return false;
+	}
+
+	if (!StrEqual(key, "radius")) kv.SetVector(key, origin);
+	if (radius >= 0.0) kv.SetFloat("radius", radius);
+
+	// Replace only after a complete export so a write failure leaves the old config intact.
+	char temporary[PLATFORM_MAX_PATH];
+	Format(temporary, sizeof(temporary), "%s.tmp", path);
+	bool saved = (DirExists(dir) || CreateDirectory(dir, 511))
+		&& kv.ExportToFile(temporary) && RenameFile(path, temporary);
 	delete kv;
+	if (!saved)
+	{
+		LogError("[AJB-LR] Failed to save Dodgeball config: %s", path);
+		AJB_Chat(client, "DB Save Failed");
+		return false;
+	}
 
 	AJB_LR_DB_LoadConfig();
-	return Plugin_Handled;
+	AJB_Chat(client, "DB Saved");
+	LogAction(client, -1, "\"%L\" updated Dodgeball %s on %s (%.1f %.1f %.1f, radius %.1f)",
+		client, key, map, origin[0], origin[1], origin[2], g_fDBArenaRadius);
+	return true;
 }
 
 void AJB_LR_DB_LoadConfig()
 {
 	g_bDBMapReady = false;
+	g_bDBRedSet = false;
+	g_bDBBluSet = false;
+	g_bDBRocketSet = false;
+	g_bDBCenterSet = false;
+	g_vecDBRedSpawn = NULL_VECTOR;
+	g_vecDBBluSpawn = NULL_VECTOR;
+	g_vecDBRocketSpawn = NULL_VECTOR;
+	g_vecDBArenaCenter = NULL_VECTOR;
+	g_fDBArenaRadius = DB_RADIUS_DEFAULT;
+	g_fDBArenaRadiusSq = g_fDBArenaRadius * g_fDBArenaRadius;
+	g_bDBZoneCached = false;
 
 	char map[64];
 	GetCurrentMap(map, sizeof(map));
@@ -332,18 +359,29 @@ void AJB_LR_DB_LoadConfig()
 	KeyValues kv = new KeyValues("DodgeballMap");
 	if (kv.ImportFromFile(path))
 	{
+		g_bDBRedSet = kv.GetDataType("red") != KvData_None;
+		g_bDBBluSet = kv.GetDataType("blu") != KvData_None;
+		g_bDBRocketSet = kv.GetDataType("rocket") != KvData_None;
+		g_bDBCenterSet = kv.GetDataType("center") != KvData_None;
 		kv.GetVector("red", g_vecDBRedSpawn);
 		kv.GetVector("blu", g_vecDBBluSpawn);
 		kv.GetVector("rocket", g_vecDBRocketSpawn);
 		kv.GetVector("center", g_vecDBArenaCenter, g_vecDBRocketSpawn); // default to rocket spawn if unset
-		g_fDBArenaRadius = kv.GetFloat("radius", 1500.0);
+		g_fDBArenaRadius = kv.GetFloat("radius", DB_RADIUS_DEFAULT);
+		if (!AJB_DB_IsRadiusValid(g_fDBArenaRadius))
+		{
+			LogError("[AJB-LR] Invalid Dodgeball radius in %s; using default.", path);
+			g_fDBArenaRadius = DB_RADIUS_DEFAULT;
+		}
 		g_fDBArenaRadiusSq = g_fDBArenaRadius * g_fDBArenaRadius;
 
-		// Require all three spawn vectors to be non-zero.
-		if (GetVectorLength(g_vecDBRedSpawn) > 0.0 && GetVectorLength(g_vecDBBluSpawn) > 0.0 && GetVectorLength(g_vecDBRocketSpawn) > 0.0)
-		{
-			g_bDBMapReady = true;
-		}
+		// The map origin is a valid spawn; missing keys, not zero vectors, mean incomplete setup.
+		g_bDBMapReady = g_bDBRedSet && g_bDBBluSet && g_bDBRocketSet;
+		if (g_bDBCenterSet || g_bDBRocketSet) AJB_LR_DB_CacheZoneGeometry();
+	}
+	else
+	{
+		LogError("[AJB-LR] Failed to read Dodgeball config: %s", path);
 	}
 	delete kv;
 }
@@ -470,6 +508,7 @@ Action Timer_DBBarrierCheck(Handle timer)
 		g_hDBBarrierTimer = null;
 		return Plugin_Stop;
 	}
+	if (g_fDBArenaRadius <= 1.0) return Plugin_Continue;
 
 	float dmg = g_cvDBBarrierDamage.FloatValue;
 	for (int i = 1; i <= MaxClients; i++)
@@ -482,12 +521,7 @@ Action Timer_DBBarrierCheck(Handle timer)
 		float origin[3];
 		GetClientAbsOrigin(i, origin);
 
-		// 2D (XY) distance — the visual ring is horizontal, so ignore Z.
-		float dx = origin[0] - g_vecDBArenaCenter[0];
-		float dy = origin[1] - g_vecDBArenaCenter[1];
-		float distSq = dx * dx + dy * dy;
-
-		if (distSq > g_fDBArenaRadiusSq)
+		if (AJB_DB_IsOutsideArena(origin, g_vecDBArenaCenter, g_fDBArenaRadiusSq))
 		{
 			// Warn at most every 2s so an AFK player does not spam chat every tick.
 			if (GetGameTime() - g_fDBLastWarn[i] > 2.0)

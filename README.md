@@ -94,6 +94,29 @@ git push origin v1.2.4
 | `plugins/ajb_ff2.smx` | FF2 Boss wish (optional; needs Freak Fortress 2 installed on the server) |
 | `plugins/ajb_dummy.smx` | API smoke test (optional) |
 
+## Dodgeball visual setup
+
+Open `!ajb` → **Dodgeball setup** (admin + config access), or use `sm_ajb_db_menu`.
+The Last Request module must be loaded. No wish needs to be running.
+
+- Place RED/BLU spawns at your feet; rocket placement asks for **ceiling** or **eye position**.
+- In **Arena center / barriers**, place the center/bottom at your feet and use **Increase range** /
+  **Decrease range** (128 units per press). **No barriers** disables visuals and boundary damage;
+  increasing restores the default 1500-unit radius. Enabled menu sizes stay within 128–8192 units.
+- Colored spawn markers and the actual amber arena geometry appear automatically, only to you,
+  throughout the Dodgeball menus. Closing, backing out or replacing the menu stops the preview.
+- Each action saves to `configs/ajb/dodgeball/<map>.cfg`; incomplete setups show missing spawns.
+  Existing map configs remain compatible, including a spawn at `0 0 0`. Without an explicit center,
+  the rocket position remains the legacy center/bottom fallback.
+- Ceiling placement sweeps an 8-unit half-size hull upward to the first obstruction, including
+  grates, glass, props and moving brushes. It backs off 24 units and checks free space again.
+  An obstructed placement is refused, not traced through to an unreachable roof.
+- During a live Dodgeball round the editor is preview-only, including for already-open menus.
+
+`sm_ajb_db_setspawn <red|blu|rocket|center> [radius]` remains available; rocket placement now uses
+eye position, center without a radius keeps the existing range, and radius `0` means no barriers.
+Exports use a temporary file before replacing the saved config; unreadable configs are not overwritten.
+
 ## Zombie Mode team changes
 
 After the infection grace period, losing the last connected zombie automatically infects a random

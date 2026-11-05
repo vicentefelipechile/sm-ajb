@@ -1,5 +1,151 @@
 "Phrases"
 {
+	"DB Editor"
+	{
+		"en" "Dodgeball setup"
+		"es" "Configurar Dodgeball"
+		"las" "Configurar Dodgeball"
+	}
+	"DB Editor Title"
+	{
+		"#format" "{1:s},{2:s},{3:s}"
+		"en" "Dodgeball - automatic preview\nRED: {1} | BLU: {2} | Rocket: {3}\nWalk to a point and select. Changes save automatically."
+		"es" "Dodgeball - vista previa automática\nRED: {1} | BLU: {2} | Cohete: {3}\nMuévete al punto y selecciona. Guardado automático."
+		"las" "Dodgeball - vista previa automática\nRED: {1} | BLU: {2} | Cohete: {3}\nMuévete al punto y selecciona. Guardado automático."
+	}
+	"DB Configured"
+	{
+		"en" "OK"
+		"es" "OK"
+		"las" "OK"
+	}
+	"DB Missing"
+	{
+		"en" "missing"
+		"es" "falta"
+		"las" "falta"
+	}
+	"DB Set Red"
+	{
+		"en" "Place RED spawn at my feet"
+		"es" "Colocar spawn RED a mis pies"
+		"las" "Colocar spawn RED a mis pies"
+	}
+	"DB Set Blu"
+	{
+		"en" "Place BLU spawn at my feet"
+		"es" "Colocar spawn BLU a mis pies"
+		"las" "Colocar spawn BLU a mis pies"
+	}
+	"DB Set Rocket"
+	{
+		"en" "Place rocket spawn..."
+		"es" "Colocar spawn del cohete..."
+		"las" "Colocar spawn del cohete..."
+	}
+	"DB Arena"
+	{
+		"en" "Arena center / barriers"
+		"es" "Centro de la zona / barreras"
+		"las" "Centro de la zona / barreras"
+	}
+	"DB Rocket Title"
+	{
+		"en" "Rocket spawn"
+		"es" "Spawn del cohete"
+		"las" "Spawn del cohete"
+	}
+	"DB Rocket Ceiling"
+	{
+		"en" "At the ceiling above me"
+		"es" "En el techo sobre mí"
+		"las" "En el techo sobre mí"
+	}
+	"DB Rocket Eyes"
+	{
+		"en" "At my current eye position"
+		"es" "En mi posición actual (ojos)"
+		"las" "En mi posición actual (ojos)"
+	}
+	"DB Set Center"
+	{
+		"en" "Place arena center / bottom at my feet"
+		"es" "Colocar centro / fondo de la zona a mis pies"
+		"las" "Colocar centro / fondo de la zona a mis pies"
+	}
+	"DB Increase"
+	{
+		"en" "Increase range"
+		"es" "Aumentar rango"
+		"las" "Aumentar rango"
+	}
+	"DB Decrease"
+	{
+		"en" "Decrease range"
+		"es" "Disminuir rango"
+		"las" "Disminuir rango"
+	}
+	"DB No Barriers"
+	{
+		"en" "No barriers"
+		"es" "Sin barreras"
+		"las" "Sin barreras"
+	}
+	"DB Radius"
+	{
+		"#format" "{1:.0f}"
+		"en" "Current range: {1} units"
+		"es" "Rango actual: {1} unidades"
+		"las" "Rango actual: {1} unidades"
+	}
+	"DB Preview Legend"
+	{
+		"en" "DODGEBALL PREVIEW (only you)\nRed: RED spawn | Blue: BLU spawn\nYellow: rocket | Green: center / bottom\nAmber: arena barriers"
+		"es" "VISTA PREVIA DODGEBALL (solo tú)\nRojo: spawn RED | Azul: spawn BLU\nAmarillo: cohete | Verde: centro / fondo\nÁmbar: barreras de la zona"
+		"las" "VISTA PREVIA DODGEBALL (solo tú)\nRojo: spawn RED | Azul: spawn BLU\nAmarillo: cohete | Verde: centro / fondo\nÁmbar: barreras de la zona"
+	}
+	"DB Saved"
+	{
+		"en" "Dodgeball configuration saved."
+		"es" "Configuración de Dodgeball guardada."
+		"las" "Configuración de Dodgeball guardada."
+	}
+	"DB Save Failed"
+	{
+		"en" "Could not save Dodgeball configuration. The previous configuration was kept; check the server error log."
+		"es" "No se pudo guardar Dodgeball. Se conservó la configuración anterior; revisa el registro de errores."
+		"las" "No se pudo guardar Dodgeball. Se conservó la configuración anterior; revisa el registro de errores."
+	}
+	"DB Invalid Radius"
+	{
+		"en" "Radius must be between 0 and 8192 (0 = no barriers)."
+		"es" "El rango debe estar entre 0 y 8192 (0 = sin barreras)."
+		"las" "El rango debe estar entre 0 y 8192 (0 = sin barreras)."
+	}
+	"DB Round Active"
+	{
+		"en" "Preview only: finish the current Dodgeball round before editing."
+		"es" "Solo vista previa: termina la ronda actual de Dodgeball para editar."
+		"las" "Solo vista previa: termina la ronda actual de Dodgeball para editar."
+	}
+	"DB Rocket Blocked"
+	{
+		"en" "Not enough clear space for the rocket. Move away from walls, brushes or props."
+		"es" "No hay espacio libre para el cohete. Aléjate de paredes, brushes o props."
+		"las" "No hay espacio libre para el cohete. Aléjate de paredes, brushes o props."
+	}
+	"DB No Ceiling"
+	{
+		"en" "No safe ceiling placement above you. Move to an open spot or use eye position."
+		"es" "No hay una posición segura bajo el techo. Muévete a un lugar despejado o usa la posición de los ojos."
+		"las" "No hay una posición segura bajo el techo. Muévete a un lugar despejado o usa la posición de los ojos."
+	}
+	"DB Alive Required"
+	{
+		"en" "You must be alive to place spawn points or the arena center."
+		"es" "Debes estar vivo para colocar spawns o el centro de la zona."
+		"las" "Debes estar vivo para colocar spawns o el centro de la zona."
+	}
 	"Prefix"
 	{
 		"en"		"{green}[AJB]{default}"

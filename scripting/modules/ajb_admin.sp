@@ -387,6 +387,11 @@ void AJB_Admin_ShowMain(int client, bool fromAdminTopMenu)
 	menu.AddItem("cat:players", line);
 	Format(line, sizeof(line), "%T", "Admin Cat Doors", client);
 	menu.AddItem("cat:doors", line);
+	Format(line, sizeof(line), "%T", "DB Editor", client);
+	bool canEditDB = LibraryExists(AJB_LASTREQUEST_LIBRARY)
+		&& CheckCommandAccess(client, "sm_ajb_db_menu", ADMFLAG_CONFIG)
+		&& CheckCommandAccess(client, "sm_ajb_db_setspawn", ADMFLAG_CONFIG);
+	menu.AddItem("cat:dodgeball", line, canEditDB ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 	menu.ExitBackButton = fromAdminTopMenu && g_hAdminMenu != null;
 	menu.Display(client, MENU_TIME_FOREVER);
@@ -440,6 +445,10 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 	else if (StrEqual(info, "cat:doors"))
 	{
 		AJB_Admin_ShowCategory(client, "doors", fromTop);
+	}
+	else if (StrEqual(info, "cat:dodgeball") && LibraryExists(AJB_LASTREQUEST_LIBRARY))
+	{
+		FakeClientCommand(client, "sm_ajb_db_menu");
 	}
 
 	return 0;

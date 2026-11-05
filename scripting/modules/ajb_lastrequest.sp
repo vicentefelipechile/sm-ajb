@@ -21,6 +21,7 @@
 #include <ajb/lrwish>
 #include <ajb/phrases>
 #include <ajb/cellwars>
+#include <ajb/dodgeball>
 #include <ajb/weapons>
 
 #define PLUGIN_VERSION "1.3.0"
@@ -654,6 +655,7 @@ public void OnPluginStart()
 	g_cvDBBarrierDamage = CreateConVar("sm_ajb_lr_db_barrier_dmg", "20.0", "Damage per tick outside barrier");
 
 	RegAdminCmd("sm_ajb_db_setspawn", Cmd_SetDBSpawn, ADMFLAG_CONFIG, "Set DB spawn points (red, blu, rocket, center) and radius");
+	RegAdminCmd("sm_ajb_db_menu", Cmd_DBEditor, ADMFLAG_CONFIG, "Open the visual Dodgeball map editor.");
 
 	g_cvEngineFriendlyFire = FindConVar("mp_friendlyfire");
 	g_cvEngineSvTags = FindConVar("sv_tags");
@@ -727,6 +729,7 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
+	AJB_LR_DB_StopAllPreviews();
 	delete g_hWishMenuFwd;
 	g_hWishMenuFwd = null;
 	delete g_hWishSelectFwd;
@@ -743,6 +746,7 @@ public void OnPluginEnd()
 
 public void OnMapEnd()
 {
+	AJB_LR_DB_StopAllPreviews();
 	AJB_LR_Cleanup(false);
 	AJB_LR_ClearPendingWish();
 }
@@ -785,6 +789,7 @@ public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, flo
 
 public void OnClientDisconnect(int client)
 {
+	AJB_LR_DB_StopPreview(client);
 	g_bPickedFreeday[client] = false;
 	g_bHGOriginalBlu[client] = false;
 	g_bCWOriginalBlu[client] = false;
@@ -1692,3 +1697,4 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 #include "lastrequest/wish_cell_wars.sp"
 #include "lastrequest/wish_sniper.sp"
 #include "lastrequest/wish_dodgeball.sp"
+#include "lastrequest/wish_dodgeball_editor.sp"
