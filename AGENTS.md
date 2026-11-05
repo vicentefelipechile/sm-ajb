@@ -162,8 +162,9 @@ features off. `sm_ajb_ff2_status` prints a live diagnosis.
 | `ff2r` library (`freak_fortress_2.smx`) | **Blocked** | Module loads; menu item disabled (label "requires Freak Fortress 2"). Nothing else changes. |
 | Bosses precached (`FF2R_GetGamemodeType() < 1`) | **Blocked** | FF2 loaded but no charset/boss pack (e.g. `characters.cfg` missing or a map entry with `enable -1`); item disabled. |
 | Ability subplugins (`plugins/freaks/`) | **Degraded** | Boss spawns with model/weapons/health/sounds/HUD but **no rage/abilities** (they live in `ff2r_*_abilities.smx`). Chat warning on apply. |
-| `morecolors` plugin | **Degraded** | Shared AJB dependency; chat/colors degrade everywhere, not just FF2. |
 | TF2Items / TF2Attributes / TF2Utils | **Degraded** | FF2 falls back internally (fewer weapon attributes, no ability lag comp). |
+
+`morecolors.inc` is a compile-time include used by the shared phrase helpers, not a separate plugin.
 
 Server install (owner side, FF2 not shipped by AJB): New Install Package from
 `Batfoxkid/Freak-Fortress-2-Rewrite` releases → `freak_fortress_2.smx` in `plugins/`, the

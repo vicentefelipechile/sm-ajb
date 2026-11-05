@@ -24,7 +24,6 @@
 #include <ajb/weapons>
 
 #define PLUGIN_VERSION "1.3.0"
-#define AJB_LASTREQUEST_LIBRARY "ajb_lastrequest"
 
 #define LR_SUICIDE_DELAY   5.0
 #define LR_HOT_DPS         8.0
@@ -49,28 +48,6 @@
 // Built-in wish entries in the menu (0..16). Items appended beyond this index belong to
 // external plugins via the AJB_OnLRWishMenu/AJB_OnLRWishSelect hooks in ajb/lrwish.inc.
 #define LR_WISH_BUILTIN_COUNT 17
-
-enum AJB_LRWish
-{
-	LRWish_None = 0,
-	LRWish_FreedayMe,
-	LRWish_FreedayOthers,
-	LRWish_FreedayAll,
-	LRWish_WarDay,
-	LRWish_ClassWarfare,
-	LRWish_Custom,
-	LRWish_HotReds,
-	LRWish_Suicide,
-	LRWish_LowGravity,
-	LRWish_HideSeek,
-	LRWish_HungerGames,
-	LRWish_Sniper,
-	LRWish_SetAllClass,
-	LRWish_GuardMelee,
-	LRWish_ZombieMode,
-	LRWish_CellWars,
-	LRWish_Dodgeball
-};
 
 enum AJB_SetAllClassTarget
 {
@@ -241,8 +218,9 @@ int g_iFreedayMenuPage;
 // Panel keys 1..PAGE_SIZE -> userid for that row (0 = empty spacer).
 int g_iFreedaySlotUserId[LR_FREEDAY_PAGE_SIZE];
 
-// ----- Queued for NEXT round (not applied when chosen, except suicide) -----
+// ----- Round wish state (queued wishes apply next round, except instant suicide) -----
 AJB_LRWish g_PendingWish;
+AJB_LRWish g_ActiveWish;
 char g_sPendingCustom[192];
 TFClassType g_PendingClassRed;  // prisoners
 TFClassType g_PendingClassBlu;  // guards
@@ -634,14 +612,14 @@ public MRESReturn Detour_SetWinningTeam(DHookReturn hReturn, DHookParam hParams)
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	CreateNative("AJB_LR_IsZombieMode", Native_LR_IsZombieMode);
+	CreateNative("AJB_LR_GetActiveWish", Native_LR_GetActiveWish);
 	RegPluginLibrary(AJB_LASTREQUEST_LIBRARY);
 	return APLRes_Success;
 }
 
-public int Native_LR_IsZombieMode(Handle plugin, int numParams)
+public int Native_LR_GetActiveWish(Handle plugin, int numParams)
 {
-	return g_bZombieMode && AJB_LR_CanRun();
+	return AJB_LR_CanRun() ? g_ActiveWish : LRWish_None;
 }
 
 public void OnPluginStart()
@@ -1073,6 +1051,7 @@ void AJB_LR_ApplyPendingWish()
 	strcopy(chooser, sizeof(chooser), g_sPendingChooserName);
 
 	AJB_LR_ClearPendingWish();
+	g_ActiveWish = apply;
 
 	switch (apply)
 	{
@@ -1326,6 +1305,7 @@ void AJB_LR_Cleanup(bool announce)
 	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
 
 	AJB_LR_KillAllModeTimers();
+	g_ActiveWish = LRWish_None;
 
 	g_iPrisoner = 0;
 	g_bAdminForcingWish = false;

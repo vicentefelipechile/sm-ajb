@@ -354,7 +354,7 @@ Action Command_Points(int client, int args)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	ReplyToCommand(client, "%T", "Boosts Points", client, prefix, g_Boost[client].points);
+	CReplyToCommand(client, "%T", "Boosts Points", client, prefix, g_Boost[client].points);
 	return Plugin_Handled;
 }
 
@@ -413,7 +413,7 @@ Action Command_GivePoints(int client, int args)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	ReplyToCommand(client, "%T", "Boosts Admin Gave", AJB_TransTarget(client), prefix, amount, targetName);
+	CReplyToCommand(client, "%T", "Boosts Admin Gave", AJB_TransTarget(client), prefix, amount, targetName);
 	return Plugin_Handled;
 }
 

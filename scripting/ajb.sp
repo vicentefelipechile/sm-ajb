@@ -520,7 +520,7 @@ Action Command_DoorsReload(int client, int args)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	ReplyToCommand(client, "%T", "Doors Reloaded", AJB_TransTarget(client), prefix, g_iDoorNameCount);
+	CReplyToCommand(client, "%T", "Doors Reloaded", AJB_TransTarget(client), prefix, g_iDoorNameCount);
 	return Plugin_Handled;
 }
 
@@ -540,11 +540,11 @@ Action Command_GenConfig(int client, int args)
 
 	if (AJB_GenerateMapConfigStub(fileMap, true))
 	{
-		ReplyToCommand(client, "%s Generated configs/ajb/maps/%s.cfg — prune non-cell doors, then sm_ajb_doors_reload.", prefix, fileMap);
+		CReplyToCommand(client, "%s Generated configs/ajb/maps/%s.cfg — prune non-cell doors, then sm_ajb_doors_reload.", prefix, fileMap);
 	}
 	else
 	{
-		ReplyToCommand(client, "%s Failed to generate config for %s (see server log).", prefix, fileMap);
+		CReplyToCommand(client, "%s Failed to generate config for %s (see server log).", prefix, fileMap);
 	}
 	return Plugin_Handled;
 }
@@ -559,7 +559,7 @@ Action Command_DoorsList(int client, int args)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	ReplyToCommand(client, "%T", "Doors List Header", AJB_TransTarget(client), prefix, g_iDoorNameCount);
+	CReplyToCommand(client, "%T", "Doors List Header", AJB_TransTarget(client), prefix, g_iDoorNameCount);
 	for (int i = 0; i < g_iDoorNameCount; i++)
 	{
 		ReplyToCommand(client, "  [%d] %s", i + 1, g_sDoorNames[i]);

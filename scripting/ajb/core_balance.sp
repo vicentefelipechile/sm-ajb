@@ -220,6 +220,6 @@ Action Command_AjbBalance(int client, int args)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	ReplyToCommand(client, "%T", "Balance Forced", AJB_TransTarget(client), prefix, moved, AJB_MaxGuards());
+	CReplyToCommand(client, "%T", "Balance Forced", AJB_TransTarget(client), prefix, moved, AJB_MaxGuards());
 	return Plugin_Handled;
 }

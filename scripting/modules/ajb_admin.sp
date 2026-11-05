@@ -18,7 +18,7 @@
 #undef REQUIRE_PLUGIN
 #include <ajb/ajb>
 #include <ajb/boosts>
-#include <ajb/lastrequest>
+#include <ajb/lrwish>
 #define REQUIRE_PLUGIN
 
 #include <ajb/phrases>
@@ -1166,7 +1166,8 @@ void AJB_EnforceGuardBan(int client)
 	}
 
 	// The ban remains stored; BLU is a zombie role only while this wish is active.
-	if (LibraryExists(AJB_LASTREQUEST_LIBRARY) && AJB_LR_IsZombieMode())
+	if (GetFeatureStatus(FeatureType_Native, "AJB_LR_GetActiveWish") == FeatureStatus_Available
+		&& AJB_LR_GetActiveWish() == LRWish_ZombieMode)
 	{
 		return;
 	}

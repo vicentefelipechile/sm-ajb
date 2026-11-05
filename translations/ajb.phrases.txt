@@ -1376,12 +1376,12 @@
 	"Repeat Requested"
 	{
 		"#format"	"{1:s},{2:N}"
-		"en"		"{1} {2} requested the warden to {lightred}repeat{default} the last order!"
-		"es"		"{1} ¡{2} solicitó que el warden {lightred}repita{default} la última orden!"
-		"las"		"{1} ¡{2} solicitó que el warden {lightred}repita{default} la última orden!"
-		"de"		"{1} {2} hat den Warden gebeten, den letzten Befehl zu {lightred}wiederholen{default}!"
-		"fr"		"{1} {2} a demandé au warden de {lightred}répéter{default} le dernier ordre !"
-		"pt"		"{1} {2} solicitou que o warden {lightred}repita{default} a última ordem!"
-		"ru"		"{1} {2} попросил warden {lightred}повторить{default} последний приказ!"
+		"en"		"{1} {2} requested the warden to {red}repeat{default} the last order!"
+		"es"		"{1} ¡{2} solicitó que el warden {red}repita{default} la última orden!"
+		"las"		"{1} ¡{2} solicitó que el warden {red}repita{default} la última orden!"
+		"de"		"{1} {2} hat den Warden gebeten, den letzten Befehl zu {red}wiederholen{default}!"
+		"fr"		"{1} {2} a demandé au warden de {red}répéter{default} le dernier ordre !"
+		"pt"		"{1} {2} solicitou que o warden {red}repita{default} a última ordem!"
+		"ru"		"{1} {2} попросил warden {red}повторить{default} последний приказ!"
 	}
 }

@@ -18,39 +18,9 @@ stock int AJB_TransTarget(int client)
 	return (client > 0 && client <= MaxClients) ? client : LANG_SERVER;
 }
 
-// The Prefix phrase is static per language, so a broadcast loop does not need to
-// re-run a %T lookup for every recipient — cache the formatted result per language id.
-#define AJB_PREFIX_CACHE_LANGS 10
-
-static char g_sPrefixCache[AJB_PREFIX_CACHE_LANGS][64];
-static int g_iPrefixCacheLang[AJB_PREFIX_CACHE_LANGS];
-static int g_iPrefixCacheCount;
-
 stock void AJB_GetPrefix(int client, char[] buffer, int maxlength)
 {
-	int lang = (client > 0 && client <= MaxClients) ? GetClientLanguage(client) : LANG_SERVER;
-
-	for (int i = 0; i < g_iPrefixCacheCount; i++)
-	{
-		if (g_iPrefixCacheLang[i] == lang)
-		{
-			strcopy(buffer, maxlength, g_sPrefixCache[i]);
-			return;
-		}
-	}
-
-	if (g_iPrefixCacheCount < AJB_PREFIX_CACHE_LANGS)
-	{
-		int idx = g_iPrefixCacheCount++;
-		g_iPrefixCacheLang[idx] = lang;
-		Format(g_sPrefixCache[idx], sizeof(g_sPrefixCache[]), "%T", "Prefix", lang);
-		strcopy(buffer, maxlength, g_sPrefixCache[idx]);
-	}
-	else
-	{
-		// Cache full (unusual mix of client languages) — fall back to a direct lookup.
-		Format(buffer, maxlength, "%T", "Prefix", AJB_TransTarget(client));
-	}
+	Format(buffer, maxlength, "%T", "Prefix", AJB_TransTarget(client));
 }
 
 stock void AJB_Reply(int client, const char[] phrase)

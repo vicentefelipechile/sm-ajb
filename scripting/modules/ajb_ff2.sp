@@ -10,7 +10,7 @@
 // - Ability subplugins (plugins/freaks/)    -> DEGRADED: boss spawns with model/weapons/health/
 //   sounds/HUD but no rage/special abilities (those live in ff2r_default_abilities etc.). FF2 loads
 //   them automatically when a boss is created and renames them to .ff2 while idle.
-// - morecolors plugin                       -> DEGRADED: shared AJB dependency, chat loses colors.
+// - morecolors.inc is compiled into AJB; no separate morecolors plugin is required.
 // - TF2Items / TF2Attributes / TF2Utils     -> DEGRADED: FF2 falls back internally (weapons with
 //   fewer attributes, no ability lag compensation).
 // Run "sm_ajb_ff2_status" (any player) for a live diagnosis.
