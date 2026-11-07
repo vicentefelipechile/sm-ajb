@@ -6,6 +6,7 @@ TF2 jailbreak gamemode for SourceMod: warden, prisoners, rebels, Last Requests a
 
 Requires TF2 and SourceMod. Extract the release ZIP into `tf/`, preserving existing configs.
 The FF2 Boss wish additionally requires [Freak Fortress 2: Rewrite](https://github.com/Batfoxkid/Freak-Fortress-2-Rewrite/releases).
+Install [TF2Attributes](https://github.com/FlaminSarge/tf2attributes) for Dodgeball airblasts without ammo cost or player pushback.
 
 To build and deploy from `addons/sourcemod`:
 

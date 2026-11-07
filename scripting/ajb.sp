@@ -376,6 +376,7 @@ public void OnPluginEnd()
 	AJB_Collisions_ApplyPolicy();
 	AJB_FF_ApplyPolicy();
 	AJB_ApplyEngineMovementPolicy();
+	AJB_ApplyEngineCameraPolicy();
 	// Forwards last — nothing may fire after the plugin starts unloading.
 	AJB_DeleteForwards();
 }
@@ -445,6 +446,7 @@ public void OnMapEnd()
 	}
 	AJB_Collisions_ApplyPolicy();
 	AJB_FF_ApplyPolicy();
+	AJB_ApplyEngineCameraPolicy();
 	g_RoundState = AJBState_Disabled;
 }
 

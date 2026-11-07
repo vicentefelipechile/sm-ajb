@@ -7,6 +7,12 @@
 #define DB_CFG_DIR "configs/ajb/dodgeball"
 #define DB_STOCK_FLAMETHROWER 21
 
+static const char g_sDBWeaponAttributes[][] = { "airblast cost decreased", "airblast_pushback_disabled" };
+static const float g_fDBWeaponAttributeValues[] = { 0.0, 1.0 };
+static int g_iDBWeaponRef[MAXPLAYERS + 1];
+static bool g_bDBHadWeaponAttribute[MAXPLAYERS + 1][sizeof(g_sDBWeaponAttributes)];
+static float g_fDBSavedWeaponAttribute[MAXPLAYERS + 1][sizeof(g_sDBWeaponAttributes)];
+
 // Arena boundary visuals: dual rings + vertical posts so the safe radius is readable in 3D.
 #define DB_ZONE_REDRAW      0.50
 #define DB_ZONE_RING_LIFE   0.55
@@ -62,8 +68,46 @@ void AJB_LR_DB_CacheZoneGeometry()
 	g_bDBZoneCached = true;
 }
 
+void AJB_LR_DB_RestoreWeapon(int client)
+{
+	if (g_iDBWeaponRef[client] == 0)
+	{
+		return;
+	}
+
+	int weapon = EntRefToEntIndex(g_iDBWeaponRef[client]);
+	g_iDBWeaponRef[client] = 0;
+	if (weapon == INVALID_ENT_REFERENCE || !LibraryExists("tf2attributes"))
+	{
+		return;
+	}
+
+	// Preserve attributes owned by other plugins instead of removing them with the wish.
+	for (int i = 0; i < sizeof(g_sDBWeaponAttributes); i++)
+	{
+		bool restored;
+		if (g_bDBHadWeaponAttribute[client][i])
+		{
+			restored = TF2Attrib_SetByName(weapon, g_sDBWeaponAttributes[i], g_fDBSavedWeaponAttribute[client][i]);
+		}
+		else
+		{
+			restored = TF2Attrib_RemoveByName(weapon, g_sDBWeaponAttributes[i]);
+		}
+		if (!restored)
+		{
+			LogError("[AJB-LR] Failed to restore Dodgeball attribute %s on weapon %d.", g_sDBWeaponAttributes[i], weapon);
+		}
+	}
+}
+
 void AJB_LR_KillDBTimers()
 {
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		AJB_LR_DB_RestoreWeapon(i);
+	}
+
 	if (g_hDBBarrierTimer != null)
 	{
 		delete g_hDBBarrierTimer;
@@ -461,6 +505,7 @@ void Frame_DBPreparePlayer(int userid)
 		return;
 	}
 
+	AJB_LR_DB_RestoreWeapon(client);
 	TF2_SetPlayerClass(client, TFClass_Pyro);
 	TF2_RegeneratePlayer(client);
 
@@ -495,6 +540,27 @@ void Frame_DBPreparePlayer(int userid)
 	TF2_RemoveWeaponSlot(client, TFWeaponSlot_Melee);
 	SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", primary);
 	SetEntProp(client, Prop_Send, "m_iAmmo", 200, _, 1);
+
+	if (!LibraryExists("tf2attributes"))
+	{
+		LogError("[AJB-LR] Dodgeball needs TF2Attributes for free airblasts without player pushback.");
+		return;
+	}
+
+	g_iDBWeaponRef[client] = EntIndexToEntRef(primary);
+	for (int i = 0; i < sizeof(g_sDBWeaponAttributes); i++)
+	{
+		Address attribute = TF2Attrib_GetByName(primary, g_sDBWeaponAttributes[i]);
+		g_bDBHadWeaponAttribute[client][i] = attribute != Address_Null;
+		if (attribute != Address_Null)
+		{
+			g_fDBSavedWeaponAttribute[client][i] = TF2Attrib_GetValue(attribute);
+		}
+		if (!TF2Attrib_SetByName(primary, g_sDBWeaponAttributes[i], g_fDBWeaponAttributeValues[i]))
+		{
+			LogError("[AJB-LR] Failed to set Dodgeball attribute %s on weapon %d.", g_sDBWeaponAttributes[i], primary);
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------------------------------------

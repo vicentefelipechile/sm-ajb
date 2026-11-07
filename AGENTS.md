@@ -186,6 +186,11 @@ missing, `AJB_DB_Connect` falls back to the stock `storage-local` SQLite entry. 
 
 ## Dodgeball visual setup
 
+Dodgeball applies `airblast cost decreased 0` and `airblast_pushback_disabled 1` to each
+prepared flamethrower through optional TF2Attributes. Rocket deflection is unchanged;
+previous runtime attributes are restored on respawn, disconnect and wish cleanup.
+Without TF2Attributes, it logs the missing dependency and retains the ammo refill timer.
+
 Open `!ajb` → **Dodgeball**, or `sm_ajb_db_menu`. Requires admin + config access and the
 Last Request module; no wish needs to be running. The editor lives in
 `modules/lastrequest/wish_dodgeball_editor.sp`, included by `ajb_lastrequest.sp`.
@@ -273,6 +278,11 @@ The former `sm_ajb_mute_prisoners`, `sm_ajb_mute_unmute_freeday`, `sm_ajb_mute_u
 `sm_ajb_mute_deadtalk`, `sm_ajb_mute_deadtalk_crossteam` and `sm_ajb_mute_bypass_flags`
 ConVars are retired. Remove them from older `cfg/sourcemod/ajb_mutes.cfg` files; only
 `sm_ajb_mute_enabled` remains.
+
+## Spectator cameras
+
+While AJB is active, the core sets `mp_forcecamera 0` so dead players can follow either
+team. The previous value is restored when AJB is disabled, the map ends or the core unloads.
 
 ## Auto-warden
 

@@ -15,6 +15,7 @@
 #include <dhooks>
 
 #undef REQUIRE_PLUGIN
+#include <tf2attributes>
 #include <ajb/ajb>
 #define REQUIRE_PLUGIN
 
@@ -790,6 +791,7 @@ public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, flo
 public void OnClientDisconnect(int client)
 {
 	AJB_LR_DB_StopPreview(client);
+	AJB_LR_DB_RestoreWeapon(client);
 	g_bPickedFreeday[client] = false;
 	g_bHGOriginalBlu[client] = false;
 	g_bCWOriginalBlu[client] = false;

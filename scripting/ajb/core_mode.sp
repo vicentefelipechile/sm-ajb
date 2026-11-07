@@ -22,12 +22,17 @@ static int g_iSavedTeamsUnbalance = -1;
 static ConVar g_cvEngineAllTalk;
 static int g_iSavedAllTalk = -1;
 
+// Dead players must be able to follow both teams during jailbreak.
+static ConVar g_cvEngineForceCamera;
+static int g_iSavedForceCamera = -1;
+
 void AJB_ApplyEngineCvarPolicy()
 {
 	AJB_ApplyEngineMovementPolicy();
 	AJB_ApplyEngineArenaQueuePolicy();
 	AJB_ApplyEngineTeamsUnbalancePolicy();
 	AJB_ApplyEngineAllTalkPolicy();
+	AJB_ApplyEngineCameraPolicy();
 	AJB_Collisions_ApplyPolicy();
 	AJB_FF_ApplyPolicy();
 }
@@ -197,6 +202,36 @@ void AJB_ApplyEngineAllTalkPolicy()
 		g_iSavedAllTalk = -1;
 		g_cvEngineAllTalk.SetInt(restore);
 		LogMessage("[AJB] restored sv_alltalk to %d.", restore);
+	}
+}
+
+void AJB_ApplyEngineCameraPolicy()
+{
+	if (g_cvEngineForceCamera == null)
+	{
+		g_cvEngineForceCamera = FindConVar("mp_forcecamera");
+	}
+
+	if (g_cvEngineForceCamera == null)
+	{
+		LogError("[AJB] mp_forcecamera ConVar not found.");
+		return;
+	}
+
+	if (g_bModeActive)
+	{
+		if (g_iSavedForceCamera < 0)
+		{
+			g_iSavedForceCamera = g_cvEngineForceCamera.IntValue;
+		}
+
+		g_cvEngineForceCamera.SetInt(0);
+	}
+	else if (g_iSavedForceCamera >= 0)
+	{
+		int restore = g_iSavedForceCamera;
+		g_iSavedForceCamera = -1;
+		g_cvEngineForceCamera.SetInt(restore);
 	}
 }
 
