@@ -233,6 +233,62 @@
 		"ru"		"{1} Только живая охрана может стать Warden."
 	}
 
+	"Fire Warden Prisoners Only"
+	{
+		"#format" "{1:s}"
+		"en" "{1} Only prisoners can vote to fire the warden (alive or dead)."
+		"es" "{1} Solo los prisioneros pueden votar para despedir al warden (vivos o muertos)."
+		"las" "{1} Solo los prisioneros pueden votar para despedir al warden (vivos o muertos)."
+	}
+
+	"Fire Warden Unavailable"
+	{
+		"#format" "{1:s}"
+		"en" "{1} There is no active warden to fire during a live round."
+		"es" "{1} No hay un warden activo al que despedir durante una ronda en curso."
+		"las" "{1} No hay un warden activo al que despedir durante una ronda en curso."
+	}
+
+	"Fire Warden Cooldown"
+	{
+		"#format" "{1:s},{2:d}"
+		"en" "{1} Wait {2} seconds after the last successful dismissal before voting again."
+		"es" "{1} Faltan {2} segundos desde el último despido exitoso para poder votar otra vez."
+		"las" "{1} Faltan {2} segundos desde el último despido exitoso para poder votar otra vez."
+	}
+
+	"Fire Warden Already Voted"
+	{
+		"#format" "{1:s}"
+		"en" "{1} You have already voted to fire this warden."
+		"es" "{1} Ya votaste para despedir a este warden."
+		"las" "{1} Ya votaste para despedir a este warden."
+	}
+
+	"Fire Warden Vote"
+	{
+		"#format" "{1:s},{2:s},{3:d},{4:d}"
+		"en" "{1} {2} voted to fire the warden ({3}/{4}). Prisoners: use !firewarden or !firew to vote."
+		"es" "{1} {2} votó para despedir al warden ({3}/{4}). Prisioneros: usen !firewarden o !firew para votar."
+		"las" "{1} {2} votó para despedir al warden ({3}/{4}). Prisioneros: usen !firewarden o !firew para votar."
+	}
+
+	"Fire Warden Passed"
+	{
+		"#format" "{1:s},{2:N}"
+		"en" "{1} The prisoners fired {2} as warden for this round. Another guard can claim warden with !w."
+		"es" "{1} Los prisioneros despidieron a {2} como warden por esta ronda. Otro guardia puede tomar el cargo con !w."
+		"las" "{1} Los prisioneros despidieron a {2} como warden por esta ronda. Otro guardia puede tomar el cargo con !w."
+	}
+
+	"Fire Warden Claim Blocked"
+	{
+		"#format"	"{1:s}"
+		"en" "{1} A warden fired by the prisoners cannot become warden again this round."
+		"es" "{1} Un warden despedido por los prisioneros no puede volver a ser warden esta ronda."
+		"las" "{1} Un warden despedido por los prisioneros no puede volver a ser warden esta ronda."
+	}
+
 	"Warden Claim Not Now"
 	{
 		"#format"	"{1:s}"

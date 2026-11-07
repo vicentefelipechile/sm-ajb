@@ -1,5 +1,5 @@
 // =========================================================================================================
-// Guard sentries — only target/damage rebel prisoners
+// Guard sentries — automatic fire only targets/damages rebel prisoners
 //
 // Targeting:
 //   Supercede CObjectSentrygun::FindTarget while rebels-only is on.
@@ -7,11 +7,13 @@
 //   FoundTarget() which sets ATTACKING; if we only set m_hEnemy + return true, SentryRotate
 //   exits early and the gun stares without ever calling Fire(). We must set m_iState too.
 //
-// Damage: zero sentry/rocket damage to non-rebel prisoners (body-block / splash).
+// Damage: zero automatic sentry/rocket damage to non-rebel prisoners (body-block / splash).
+// Wrangler: native manual control and damage; preserve the stock shield recovery delay.
 // Build: sm_ajb_allow_sentry lets guards place sentries when block_buildings is on.
 // =========================================================================================================
 
 #define AJB_SENTRY_RANGE_DEFAULT  1100.0
+#define AJB_SENTRY_SHIELD_WRANGLER  1
 
 // CObjectSentrygun::m_iState (tf_obj_sentrygun.h)
 #define AJB_SENTRY_STATE_INACTIVE   0
@@ -23,9 +25,13 @@ ConVar g_cvAllowSentry;
 ConVar g_cvSentryRebelsOnly;
 
 DynamicDetour g_hDetourSentryFindTarget;
+ArrayList g_hSentryManualRockets;
 
 void AJB_Sentry_OnPluginStart()
 {
+	g_hSentryManualRockets = new ArrayList();
+	g_hSentryManualRockets.Resize(GetMaxEntities());
+
 	g_cvAllowSentry = CreateConVar(
 		"sm_ajb_allow_sentry",
 		"1",
@@ -35,7 +41,7 @@ void AJB_Sentry_OnPluginStart()
 	g_cvSentryRebelsOnly = CreateConVar(
 		"sm_ajb_sentry_rebels_only",
 		"1",
-		"1 = guard sentries only lock/damage rebel prisoners.",
+		"1 = automatic guard sentries only lock/damage rebel prisoners; Wrangler control can damage any enemy.",
 		_, true, 0.0, true, 1.0);
 
 	GameData gd = new GameData(AJB_GAMEDATA_FILE);
@@ -68,6 +74,8 @@ void AJB_Sentry_OnPluginStart()
 
 void AJB_Sentry_OnPluginEnd()
 {
+	delete g_hSentryManualRockets;
+
 	if (g_hDetourSentryFindTarget != null)
 	{
 		g_hDetourSentryFindTarget.Disable(Hook_Pre, Detour_AJB_SentryFindTarget_Pre);
@@ -126,6 +134,15 @@ void AJB_Sentry_OnRebelChanged(int client, bool rebel)
 			continue;
 		}
 		if (GetEntProp(sentry, Prop_Send, "m_iTeamNum") != guardsTeam)
+		{
+			continue;
+		}
+		if (!AJB_Sentry_IsReady(sentry))
+		{
+			continue;
+		}
+		int enemy = GetEntPropEnt(sentry, Prop_Send, "m_hEnemy");
+		if (AJB_IsValidClient(enemy, true) && AJB_FlagGet(enemy, AJB_PF_REBEL))
 		{
 			continue;
 		}
@@ -206,10 +223,27 @@ bool AJB_Sentry_IsReady(int sentry)
 	{
 		return false;
 	}
-	// Wrangler: owner is controlling — leave stock alone (we Supercede only when not controlled).
-	if (AJB_Sentry_PropTrue(sentry, "m_bPlayerControlled"))
+	// Native FindTarget must run to enter/leave manual control and maintain its recovery delay.
+	if (AJB_Sentry_PropTrue(sentry, "m_bPlayerControlled")
+		|| AJB_Sentry_PropInt(sentry, "m_nShieldLevel") == AJB_SENTRY_SHIELD_WRANGLER)
 	{
 		return false;
+	}
+
+	// m_bPlayerControlled is still false on the first think after equipping the Wrangler.
+	int builder = GetEntPropEnt(sentry, Prop_Send, "m_hBuilder");
+	if (AJB_IsValidClient(builder, true))
+	{
+		int weapon = GetEntPropEnt(builder, Prop_Send, "m_hActiveWeapon");
+		if (weapon > MaxClients && IsValidEntity(weapon))
+		{
+			char classname[64];
+			GetEntityClassname(weapon, classname, sizeof(classname));
+			if (StrEqual(classname, "tf_weapon_laser_pointer"))
+			{
+				return false;
+			}
+		}
 	}
 
 	return true;
@@ -313,6 +347,7 @@ int AJB_Sentry_CountAliveRebels()
 int AJB_Sentry_FindNearestRebel(int sentry)
 {
 	int sentryTeam = GetEntProp(sentry, Prop_Send, "m_iTeamNum");
+	int currentEnemy = GetEntPropEnt(sentry, Prop_Send, "m_hEnemy");
 
 	// Sentry eye + range are fixed for this scan — compute once, not per candidate.
 	float eye[3];
@@ -360,11 +395,21 @@ int AJB_Sentry_FindNearestRebel(int sentry)
 			continue;
 		}
 
-		// Don't feed the sentry targets it cannot hurt (uber / ghost, etc.).
-		if (TF2_IsPlayerInCondition(client, TFCond_Ubercharged)
+		// Cloak breaks tracking; a disguise only fools a sentry that has not acquired the spy.
+		if (TF2_IsPlayerInCondition(client, TFCond_Cloaked)
+			|| TF2_IsPlayerInCondition(client, TFCond_Stealthed)
+			|| TF2_IsPlayerInCondition(client, TFCond_StealthedUserBuffFade)
+			|| TF2_IsPlayerInCondition(client, TFCond_Ubercharged)
 			|| TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden)
 			|| TF2_IsPlayerInCondition(client, TFCond_Bonked)
 			|| TF2_IsPlayerInCondition(client, TFCond_HalloweenGhostMode))
+		{
+			continue;
+		}
+
+		if (client != currentEnemy
+			&& TF2_IsPlayerInCondition(client, TFCond_Disguised)
+			&& GetEntProp(client, Prop_Send, "m_nDisguiseTeam") == sentryTeam)
 		{
 			continue;
 		}
@@ -464,6 +509,20 @@ public MRESReturn Detour_AJB_SentryFindTarget_Pre(int sentry, DHookReturn hRetur
 // Damage belt
 // ---------------------------------------------------------------------------------------------------------
 
+public void AJB_Sentry_OnRocketSpawnPost(int rocket)
+{
+	if (rocket >= g_hSentryManualRockets.Length)
+	{
+		return;
+	}
+
+	int sentry = AJB_Sentry_FromInflictor(rocket);
+	// A rocket keeps its firing mode even if its builder switches weapons before impact.
+	int ref = sentry > 0 && AJB_Sentry_PropTrue(sentry, "m_bPlayerControlled")
+		? EntIndexToEntRef(rocket) : INVALID_ENT_REFERENCE;
+	g_hSentryManualRockets.Set(rocket, ref);
+}
+
 Action AJB_Sentry_FilterDamage(int victim, int inflictor, float &damage)
 {
 	if (!AJB_Sentry_IsRebelOnly() || damage <= 0.0)
@@ -489,6 +548,13 @@ Action AJB_Sentry_FilterDamage(int victim, int inflictor, float &damage)
 	}
 
 	if (GetEntProp(sentry, Prop_Send, "m_iTeamNum") != AJB_GetGuardsTeam())
+	{
+		return Plugin_Continue;
+	}
+
+	if (inflictor == sentry
+		? AJB_Sentry_PropTrue(sentry, "m_bPlayerControlled")
+		: (inflictor < g_hSentryManualRockets.Length && g_hSentryManualRockets.Get(inflictor) == EntIndexToEntRef(inflictor)))
 	{
 		return Plugin_Continue;
 	}

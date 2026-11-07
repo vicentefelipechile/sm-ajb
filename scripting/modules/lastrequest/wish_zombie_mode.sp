@@ -84,6 +84,7 @@ void AJB_LR_ApplyZombieMode(const char[] chooser)
 	AJB_LR_KillZMTimers();
 	g_hZMGraceTimer = CreateTimer(grace, Timer_ZMGraceEnd, _, TIMER_FLAG_NO_MAPCHANGE);
 	g_hZMEndTimer = CreateTimer(roundTime, Timer_ZMEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+	AJB_LR_ZM_StartAmbience();
 
 	AJB_LR_ChatAllZombieApplied(chooser, grace);
 }
@@ -606,6 +607,7 @@ Action Timer_ZMEnd(Handle timer)
 	}
 
 	g_bZMEnding = true;
+	AJB_LR_ZM_StopAmbience();
 
 	int redTeam = AJB_GetPrisonersTeam();
 	bool anyHuman = false;
@@ -674,6 +676,7 @@ void Frame_ZMCheckWinner(any patientZero)
 	if (aliveHumans <= 0)
 	{
 		g_bZMEnding = true;
+		AJB_LR_ZM_StopAmbience();
 		AJB_ChatAll("LR ZM Zombies Win");
 		AJB_ForceTeamWin(blueTeam);
 		return;

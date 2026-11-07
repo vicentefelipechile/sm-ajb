@@ -254,6 +254,22 @@ AJB guard bans remain stored but do not block the zombie role; enforcement resum
 wish ends or Last Request unloads. With no living humans, zombies win instead of attempting
 to select from an empty list.
 
+### Zombie ambience
+
+`modules/lastrequest/wish_zombie_ambience.sp` owns temporary per-player fog and optional
+music. Fog starts during grace, is reapplied after spawn and to late spectators, and restores
+the saved map controller on end, abort, disable, map change or unload. It does not replace
+the map's master controller or overwrite another controller that the map selected meanwhile.
+Fog ConVar changes apply immediately; RGB components must be 0–255 and fog end must exceed start.
+
+Music has only `sm_ajb_lr_zm_music`: an MP3/WAV path relative to `tf/sound/`; empty means
+silence and immediately stops current playback. Missing/invalid files are logged and skipped.
+Preparation runs after AutoExecConfig so the saved path is registered for download and precached.
+Owners supply the audio and FastDL; new assets need reconnect/map change for client downloads.
+Each client hears the track once per round, without restarting on respawn; WAV loop points can
+provide native looping. No duration parser, unsafe `GetSoundDuration`, music timer, volume ConVar
+or duration ConVar is used. Cleanup stops the sound and preserves the infection killfeed and Dodgeball fixes.
+
 ## Cell Wars movement and camping
 
 Jumping teleports a living RED player to a different spawn occupied by another living human
@@ -326,6 +342,21 @@ TF2Attributes dependency. Resupply still fills the meter normally.
 While AJB is active, the core sets `mp_forcecamera 0` so dead players can follow either
 team. The previous value is restored when AJB is disabled, the map ends or the core unloads.
 
+## Guard sentries and Wrangler
+
+With `sm_ajb_sentry_rebels_only 1`, automatic guard sentries only target and damage rebel
+prisoners. A disguise matching the sentry's team prevents acquiring a new target, but does
+not break an existing lock; another player becoming rebel must not clear that lock either.
+Invisibility breaks tracking, including Dead Ringer cloak and spell stealth conditions.
+This only blocks automatic targeting, not incidental damage from shots already fired.
+Wrangler control uses native aiming and can damage non-rebel prisoners, subject
+to the normal AJB damage rules (including prep, personal freedays and freekill protection).
+`AJB_Sentry_IsReady` leaves native `FindTarget` running when the builder equips
+`tf_weapon_laser_pointer`, during manual control and throughout the native shield recovery
+delay. Rebel changes must not interrupt these states. Sentry rockets snapshot manual control
+at spawn, so holstering the Wrangler before impact does not change their damage policy.
+Snapshots store entity references to prevent stale entries after entity slot reuse.
+
 ## Auto-warden
 
 At preround end (`AJB_ScheduleAutoWarden`), if `sm_ajb_warden_auto 1` and no warden is set,
@@ -334,6 +365,19 @@ selects the picker: `0` = uniform random (`AJB_PickRandomAliveOnTeam`), `1` = we
 anti-repetition (`AJB_PickWeightedWardenGuard`), favoring guards who have not been warden
 recently. `g_iWardenRoundSerial` ticks per round; `g_iWardenLastRound[client]` is stamped in
 `AJB_SetWarden` and reset in `OnClientPutInServer`.
+
+## Passive warden dismissal
+
+`sm_firewarden` / `sm_firew` record one passive vote per human prisoner (alive or dead).
+No vote menu is opened; reaching `ceil(human prisoners * sm_ajb_firewarden_ratio)` clears
+the current warden through `AJB_ClearWarden`. Another guard can claim the empty slot normally.
+The fired warden cannot be assigned or claim again until the next round.
+
+Votes reset on warden changes, round/map boundaries, disconnect and team changes. Population
+and threshold are counted on each command (without duplicating votes); departures alone never fire the warden.
+`sm_ajb_firewarden_cooldown` starts only on success and survives warden changes and new rounds;
+map changes and core reloads reset it. Ratio bounds are 0.01–1; cooldown 0 disables the wait.
+Dismissal locks follow the client session; reconnecting clears them.
 
 ## FF2 Boss Wish (`ajb_ff2.sp`) — dependencies & degraded modes
 
@@ -403,6 +447,7 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | Command | Access | Purpose |
 | --- | --- | --- |
 | `sm_w`, `sm_ajb_w`, `sm_ajb_warden` | console | Claim warden / open warden menu |
+| `sm_firewarden`, `sm_firew` | console | Prisoner: passively vote to dismiss the current warden |
 | `sm_ajb_menu`, `sm_ajb_wm` | console | Open warden menu |
 | `sm_ajb_uw`, `sm_ajb_unwarden` | console | Resign warden |
 | `sm_ajb_open` | console | Open cell doors (warden or admin) |
@@ -516,6 +561,8 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | `sm_ajb_warden_auto` | `0` | 1 = auto-assign a random living guard as warden at preround end |
 | `sm_ajb_warden_auto_delay` | `0` | Seconds to wait before auto-assigning warden (0–10) |
 | `sm_ajb_warden_auto_mode` | `0` | 0 = uniform random, 1 = weighted anti-repetition |
+| `sm_ajb_firewarden_ratio` | `0.75` | Fraction of human prisoners needed to dismiss the warden (0.01–1, rounded up; living/dead) |
+| `sm_ajb_firewarden_cooldown` | `60` | Seconds after a successful dismissal before votes are accepted again (0 = no wait) |
 | `sm_ajb_rebel_on_damage` | `1` | 1 = mark prisoner as rebel when they damage a BLU guard |
 | `sm_ajb_rebel_on_warden_damage` | `1` | 1 = mark prisoner as rebel when they damage the warden (set this `1` + `sm_ajb_rebel_on_damage 0` to allow hitting BLU except the warden) |
 | `sm_ajb_warden_rebel_control` | `1` | 1 = warden can mark/pardon RED rebels from menu |
@@ -540,7 +587,7 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | `sm_ajb_freekill_radius` | `160.0` | `core_freekill.sp` | Radius (HU) scanned around victim to count endangered prisoners |
 | `sm_ajb_freekill_decide_time` | `25` | `core_freekill.sp` | Seconds to punish a flagged event before auto-dismiss (0 = until round end) |
 | `sm_ajb_allow_sentry` | `1` | `core_sentry.sp` | 1 = guards may build sentries even when buildings blocked |
-| `sm_ajb_sentry_rebels_only` | `1` | `core_sentry.sp` | 1 = guard sentries only lock/damage rebel prisoners |
+| `sm_ajb_sentry_rebels_only` | `1` | `core_sentry.sp` | 1 = automatic guard sentries only lock/damage rebel prisoners; Wrangler allows manual enemy damage |
 | `sm_ajb_ammo_arms_prisoners` | `1` | `core_weapons.sp` | 1 = map ammo packs arm melee-only prisoners (full class loadout) |
 | `sm_ajb_block_death_ammo` | `1` | `core_weapons.sp` | 1 = delete player death ammo drops (`tf_ammo_pack`) |
 | `sm_ajb_warden_see_health` | `1` | `core_warden_health.sp` | 1 = warden sees prisoner HP under crosshair |
@@ -586,6 +633,12 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | `sm_ajb_lr_zm_respawn` | `5` | Zombie Mode: seconds before a dead zombie respawns (1–30) |
 | `sm_ajb_lr_zm_spawn_protect` | `5` | Zombie Mode: invulnerability seconds after a zombie respawns (0–30) |
 | `sm_ajb_lr_zm_round_time` | `300` | Zombie Mode: total round duration in seconds, humans win on timeout if any remain (60–900) |
+| `sm_ajb_lr_zm_fog_enabled` | `1` | Zombie Mode: enable temporary fog |
+| `sm_ajb_lr_zm_fog_color` | `22 48 18` | Zombie Mode: fog RGB color, each component 0–255 |
+| `sm_ajb_lr_zm_fog_start` | `48` | Zombie Mode: fog start distance in units (≥0) |
+| `sm_ajb_lr_zm_fog_end` | `1300` | Zombie Mode: fog end distance in units, must exceed start |
+| `sm_ajb_lr_zm_fog_density` | `0.88` | Zombie Mode: maximum fog density (0–1) |
+| `sm_ajb_lr_zm_music` | empty | Zombie Mode: MP3/WAV path relative to sound/, empty disables music |
 | `sm_ajb_lr_cw_round_time` | `300` | Cell Wars: total round duration in seconds, survivors win on timeout (60–900) |
 | `sm_ajb_lr_cw_teleport_delay` | `4.0` | Cell Wars: seconds between jump teleports (0 = no cooldown) (0–30) |
 | `sm_ajb_lr_cw_camp_time` | `20` | Cell Wars: seconds in the same cell before camping damage starts (0 = disabled, ≤120) |

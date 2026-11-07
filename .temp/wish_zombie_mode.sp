@@ -1,0 +1,919 @@
+// =========================================================================================================
+// Last Request - Zombie Mode
+// =========================================================================================================
+
+// =========================================================================================================
+// Zombie Mode
+// =========================================================================================================
+// Humans = RED, zombies = BLU. Grace -> patient zero -> 2 hits infect. Dead zombies respawn with uber.
+
+// ---------------------------------------------------------------------------------------------------------
+// Ambience (background music + dark green fog)
+// ---------------------------------------------------------------------------------------------------------
+// Music file goes in: tf/sound/ajb/zombie_mode_loop.mp3 (and the same path on your FastDL).
+// "#" prefix = plays on the music channel, so it follows each player's music volume slider.
+#define LR_ZM_MUSIC_FILE    "ajb/zombie_mode_loop.mp3"
+#define LR_ZM_MUSIC_EMIT    "#ajb/zombie_mode_loop.mp3"
+#define LR_ZM_MUSIC_LENGTH  130.0  // track length in seconds (set it to the real duration so the loop is seamless)
+#define LR_ZM_MUSIC_VOLUME  0.45    // 0.0 - 1.0: noticeable but under gunfire/voice
+
+#define LR_ZM_FOG_COLOR     "22 48 18"  // dark sickly green
+#define LR_ZM_FOG_START     48.0
+#define LR_ZM_FOG_END       1300.0
+#define LR_ZM_FOG_DENSITY   0.88
+
+Handle g_hZMMusicTimer = null;
+bool g_bZMMusicOn = false;
+bool g_bZMMusicHeard[MAXPLAYERS + 1];
+
+int g_iZMFogRef = INVALID_ENT_REFERENCE;
+int g_iZMOldFog[MAXPLAYERS + 1];
+bool g_bZMFogSaved[MAXPLAYERS + 1];
+
+// Call from OnMapStart().
+void AJB_LR_ZM_OnMapStart()
+{
+	char path[PLATFORM_MAX_PATH];
+	FormatEx(path, sizeof(path), "sound/%s", LR_ZM_MUSIC_FILE);
+	if (FileExists(path, true))
+	{
+		AddFileToDownloadsTable(path);
+	}
+	else
+	{
+		LogError("[Zombie Mode] Music file not found: %s", path);
+	}
+	PrecacheSound(LR_ZM_MUSIC_EMIT, true);
+
+	// Timers / entities die on map change; drop stale handles.
+	g_hZMMusicTimer = null;
+	g_bZMMusicOn = false;
+	g_iZMFogRef = INVALID_ENT_REFERENCE;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bZMMusicHeard[i] = false;
+		g_bZMFogSaved[i] = false;
+		g_iZMOldFog[i] = INVALID_ENT_REFERENCE;
+	}
+}
+
+// Called from OnClientDisconnect: a reused client slot must not inherit these flags.
+void AJB_LR_ZM_OnClientDisconnect(int client)
+{
+	g_bZMMusicHeard[client] = false;
+	g_bZMFogSaved[client] = false;
+	g_iZMOldFog[client] = INVALID_ENT_REFERENCE;
+}
+
+void AJB_LR_ZM_StartAmbience()
+{
+	AJB_LR_ZM_StartMusic();
+	AJB_LR_ZM_StartFog();
+}
+
+// Call wherever Zombie Mode is cleaned up (round end / reset, where g_bZombieMode = false).
+void AJB_LR_ZM_StopAmbience()
+{
+	AJB_LR_ZM_StopMusic();
+	AJB_LR_ZM_StopFog();
+}
+
+// ---- Music ----
+
+void AJB_LR_ZM_StartMusic()
+{
+	AJB_LR_ZM_StopMusic();
+	g_bZMMusicOn = true;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bZMMusicHeard[i] = false;
+	}
+
+	AJB_LR_ZM_PlayMusicAll();
+	g_hZMMusicTimer = CreateTimer(LR_ZM_MUSIC_LENGTH, Timer_ZMMusicLoop, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+}
+
+void AJB_LR_ZM_PlayMusicTo(int client)
+{
+	StopSound(client, SNDCHAN_STATIC, LR_ZM_MUSIC_EMIT);
+	EmitSoundToClient(client, LR_ZM_MUSIC_EMIT, SOUND_FROM_PLAYER, SNDCHAN_STATIC,
+		SNDLEVEL_NONE, SND_NOFLAGS, LR_ZM_MUSIC_VOLUME);
+	g_bZMMusicHeard[client] = true;
+}
+
+void AJB_LR_ZM_PlayMusicAll()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			AJB_LR_ZM_PlayMusicTo(i);
+		}
+	}
+}
+
+Action Timer_ZMMusicLoop(Handle timer)
+{
+	if (!g_bZMMusicOn || !g_bZombieMode)
+	{
+		g_hZMMusicTimer = null;
+		return Plugin_Stop;
+	}
+
+	AJB_LR_ZM_PlayMusicAll();
+	return Plugin_Continue;
+}
+
+void AJB_LR_ZM_StopMusic()
+{
+	g_bZMMusicOn = false;
+
+	if (g_hZMMusicTimer != null)
+	{
+		delete g_hZMMusicTimer;
+		g_hZMMusicTimer = null;
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bZMMusicHeard[i] = false;
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			StopSound(i, SNDCHAN_STATIC, LR_ZM_MUSIC_EMIT);
+		}
+	}
+}
+
+// ---- Fog ----
+
+void AJB_LR_ZM_StartFog()
+{
+	AJB_LR_ZM_StopFog();
+
+	int ent = CreateEntityByName("env_fog_controller");
+	if (ent == -1)
+	{
+		return;
+	}
+
+	DispatchKeyValue(ent, "targetname", "ajb_zm_fog");
+	DispatchKeyValue(ent, "spawnflags", "1");
+	DispatchKeyValue(ent, "fogenable", "1");
+	DispatchKeyValue(ent, "fogblend", "0");
+	DispatchKeyValue(ent, "fogcolor", LR_ZM_FOG_COLOR);
+	DispatchKeyValue(ent, "fogcolor2", LR_ZM_FOG_COLOR);
+	DispatchKeyValueFloat(ent, "fogstart", LR_ZM_FOG_START);
+	DispatchKeyValueFloat(ent, "fogend", LR_ZM_FOG_END);
+	DispatchKeyValueFloat(ent, "fogmaxdensity", LR_ZM_FOG_DENSITY);
+	DispatchSpawn(ent);
+	AcceptEntityInput(ent, "TurnOn");
+
+	g_iZMFogRef = EntIndexToEntRef(ent);
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bZMFogSaved[i] = false;
+		g_iZMOldFog[i] = INVALID_ENT_REFERENCE;
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			AJB_LR_ZM_ApplyFog(i);
+		}
+	}
+}
+
+void AJB_LR_ZM_ApplyFog(int client)
+{
+	int ent = EntRefToEntIndex(g_iZMFogRef);
+	if (ent == INVALID_ENT_REFERENCE || ent <= 0)
+	{
+		return;
+	}
+
+	// Remember the map's own fog so we can give it back afterwards.
+	if (!g_bZMFogSaved[client])
+	{
+		int old = GetEntPropEnt(client, Prop_Send, "m_PlayerFog.m_hCtrl");
+		g_iZMOldFog[client] = (old > 0 && old != ent) ? EntIndexToEntRef(old) : INVALID_ENT_REFERENCE;
+		g_bZMFogSaved[client] = true;
+	}
+
+	SetEntPropEnt(client, Prop_Send, "m_PlayerFog.m_hCtrl", ent);
+}
+
+void AJB_LR_ZM_StopFog()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (g_bZMFogSaved[i] && IsClientInGame(i))
+		{
+			int old = EntRefToEntIndex(g_iZMOldFog[i]);
+			SetEntPropEnt(i, Prop_Send, "m_PlayerFog.m_hCtrl", (old > 0) ? old : -1);
+		}
+		g_bZMFogSaved[i] = false;
+		g_iZMOldFog[i] = INVALID_ENT_REFERENCE;
+	}
+
+	int ent = EntRefToEntIndex(g_iZMFogRef);
+	if (ent != INVALID_ENT_REFERENCE && ent > 0)
+	{
+		AcceptEntityInput(ent, "TurnOff");
+		AcceptEntityInput(ent, "Kill");
+	}
+	g_iZMFogRef = INVALID_ENT_REFERENCE;
+}
+
+// =========================================================================================================
+
+void AJB_LR_DoZombieMode(int prisoner)
+{
+	AJB_LR_QueueWish(prisoner, LRWish_ZombieMode, "LR Chose ZombieMode");
+}
+
+void AJB_LR_ApplyZombieMode(const char[] chooser)
+{
+	g_bZombieMode = true;
+	g_bZMGrace = true;
+	g_bZMEnding = false;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_iZMHits[i] = 0;
+		g_bZMPendingInfect[i] = false;
+		g_iZMPendingInfectBy[i] = 0;
+		g_bZMTeamSwap[i] = false;
+		g_iZMOriginalTeam[i] = 0;
+		AJB_LR_ZM_KillRespawnTimer(i);
+	}
+
+	AJB_BeginCombatDay();
+	AJB_SetupSpecialDay();
+
+	int redTeam = AJB_GetPrisonersTeam();
+	int blueTeam = AJB_GetGuardsTeam();
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		int team = GetClientTeam(i);
+		// Snapshot real side before we fold everyone onto RED for the infection round.
+		if (team == redTeam || team == blueTeam)
+		{
+			g_iZMOriginalTeam[i] = team;
+		}
+
+		if (team == blueTeam)
+		{
+			g_bZMTeamSwap[i] = true;
+			ChangeClientTeam(i, 1);
+			ChangeClientTeam(i, redTeam);
+			g_bZMTeamSwap[i] = false;
+		}
+
+		if (!IsPlayerAlive(i) && GetClientTeam(i) == redTeam)
+		{
+			TF2_RespawnPlayer(i);
+		}
+	}
+
+	RequestFrame(Frame_ZMArmHumans);
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bZMArmedThisFrame[i] = false;
+	}
+
+	float grace = g_cvZMInfectDelay.FloatValue;
+	if (grace < 5.0)
+	{
+		grace = LR_ZM_INFECT_DEFAULT;
+	}
+
+	float roundTime = g_cvZMRoundTime.FloatValue;
+	if (roundTime < 60.0)
+	{
+		roundTime = LR_ZM_ROUND_DEFAULT;
+	}
+
+	AJB_SetPhaseTimer(roundTime);
+	AJB_LR_KillZMTimers();
+	g_hZMGraceTimer = CreateTimer(grace, Timer_ZMGraceEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+	g_hZMEndTimer = CreateTimer(roundTime, Timer_ZMEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	// Music + fog from the scatter phase on, so tension builds before patient zero.
+	AJB_LR_ZM_StartAmbience();
+
+	AJB_LR_ChatAllZombieApplied(chooser, grace);
+}
+
+void Frame_ZMArmHumans(any data)
+{
+	if (!g_bZombieMode)
+	{
+		return;
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && AJB_IsPrisoner(i))
+		{
+			if (!g_bZMArmedThisFrame[i])
+			{
+				AJB_LR_ZM_ArmHuman(i);
+				g_bZMArmedThisFrame[i] = true;
+			}
+		}
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bZMArmedThisFrame[i] = false;
+	}
+}
+
+void AJB_LR_ZM_ArmHuman(int client)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	TF2_RegeneratePlayer(client);
+}
+
+void AJB_LR_ZM_ArmZombie(int client)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	TF2_RegeneratePlayer(client);
+	AJB_StripToMelee(client);
+}
+
+void AJB_LR_ZM_OnPlayerSpawn(int client)
+{
+	if (!g_bZombieMode || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	int team = GetClientTeam(client);
+	if (team < 2)
+	{
+		return;
+	}
+
+	// Late joiners / respawns: make sure they get the fog and the track.
+	if (!g_bZMEnding)
+	{
+		AJB_LR_ZM_ApplyFog(client);
+		if (g_bZMMusicOn && !g_bZMMusicHeard[client])
+		{
+			AJB_LR_ZM_PlayMusicTo(client);
+		}
+	}
+
+	g_bZMArmedThisFrame[client] = true;
+	RequestFrame(Frame_ZMArmClient, GetClientUserId(client));
+}
+
+void Frame_ZMArmClient(int userid)
+{
+	if (!g_bZombieMode)
+	{
+		return;
+	}
+
+	int client = GetClientOfUserId(userid);
+	if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	if (AJB_IsGuard(client))
+	{
+		AJB_LR_ZM_ArmZombie(client);
+	}
+	else if (AJB_IsPrisoner(client) && g_bZMGrace)
+	{
+		// Only re-arm humans during the pre-infection scatter window.
+		AJB_LR_ZM_ArmHuman(client);
+	}
+}
+
+void Event_ZMPlayerTeam(Event event, const char[] name, bool dontBroadcast)
+{
+	if (!g_bZombieMode || g_bZMEnding || event.GetBool("disconnect"))
+	{
+		return;
+	}
+
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client) || g_bZMTeamSwap[client])
+	{
+		return;
+	}
+
+	int team = event.GetInt("team");
+	if (team == event.GetInt("oldteam"))
+	{
+		return;
+	}
+
+	// Late joiners must also return to the human side when the wish ends.
+	if (g_iZMOriginalTeam[client] == 0 && (team == AJB_GetPrisonersTeam() || team == AJB_GetGuardsTeam()))
+	{
+		g_iZMOriginalTeam[client] = AJB_GetPrisonersTeam();
+	}
+
+	g_iZMHits[client] = 0;
+	g_bZMPendingInfect[client] = false;
+	g_iZMPendingInfectBy[client] = 0;
+	AJB_LR_ZM_KillRespawnTimer(client);
+
+	if (team == AJB_GetGuardsTeam())
+	{
+		if (IsPlayerAlive(client))
+		{
+			RequestFrame(Frame_ZMArmClient, GetClientUserId(client));
+		}
+		else
+		{
+			AJB_LR_ZM_ScheduleRespawn(client);
+		}
+	}
+
+	if (!g_bZMCheckQueued)
+	{
+		g_bZMCheckQueued = true;
+		RequestFrame(Frame_ZMCheckWinner);
+	}
+}
+
+Action AJB_LR_ZM_OnTakeDamage(int victim, int attacker, float damage)
+{
+	if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients)
+	{
+		return Plugin_Continue;
+	}
+
+	if (g_bZMGrace || g_bZMEnding)
+	{
+		return Plugin_Handled;
+	}
+
+	if (damage <= 0.0 || attacker == victim)
+	{
+		return Plugin_Continue;
+	}
+
+	int redTeam = AJB_GetPrisonersTeam();
+	int blueTeam = AJB_GetGuardsTeam();
+
+	// Only zombie -> human hits count toward infection.
+	if (GetClientTeam(attacker) != blueTeam || GetClientTeam(victim) != redTeam)
+	{
+		return Plugin_Continue;
+	}
+
+	if (g_bZMPendingInfect[victim])
+	{
+		return Plugin_Continue;
+	}
+
+	g_iZMHits[victim]++;
+	int need = g_cvZMHits.IntValue;
+	if (need < 1)
+	{
+		need = LR_ZM_HITS_DEFAULT;
+	}
+
+	if (g_iZMHits[victim] >= need)
+	{
+		g_bZMPendingInfect[victim] = true;
+		g_iZMPendingInfectBy[victim] = GetClientUserId(attacker);
+		// Defer so a lethal hit can finish before team swap / respawn.
+		RequestFrame(Frame_ZMInfect, GetClientUserId(victim));
+	}
+
+	return Plugin_Continue;
+}
+
+void Frame_ZMInfect(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client < 1)
+	{
+		return;
+	}
+
+	int attacker = GetClientOfUserId(g_iZMPendingInfectBy[client]);
+	g_bZMPendingInfect[client] = false;
+	g_iZMPendingInfectBy[client] = 0;
+
+	if (!g_bZombieMode || g_bZMEnding || !IsClientInGame(client))
+	{
+		return;
+	}
+
+	// Still human, or already dead on RED/spec after a lethal infect hit.
+	int team = GetClientTeam(client);
+	int redTeam = AJB_GetPrisonersTeam();
+	if (team == AJB_GetGuardsTeam())
+	{
+		return;
+	}
+	if (team != redTeam && IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	AJB_LR_ZM_Infect(client, attacker, false);
+}
+
+// patientZero = first random pick (announces differently). attacker is optional (0 = none).
+void AJB_LR_ZM_Infect(int client, int attacker, bool patientZero)
+{
+	if (!g_bZombieMode || g_bZMEnding || client < 1 || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	int blueTeam = AJB_GetGuardsTeam();
+	if (GetClientTeam(client) == blueTeam)
+	{
+		return;
+	}
+
+	g_iZMHits[client] = 0;
+	g_bZMPendingInfect[client] = false;
+	g_iZMPendingInfectBy[client] = 0;
+	AJB_LR_ZM_KillRespawnTimer(client);
+
+	float origin[3];
+	float angles[3];
+	bool hadPos = IsPlayerAlive(client);
+	if (hadPos)
+	{
+		GetClientAbsOrigin(client, origin);
+		GetClientEyeAngles(client, angles);
+	}
+
+	// Spectator transit avoids a direct cross-team death event mid-infect.
+	g_bZMTeamSwap[client] = true;
+	ChangeClientTeam(client, 1);
+	ChangeClientTeam(client, blueTeam);
+	g_bZMTeamSwap[client] = false;
+
+	if (!IsPlayerAlive(client))
+	{
+		TF2_RespawnPlayer(client);
+	}
+
+	if (IsPlayerAlive(client))
+	{
+		AJB_LR_ZM_ArmZombie(client);
+		if (hadPos)
+		{
+			float noVel[3];
+			TeleportEntity(client, origin, angles, noVel);
+		}
+	}
+
+	if (patientZero)
+	{
+		AJB_ChatAll1N("LR ZM Patient Zero", client);
+	}
+	else if (attacker > 0 && IsClientInGame(attacker))
+	{
+		AJB_ChatAll2N("LR ZM Infected", attacker, client);
+	}
+	else
+	{
+		AJB_ChatAll1N("LR ZM Infected Solo", client);
+	}
+
+	if (!g_bZMCheckQueued)
+	{
+		g_bZMCheckQueued = true;
+		RequestFrame(Frame_ZMCheckWinner);
+	}
+}
+
+void AJB_LR_ZM_OnPlayerDeath(int victim)
+{
+	if (!g_bZombieMode || g_bZMEnding || victim < 1 || victim > MaxClients)
+	{
+		return;
+	}
+
+	// Intentional team moves (gather / infect) kill via spectator transit - ignore those.
+	if (g_bZMTeamSwap[victim])
+	{
+		return;
+	}
+
+	g_iZMHits[victim] = 0;
+
+	int blueTeam = AJB_GetGuardsTeam();
+	// Event is post: team may already be spectator. Prefer "was zombie" via pending infect
+	// (still human converting) vs schedule respawn only when still/on BLU or dead as guard role.
+	// Use attacker-side role before death: if they had a pending infect, conversion frame owns them.
+	if (g_bZMPendingInfect[victim])
+	{
+		return;
+	}
+
+	// Dead ringer already filtered. If they died as BLU zombie, respawn; else human wipe check.
+	// Post-death GetClientTeam is often still the pre-death team in TF2.
+	if (GetClientTeam(victim) == blueTeam)
+	{
+		AJB_LR_ZM_ScheduleRespawn(victim);
+		return;
+	}
+
+	// Human death: no respawn - check if zombies wiped the living RED side.
+	if (!g_bZMCheckQueued)
+	{
+		g_bZMCheckQueued = true;
+		RequestFrame(Frame_ZMCheckWinner);
+	}
+}
+
+void AJB_LR_ZM_ScheduleRespawn(int client)
+{
+	if (client < 1 || client > MaxClients)
+	{
+		return;
+	}
+
+	AJB_LR_ZM_KillRespawnTimer(client);
+
+	float delay = g_cvZMRespawn.FloatValue;
+	if (delay < 1.0)
+	{
+		delay = LR_ZM_RESPAWN_DEFAULT;
+	}
+
+	g_hZMRespawnTimer[client] = CreateTimer(delay, Timer_ZMRespawn, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+}
+
+void AJB_LR_ZM_KillRespawnTimer(int client)
+{
+	if (client < 1 || client > MaxClients)
+	{
+		return;
+	}
+
+	if (g_hZMRespawnTimer[client] != null)
+	{
+		delete g_hZMRespawnTimer[client];
+		g_hZMRespawnTimer[client] = null;
+	}
+}
+
+void AJB_LR_ZM_KillAllRespawnTimers()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		AJB_LR_ZM_KillRespawnTimer(i);
+	}
+}
+
+Action Timer_ZMRespawn(Handle timer, int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client > 0 && client <= MaxClients)
+	{
+		g_hZMRespawnTimer[client] = null;
+	}
+
+	if (!g_bZombieMode || g_bZMEnding)
+	{
+		return Plugin_Stop;
+	}
+
+	if (client < 1 || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return Plugin_Stop;
+	}
+
+	int blueTeam = AJB_GetGuardsTeam();
+	if (GetClientTeam(client) != blueTeam)
+	{
+		return Plugin_Stop;
+	}
+
+	if (IsPlayerAlive(client))
+	{
+		return Plugin_Stop;
+	}
+
+	TF2_RespawnPlayer(client);
+	if (!IsPlayerAlive(client))
+	{
+		return Plugin_Stop;
+	}
+
+	AJB_LR_ZM_ArmZombie(client);
+	AJB_LR_ZM_TeleportRespawn(client);
+
+	float protect = g_cvZMSpawnProtect.FloatValue;
+	if (protect > 0.0)
+	{
+		TF2_AddCondition(client, TFCond_Ubercharged, protect);
+	}
+
+	return Plugin_Stop;
+}
+
+void AJB_LR_ZM_TeleportRespawn(int client)
+{
+	float origin[3];
+	float angles[3];
+	float noVel[3];
+
+	int mate = AJB_LR_ZM_PickAliveTeammate(client);
+	if (mate > 0)
+	{
+		GetClientAbsOrigin(mate, origin);
+		GetClientEyeAngles(mate, angles);
+		origin[2] += LR_ZM_MATE_Z_OFFSET;
+		TeleportEntity(client, origin, angles, noVel);
+		return;
+	}
+
+	int spawn = AJB_LR_FindGuardSpawn();
+	if (spawn != -1)
+	{
+		GetEntPropVector(spawn, Prop_Data, "m_vecOrigin", origin);
+		GetEntPropVector(spawn, Prop_Data, "m_angRotation", angles);
+		TeleportEntity(client, origin, angles, noVel);
+	}
+}
+
+int AJB_LR_ZM_PickAliveTeammate(int self)
+{
+	int blueTeam = AJB_GetGuardsTeam();
+	int list[MAXPLAYERS];
+	int count = 0;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (i == self || !IsClientInGame(i) || !IsPlayerAlive(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+		if (GetClientTeam(i) == blueTeam)
+		{
+			list[count++] = i;
+		}
+	}
+
+	if (count <= 0)
+	{
+		return 0;
+	}
+
+	return list[GetRandomInt(0, count - 1)];
+}
+
+Action Timer_ZMGraceEnd(Handle timer)
+{
+	g_hZMGraceTimer = null;
+
+	if (!g_bZombieMode || g_bZMEnding)
+	{
+		return Plugin_Stop;
+	}
+
+	g_bZMGrace = false;
+	Frame_ZMCheckWinner(true);
+	if (!g_bZMEnding)
+	{
+		AJB_ChatAll("LR ZM Grace End");
+	}
+	return Plugin_Stop;
+}
+
+Action Timer_ZMEnd(Handle timer)
+{
+	g_hZMEndTimer = null;
+
+	if (!g_bZombieMode || !g_bHasCore || g_bZMEnding)
+	{
+		return Plugin_Stop;
+	}
+
+	g_bZMEnding = true;
+	AJB_LR_ZM_StopAmbience();
+
+	int redTeam = AJB_GetPrisonersTeam();
+	bool anyHuman = false;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) == redTeam)
+		{
+			anyHuman = true;
+			break;
+		}
+	}
+
+	if (anyHuman)
+	{
+		AJB_ChatAll("LR ZM Humans Win");
+		AJB_ForceTeamWin(redTeam);
+	}
+	else
+	{
+		AJB_ChatAll("LR ZM Zombies Win");
+		AJB_ForceTeamWin(AJB_GetGuardsTeam());
+	}
+
+	return Plugin_Stop;
+}
+
+void Frame_ZMCheckWinner(any patientZero)
+{
+	g_bZMCheckQueued = false;
+
+	if (!g_bZombieMode || g_bZMEnding || !g_bHasCore)
+	{
+		return;
+	}
+
+	// Patient zero not out yet - do not end on early deaths during scatter.
+	if (g_bZMGrace)
+	{
+		return;
+	}
+
+	int redTeam = AJB_GetPrisonersTeam();
+	int blueTeam = AJB_GetGuardsTeam();
+	int humans[MAXPLAYERS];
+	int aliveHumans = 0;
+	int zombies = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		int team = GetClientTeam(i);
+		// Dead zombies still own the role while waiting for their respawn timer.
+		if (team == blueTeam)
+		{
+			zombies++;
+		}
+		else if (team == redTeam && IsPlayerAlive(i))
+		{
+			humans[aliveHumans++] = i;
+		}
+	}
+
+	if (aliveHumans <= 0)
+	{
+		g_bZMEnding = true;
+		AJB_LR_ZM_StopAmbience();
+		AJB_ChatAll("LR ZM Zombies Win");
+		AJB_ForceTeamWin(blueTeam);
+		return;
+	}
+
+	if (zombies == 0)
+	{
+		int replacement = humans[GetRandomInt(0, aliveHumans - 1)];
+		AJB_LR_ZM_Infect(replacement, 0, patientZero != 0);
+		if (GetClientTeam(replacement) != blueTeam)
+		{
+			LogError("[AJB-LR] Failed to replace missing zombie with client %d.", replacement);
+		}
+	}
+}
+
+void AJB_LR_KillZMTimers()
+{
+	if (g_hZMGraceTimer != null)
+	{
+		delete g_hZMGraceTimer;
+		g_hZMGraceTimer = null;
+	}
+	if (g_hZMEndTimer != null)
+	{
+		delete g_hZMEndTimer;
+		g_hZMEndTimer = null;
+	}
+}
+
+void AJB_LR_ChatAllZombieApplied(const char[] chooserName, float grace)
+{
+	AJB_ChatAll1S1N("LR Applied ZombieMode",
+		chooserName[0] != '\0' ? chooserName : "LR", RoundToFloor(grace));
+}
+

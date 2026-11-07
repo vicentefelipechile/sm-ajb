@@ -22,6 +22,7 @@ or `-SyncOnly` to copy configuration, translations and gamedata without compilin
 | Command | Purpose |
 | --- | --- |
 | `!w` | Claim warden / open warden menu |
+| `!firewarden`, `!firew` | Prisoner: add a passive vote to dismiss the current warden |
 | `!ajb` | Admin menu |
 | `!ajb_mutes` | Warden voice menu: player → mute / unmute |
 | `!ajb_lr` | Warden: grant a Last Request |
@@ -42,5 +43,31 @@ Paths relative to `addons/sourcemod`:
 - `configs/ajb/dodgeball/` — Dodgeball arenas.
 
 ConVars are saved under `tf/cfg/sourcemod/ajb*.cfg`.
+
+Passive warden dismissal is configured in `tf/cfg/sourcemod/ajb.cfg`:
+
+```cfg
+sm_ajb_firewarden_ratio "0.75"
+sm_ajb_firewarden_cooldown "60"
+```
+
+The ratio is a fraction (`1` = 100%) of human prisoners, alive or dead, rounded up.
+The cooldown starts only after a successful dismissal, not after individual votes.
+
+Zombie Mode ambience is configured in `tf/cfg/sourcemod/ajb_lastrequest.cfg`:
+
+```cfg
+sm_ajb_lr_zm_fog_enabled "1"
+sm_ajb_lr_zm_fog_color "22 48 18"
+sm_ajb_lr_zm_fog_start "48"
+sm_ajb_lr_zm_fog_end "1300"
+sm_ajb_lr_zm_fog_density "0.88"
+sm_ajb_lr_zm_music ""
+```
+
+An empty music path disables playback. To use music, set a path relative to `tf/sound/`,
+for example `"ajb/zombies.mp3"`, and install that MP3/WAV on the server and FastDL.
+Change the map or reconnect players after adding custom audio so they can download it.
+Music plays once per round; looping WAV files can use their embedded loop points.
 
 Author: **SummerTYT**

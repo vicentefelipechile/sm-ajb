@@ -595,6 +595,11 @@ public void OnMapStart()
 	AJB_LR_DB_LoadConfig();
 }
 
+public void OnConfigsExecuted()
+{
+	AJB_LR_ZM_PrepareMusic();
+}
+
 public MRESReturn Detour_SetWinningTeam(DHookReturn hReturn, DHookParam hParams)
 {
 	if (g_bHungerGames && !g_bHGEnding)
@@ -641,6 +646,7 @@ public void OnPluginStart()
 	g_cvZMRespawn = CreateConVar("sm_ajb_lr_zm_respawn", "5", "Zombie Mode: seconds before a dead zombie respawns.", _, true, 1.0, true, 30.0);
 	g_cvZMSpawnProtect = CreateConVar("sm_ajb_lr_zm_spawn_protect", "5", "Zombie Mode: invulnerability seconds after a zombie respawns (spawn-camp protection).", _, true, 0.0, true, 30.0);
 	g_cvZMRoundTime = CreateConVar("sm_ajb_lr_zm_round_time", "300", "Zombie Mode: total round duration in seconds (humans win on timeout if any remain).", _, true, 60.0, true, 900.0);
+	AJB_LR_ZM_InitAmbience();
 	g_cvCWRoundTime = CreateConVar("sm_ajb_lr_cw_round_time", "300", "Cell Wars: total round duration in seconds (survivors win on timeout).", _, true, 60.0, true, 900.0);
 	g_cvCWTeleportDelay = CreateConVar("sm_ajb_lr_cw_teleport_delay", "4.0", "Cell Wars: seconds between jump teleports (0 = no cooldown).", _, true, 0.0, true, 30.0);
 	g_cvCWCampTime = CreateConVar("sm_ajb_lr_cw_camp_time", "20.0", "Cell Wars: seconds in the same cell before camping damage starts (0 = disabled).", _, false, 0.0, true, 120.0);
@@ -754,10 +760,16 @@ public void OnMapEnd()
 
 public void OnClientPutInServer(int client)
 {
+	AJB_LR_ZM_ResetAmbienceClient(client);
 	SDKHook(client, SDKHook_StartTouch, AJB_LR_OnStartTouch);
 	SDKHook(client, SDKHook_OnTakeDamage, AJB_LR_OnTakeDamage);
 	g_bPickedFreeday[client] = false;
 	g_iCWLastButtons[client] = 0;
+}
+
+public void OnClientPostAdminCheck(int client)
+{
+	RequestFrame(Frame_ZMAmbience, GetClientUserId(client));
 }
 
 public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
@@ -801,6 +813,7 @@ public void OnClientDisconnect(int client)
 	g_iZMPendingInfectBy[client] = 0;
 	g_bZMTeamSwap[client] = false;
 	AJB_LR_ZM_KillRespawnTimer(client);
+	AJB_LR_ZM_ResetAmbienceClient(client);
 
 	if (client == g_iPrisoner)
 	{
@@ -962,6 +975,7 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 
 	if (g_bZombieMode)
 	{
+		RequestFrame(Frame_ZMAmbience, GetClientUserId(client));
 		AJB_LR_ZM_OnPlayerSpawn(client);
 		return;
 	}
@@ -1308,6 +1322,7 @@ void AJB_LR_KillAllModeTimers()
 
 void AJB_LR_Cleanup(bool announce)
 {
+	AJB_LR_ZM_StopAmbience();
 	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bZombieMode || g_bSniper || g_bCellWars || g_bDodgeball);
 	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
 
@@ -1695,6 +1710,7 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 #include "lastrequest/wish_low_gravity.sp"
 #include "lastrequest/wish_hide_seek.sp"
 #include "lastrequest/wish_hunger_games.sp"
+#include "lastrequest/wish_zombie_ambience.sp"
 #include "lastrequest/wish_zombie_mode.sp"
 #include "lastrequest/wish_cell_wars.sp"
 #include "lastrequest/wish_sniper.sp"

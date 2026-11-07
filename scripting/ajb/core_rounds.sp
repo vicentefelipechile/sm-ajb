@@ -112,6 +112,9 @@ void AJB_ResetClientFlags(int client)
 {
 	AJB_FlagSet(client, AJB_PF_REBEL, false);
 	AJB_FlagSet(client, AJB_PF_FREEDAY, false);
+	AJB_FlagSet(client, AJB_PF_FIREWARDEN_VOTED, false);
+	// shortcut: dismissal locks follow the connection; use Steam IDs if reconnect bypass becomes a problem.
+	AJB_FlagSet(client, AJB_PF_WARDEN_FIRED, false);
 	g_fGuardMarkRebelLastTime[client] = 0.0;
 }
 
@@ -365,6 +368,7 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 	if (team != oldTeam)
 	{
 		AJB_FlagSet(client, AJB_PF_REBEL, false);
+		AJB_FlagSet(client, AJB_PF_FIREWARDEN_VOTED, false);
 	}
 
 	// Enforce the JB guard ratio: bounce excess guards back to the prisoners.

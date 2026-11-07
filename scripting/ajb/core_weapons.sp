@@ -264,6 +264,12 @@ void AJB_Weapons_OnMapStart()
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
+	if (StrEqual(classname, "tf_projectile_sentryrocket"))
+	{
+		SDKHook(entity, SDKHook_SpawnPost, AJB_Sentry_OnRocketSpawnPost);
+		return;
+	}
+
 	if (StrEqual(classname, "tf_dropped_weapon"))
 	{
 		RequestFrame(Frame_HookDroppedWeapon, EntIndexToEntRef(entity));

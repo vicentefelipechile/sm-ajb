@@ -83,7 +83,7 @@ void AJB_SetRebelInternal(int client, bool rebel, bool announce, int source = 0)
 		AJB_FireFreedayChanged(client, false, false);
 	}
 
-	// Sentry AI: clear residual cloak + drop non-rebel locks so they re-acquire this frame.
+	// Automatic sentries reconsider targets without removing the player's stealth conditions.
 	AJB_Sentry_OnRebelChanged(client, rebel);
 
 	// Update rebel visual FX (orange glow)
@@ -244,7 +244,7 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 		return Plugin_Continue;
 	}
 
-	// Sentry / rocket vs non-rebel prisoners: always zero (body-block protection).
+	// Automatic sentry / rocket vs non-rebel prisoners: zero damage (Wrangler stays manual).
 	// Runs before the living-attacker checks — sentry builder may be valid, but inflictor is the gun.
 	Action sentryAct = AJB_Sentry_FilterDamage(victim, inflictor, damage);
 	if (sentryAct != Plugin_Continue)

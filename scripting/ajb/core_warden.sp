@@ -2,9 +2,17 @@
 // Warden claim / clear
 // =========================================================================================================
 
+void AJB_FireWarden_ResetVotes()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		AJB_FlagSet(i, AJB_PF_FIREWARDEN_VOTED, false);
+	}
+}
+
 void AJB_SetWarden(int client, bool announce)
 {
-	if (!AJB_IsValidClient(client) || !AJB_ClientIsGuard(client))
+	if (!AJB_IsValidClient(client) || !AJB_ClientIsGuard(client) || AJB_FlagGet(client, AJB_PF_WARDEN_FIRED))
 	{
 		return;
 	}
@@ -15,6 +23,7 @@ void AJB_SetWarden(int client, bool announce)
 		return;
 	}
 
+	AJB_FireWarden_ResetVotes();
 	g_iWarden = client;
 	g_iWardenLastRound[client] = g_iWardenRoundSerial;
 	// New wardenship always starts on the first menu page.
@@ -56,6 +65,7 @@ void AJB_SetWarden(int client, bool announce)
 
 void AJB_ClearWarden(bool announce)
 {
+	AJB_FireWarden_ResetVotes();
 	if (g_iWarden == 0)
 	{
 		return;
@@ -199,9 +209,102 @@ Action Command_Warden(int client, int args)
 		return Plugin_Handled;
 	}
 
+	if (AJB_FlagGet(client, AJB_PF_WARDEN_FIRED))
+	{
+		AJB_Reply(client, "Fire Warden Claim Blocked");
+		return Plugin_Handled;
+	}
+
 	AJB_SetWarden(client, true);
 	return Plugin_Handled;
 }
+
+// =========================================================================================================
+// Passive prisoner votes to dismiss the current warden
+// =========================================================================================================
+
+Action Command_FireWarden(int client, int args)
+{
+	if (!g_bModeActive)
+	{
+		AJB_Reply(client, "Mode Inactive");
+		return Plugin_Handled;
+	}
+
+	if (!AJB_IsValidClient(client))
+	{
+		AJB_Reply(client, "Ingame Only");
+		return Plugin_Handled;
+	}
+
+	if (!AJB_ClientIsPrisoner(client) || IsFakeClient(client))
+	{
+		AJB_Reply(client, "Fire Warden Prisoners Only");
+		return Plugin_Handled;
+	}
+
+	if (!AJB_CanClaimWarden() || !AJB_IsValidClient(g_iWarden, true))
+	{
+		AJB_Reply(client, "Fire Warden Unavailable");
+		return Plugin_Handled;
+	}
+
+	float now = GetGameTime();
+	float remaining = g_cvFireWardenCooldown.FloatValue - (now - g_fFireWardenLastSuccess);
+	if (g_fFireWardenLastSuccess >= 0.0 && remaining > 0.0)
+	{
+		char prefix[32];
+		AJB_GetPrefix(client, prefix, sizeof(prefix));
+		CReplyToCommand(client, "%T", "Fire Warden Cooldown", client, prefix, RoundToCeil(remaining));
+		return Plugin_Handled;
+	}
+
+	bool alreadyVoted = AJB_FlagGet(client, AJB_PF_FIREWARDEN_VOTED);
+	AJB_FlagSet(client, AJB_PF_FIREWARDEN_VOTED, true);
+
+	int prisoners = 0;
+	int votes = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!AJB_ClientIsPrisoner(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		prisoners++;
+		if (AJB_FlagGet(i, AJB_PF_FIREWARDEN_VOTED))
+		{
+			votes++;
+		}
+	}
+
+	int required = RoundToCeil(float(prisoners) * g_cvFireWardenRatio.FloatValue);
+	if (votes < required)
+	{
+		if (alreadyVoted)
+		{
+			AJB_Reply(client, "Fire Warden Already Voted");
+			return Plugin_Handled;
+		}
+
+		char name[MAX_NAME_LENGTH];
+		GetClientName(client, name, sizeof(name));
+		AJB_ChatAll1S2N("Fire Warden Vote", name, votes, required);
+		return Plugin_Handled;
+	}
+
+	int warden = g_iWarden;
+	AJB_FlagSet(warden, AJB_PF_WARDEN_FIRED, true);
+	// The cooldown belongs to successful dismissals, not wardenships or round boundaries.
+	g_fFireWardenLastSuccess = now;
+	AJB_ClearWarden(false);
+	AJB_ChatAll1N("Fire Warden Passed", warden);
+	return Plugin_Handled;
+}
+
+// =========================================================================================================
+// Warden menu access
+// =========================================================================================================
 
 Action Command_WardenMenu(int client, int args)
 {
@@ -564,6 +667,12 @@ Action Command_AdminSetWarden(int client, int args)
 	if (!AJB_ClientIsGuard(target))
 	{
 		AJB_Reply(client, "Warden Guards Only");
+		return Plugin_Handled;
+	}
+
+	if (AJB_FlagGet(target, AJB_PF_WARDEN_FIRED))
+	{
+		AJB_Reply(client, "Fire Warden Claim Blocked");
 		return Plugin_Handled;
 	}
 

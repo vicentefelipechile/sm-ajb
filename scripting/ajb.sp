@@ -50,6 +50,8 @@ ConVar g_cvCellsAutoOpen;
 ConVar g_cvWardenAuto;
 ConVar g_cvWardenAutoDelay;
 ConVar g_cvWardenAutoMode;
+ConVar g_cvFireWardenRatio;
+ConVar g_cvFireWardenCooldown;
 ConVar g_cvRebelOnDamage;
 ConVar g_cvRebelOnWardenDamage;
 ConVar g_cvWardenRebelControl;
@@ -84,6 +86,7 @@ AJBRoundState g_RoundState = AJBState_Disabled;
 int g_iWarden;
 int g_iWardenLastRound[MAXPLAYERS + 1];
 int g_iWardenRoundSerial;
+float g_fFireWardenLastSuccess = -1.0;
 int g_iWardenMenuPage[MAXPLAYERS + 1];   // current page of the paged warden menu
 bool g_bWardenMenuOpen[MAXPLAYERS + 1];
 // Per-player boolean state packed into one bitfield cell (was 4 separate bool arrays).
@@ -92,6 +95,8 @@ bool g_bWardenMenuOpen[MAXPLAYERS + 1];
 #define AJB_PF_FREEDAY          (1 << 1)   // prisoner has an active freeday this round
 #define AJB_PF_FREEDAY_PENDING  (1 << 2)   // freeday queued for next round
 #define AJB_PF_SDKHOOKED        (1 << 3)   // Damage and post-think handlers hooked for this client
+#define AJB_PF_FIREWARDEN_VOTED (1 << 4)
+#define AJB_PF_WARDEN_FIRED     (1 << 5)
 int g_iPlayerFlags[MAXPLAYERS + 1];
 float g_flGuardCloakMeter[MAXPLAYERS + 1];
 
@@ -209,6 +214,8 @@ public void OnPluginStart()
 	g_cvWardenAuto = CreateConVar("sm_ajb_warden_auto", "0", "1 = auto-assign a random living guard as warden when the preround ends and none is set.", _, true, 0.0, true, 1.0);
 	g_cvWardenAutoDelay = CreateConVar("sm_ajb_warden_auto_delay", "0", "Seconds to wait after the preround ends before auto-assigning warden (0 = immediately, 1..10 = delay). Requires sm_ajb_warden_auto 1.", _, true, 0.0, true, 10.0);
 	g_cvWardenAutoMode = CreateConVar("sm_ajb_warden_auto_mode", "0", "Auto-warden pick: 0 = uniform random, 1 = weighted toward guards who have not been warden recently.", _, true, 0.0, true, 1.0);
+	g_cvFireWardenRatio = CreateConVar("sm_ajb_firewarden_ratio", "0.75", "Fraction of human prisoners required to fire the current warden (0.01..1, rounded up). Dead prisoners count.", _, true, 0.01, true, 1.0);
+	g_cvFireWardenCooldown = CreateConVar("sm_ajb_firewarden_cooldown", "60", "Seconds after a successful warden dismissal before prisoners can vote again (0 = no cooldown).", _, true, 0.0);
 	g_cvRebelOnDamage = CreateConVar("sm_ajb_rebel_on_damage", "1", "1 = mark prisoner as rebel when they damage a BLU guard (see sm_ajb_rebel_on_warden_damage for the warden).", _, true, 0.0, true, 1.0);
 	g_cvRebelOnWardenDamage = CreateConVar("sm_ajb_rebel_on_warden_damage", "1", "1 = mark prisoner as rebel when they damage the warden. Set this 1 and sm_ajb_rebel_on_damage 0 to let prisoners hit BLU freely except the warden.", _, true, 0.0, true, 1.0);
 	g_cvWardenRebelControl = CreateConVar("sm_ajb_warden_rebel_control", "1", "1 = warden can mark/pardon RED rebels from the warden menu.", _, true, 0.0, true, 1.0);
@@ -255,6 +262,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_w", Command_Warden, "Claim warden / open warden menu.");
 	RegConsoleCmd("sm_ajb_w", Command_Warden, "Claim warden / open warden menu.");
 	RegConsoleCmd("sm_ajb_warden", Command_Warden, "Claim warden / open warden menu.");
+	RegConsoleCmd("sm_firewarden", Command_FireWarden, "Prisoner: vote to fire the current warden without opening a vote menu.");
+	RegConsoleCmd("sm_firew", Command_FireWarden, "Prisoner: vote to fire the current warden without opening a vote menu.");
 	RegConsoleCmd("sm_ajb_menu", Command_WardenMenu, "Open warden menu.");
 	RegConsoleCmd("sm_ajb_wm", Command_WardenMenu, "Open warden menu.");
 	RegConsoleCmd("sm_ajb_uw", Command_UnWarden, "Resign warden.");
@@ -384,6 +393,7 @@ public void OnPluginEnd()
 
 public void OnMapStart()
 {
+	g_fFireWardenLastSuccess = -1.0;
 	AJB_Settings_OnMapStart();
 	AJB_WardenMenu_OnMapStart();
 	AJB_RefreshModeActive();
