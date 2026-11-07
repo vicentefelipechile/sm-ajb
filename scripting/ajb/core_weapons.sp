@@ -21,6 +21,9 @@ StringMap g_hPrisonerDefIndexAllow;
 int g_iWeaponWearables[AJB_MAX_WEAPON_WEARABLES];
 int g_iWeaponWearableCount;
 
+#define AJB_DEAD_RINGER_DEF_INDEX 59
+#define AJB_CLOAK_METER_MAX 100.0
+
 void AJB_Weapons_TrackWeaponWearable(int entity)
 {
 	int ref = EntIndexToEntRef(entity);
@@ -591,6 +594,38 @@ void AJB_Weapons_StripDisallowedWeaponWearables(int client)
 		AcceptEntityInput(ent, "Kill");
 	}
 	g_iWeaponWearableCount = out;
+}
+
+public void AJB_Weapons_GuardCloakPostThink(int client)
+{
+	if (!g_bModeActive || !AJB_IsValidClient(client, true)
+		|| !AJB_ClientIsGuard(client) || TF2_GetPlayerClass(client) != TFClass_Spy)
+	{
+		g_flGuardCloakMeter[client] = -1.0;
+		return;
+	}
+
+	int watch = GetPlayerWeaponSlot(client, TFWeaponSlot_Building);
+	if (watch <= MaxClients || !IsValidEntity(watch)
+		|| GetEntProp(watch, Prop_Send, "m_iItemDefinitionIndex") != AJB_DEAD_RINGER_DEF_INDEX)
+	{
+		g_flGuardCloakMeter[client] = -1.0;
+		return;
+	}
+
+	float meter = GetEntPropFloat(client, Prop_Send, "m_flCloakMeter");
+	if (g_flGuardCloakMeter[client] >= 0.0 && meter > g_flGuardCloakMeter[client]
+		&& !TF2_IsPlayerInCondition(client, TFCond_Cloaked))
+	{
+		// Mirror native recharge gains so weapon modifiers are preserved without altering cloak drain.
+		meter += meter - g_flGuardCloakMeter[client];
+		if (meter > AJB_CLOAK_METER_MAX)
+		{
+			meter = AJB_CLOAK_METER_MAX;
+		}
+		SetEntPropFloat(client, Prop_Send, "m_flCloakMeter", meter);
+	}
+	g_flGuardCloakMeter[client] = meter;
 }
 
 void AJB_Weapons_ClearSpyStealth(int client)

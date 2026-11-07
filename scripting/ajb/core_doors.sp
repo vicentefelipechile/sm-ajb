@@ -8,9 +8,14 @@
 // paths re-evaluate their own name/hammer criteria over this cache instead of walking
 // all edicts per input (open/close fire up to 4 inputs per action).
 #define AJB_MAX_DOOR_CACHE  256
+#define AJB_CELLS_VERIFY_DELAY 10.0
+#define AJB_DOOR_TOGGLE_OPEN 0
+#define AJB_PROP_DOOR_OPEN 2
+#define AJB_DOOR_POSITION_TOLERANCE_SQR 1.0
 
 int g_iDoorCache[AJB_MAX_DOOR_CACHE];
 int g_iDoorCacheCount;
+bool g_bCellsShouldBeOpen;
 
 void AJB_BuildDoorCache()
 {
@@ -79,6 +84,7 @@ void AJB_LoadMapDoors()
 			{
 				LogMessage("[AJB] Loaded %d door target(s) from %s (nofallback).", g_iDoorNameCount, path);
 				delete kv;
+				AJB_HookCellEntities();
 				return;
 			}
 		}
@@ -286,6 +292,7 @@ void AJB_KillCellsResetRetries()
 // after a soft engine win (no map regen) this is what stops open cages from carrying over.
 void AJB_ResetCellsForRound()
 {
+	g_bCellsShouldBeOpen = false;
 	AJB_KillCellsResetRetries();
 
 	// Named cell targets from config / scan.
@@ -373,6 +380,7 @@ void AJB_FireAllCellLikeDoors(const char[] input)
 
 bool AJB_OpenCellsInternal(bool announce)
 {
+	g_bCellsShouldBeOpen = true;
 	if (g_RoundState == AJBState_CellsOpen)
 	{
 		return true;
@@ -421,6 +429,7 @@ Action Timer_CellsOpenRetry(Handle timer)
 
 bool AJB_CloseCellsInternal(bool announce)
 {
+	g_bCellsShouldBeOpen = false;
 	if (g_RoundState == AJBState_CellsLocked)
 	{
 		return true;
@@ -563,10 +572,96 @@ public void EntityOutput_OnCellDoorClosed(const char[] output, int caller, int a
 	Call_Finish();
 }
 
+bool AJB_IsCellDoorEntity(int ent)
+{
+	char name[128];
+	if (HasEntProp(ent, Prop_Data, "m_iName"))
+	{
+		GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
+		for (int i = 0; i < g_iDoorNameCount; i++)
+		{
+			if (StrEqual(name, g_sDoorNames[i], false))
+			{
+				return true;
+			}
+		}
+	}
+
+	return HasEntProp(ent, Prop_Data, "m_iHammerID")
+		&& AJB_DoorHammerKnown(GetEntProp(ent, Prop_Data, "m_iHammerID"));
+}
+
+bool AJB_CellDoorNeedsOpen(int ent)
+{
+	char classname[64];
+	GetEntityClassname(ent, classname, sizeof(classname));
+
+	if (StrEqual(classname, "func_movelinear") && HasEntProp(ent, Prop_Data, "m_vecPosition2"))
+	{
+		float origin[3], open[3];
+		GetEntPropVector(ent, Prop_Data, "m_vecOrigin", origin);
+		GetEntPropVector(ent, Prop_Data, "m_vecPosition2", open);
+		return AJB_GetDistanceSqr(origin, open) > AJB_DOOR_POSITION_TOLERANCE_SQR;
+	}
+
+	if ((StrEqual(classname, "func_door") || StrEqual(classname, "func_door_rotating"))
+		&& HasEntProp(ent, Prop_Data, "m_toggle_state"))
+	{
+		return GetEntProp(ent, Prop_Data, "m_toggle_state") != AJB_DOOR_TOGGLE_OPEN;
+	}
+
+	if (StrEqual(classname, "prop_door_rotating") && HasEntProp(ent, Prop_Data, "m_eDoorState"))
+	{
+		return GetEntProp(ent, Prop_Data, "m_eDoorState") != AJB_PROP_DOOR_OPEN;
+	}
+
+	// shortcut: custom brush/relay-only cells need physical door targets before they can be verified safely.
+	return false;
+}
+
+void AJB_ScheduleSpecialDayCellCheck()
+{
+	if (g_bCellsShouldBeOpen && (g_RoundState == AJBState_SpecialDay || g_bFreedayAllCosmetic))
+	{
+		CreateTimer(AJB_CELLS_VERIFY_DELAY, Timer_VerifySpecialDayCells, g_iWardenRoundSerial, TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+Action Timer_VerifySpecialDayCells(Handle timer, int roundSerial)
+{
+	if (!g_bModeActive || roundSerial != g_iWardenRoundSerial || !g_bCellsShouldBeOpen
+		|| g_RoundState == AJBState_RoundEnd || g_RoundState == AJBState_Disabled || g_RoundState == AJBState_Waiting
+		|| (g_RoundState != AJBState_SpecialDay && !g_bFreedayAllCosmetic))
+	{
+		return Plugin_Stop;
+	}
+
+	int reopened = 0;
+	for (int c = 0; c < g_iDoorCacheCount; c++)
+	{
+		int ent = EntRefToEntIndex(g_iDoorCache[c]);
+		if (ent == INVALID_ENT_REFERENCE || !IsValidEntity(ent)
+			|| !AJB_IsCellDoorEntity(ent) || !AJB_CellDoorNeedsOpen(ent))
+		{
+			continue;
+		}
+
+		// Do not press toggle buttons or re-trigger map logic when only a door needs reopening.
+		AJB_SendEntityDoorInput(ent, "Unlock");
+		AJB_SendEntityDoorInput(ent, "Open");
+		reopened++;
+	}
+
+	if (reopened > 0)
+	{
+		LogMessage("[AJB] Special-day cell check: reopened %d door(s) after 10 seconds.", reopened);
+	}
+	return Plugin_Stop;
+}
+
 void AJB_HookCellEntities()
 {
 	char classname[64];
-	char name[128];
 
 	for (int c = 0; c < g_iDoorCacheCount; c++)
 	{
@@ -578,38 +673,7 @@ void AJB_HookCellEntities()
 
 		GetEntityClassname(ent, classname, sizeof(classname));
 
-		bool match = false;
-
-		if (HasEntProp(ent, Prop_Data, "m_iName"))
-		{
-			GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
-			if (name[0] != '\0')
-			{
-				for (int i = 0; i < g_iDoorNameCount; i++)
-				{
-					if (StrEqual(name, g_sDoorNames[i], false))
-					{
-						match = true;
-						break;
-					}
-				}
-
-				if (!match && AJB_NameLooksCellish(name))
-				{
-					match = true;
-				}
-			}
-		}
-
-		if (!match && HasEntProp(ent, Prop_Data, "m_iHammerID"))
-		{
-			if (AJB_DoorHammerKnown(GetEntProp(ent, Prop_Data, "m_iHammerID")))
-			{
-				match = true;
-			}
-		}
-
-		if (match)
+		if (AJB_IsCellDoorEntity(ent))
 		{
 			if (StrContains(classname, "button", false) != -1)
 			{

@@ -331,6 +331,32 @@ void AJB_LR_ZM_Infect(int client, int attacker, bool patientZero)
 	{
 		GetClientAbsOrigin(client, origin);
 		GetClientEyeAngles(client, angles);
+
+		if (!patientZero && attacker > 0 && attacker <= MaxClients && attacker != client && IsClientInGame(attacker))
+		{
+			Event death = CreateEvent("player_death", true);
+			if (death == null)
+			{
+				LogError("[AJB-LR] Could not create the infection killfeed event.");
+			}
+			else
+			{
+				death.SetInt("userid", GetClientUserId(client));
+				death.SetInt("attacker", GetClientUserId(attacker));
+				death.SetInt("assister", -1);
+				death.SetString("weapon", "fists");
+
+				// Send only to clients so a cosmetic infection notice cannot trigger server death handlers.
+				for (int i = 1; i <= MaxClients; i++)
+				{
+					if (IsClientInGame(i) && !IsFakeClient(i))
+					{
+						death.FireToClient(i);
+					}
+				}
+				death.Cancel();
+			}
+		}
 	}
 
 	// Spectator transit avoids a direct cross-team death event mid-infect.

@@ -4,8 +4,8 @@
 // - Uses the same show_annotation / hide_annotation game events as the "Come here!" marker
 //   (core_warden_marker.sp), but with follow_entindex so the callout tracks the warden entity.
 // The warden is always alive while holding the role (death / team switch / disconnect all clear it),
-// so the label lifecycle is simply: AJB_SetWarden -> show, AJB_ClearWarden -> hide. No timer needed:
-// a long lifetime keeps it up until we explicitly hide it, which avoids a per-tick refresh.
+// so claim/clear, cloak and disguise condition changes own its visibility. A long lifetime keeps it up
+// until explicitly hidden, without a per-tick refresh.
 // =========================================================================================================
 
 // Fixed, distinct id so hide_annotation never collides with the marker's small incrementing ids.
@@ -26,7 +26,7 @@ void AJB_Label_OnPluginStart()
 		_, true, 0.0, true, 1.0);
 }
 
-// Called from AJB_SetWarden once the new warden is established. Client is a living guard warden.
+// Called on warden assignment, decloak and disguise removal. Client is a living guard warden.
 void AJB_Label_Show(int client)
 {
 	if (g_cvLabelEnabled == null || !g_cvLabelEnabled.BoolValue)
@@ -41,6 +41,10 @@ void AJB_Label_Show(int client)
 
 	// Replace any label still up (e.g. a fast warden hand-off) before raising the new one.
 	AJB_Label_Hide();
+	if (TF2_IsPlayerInCondition(client, TFCond_Cloaked) || TF2_IsPlayerInCondition(client, TFCond_Disguised))
+	{
+		return;
+	}
 
 	char text[64];
 	Format(text, sizeof(text), "%T", "Warden Label Text", LANG_SERVER);
@@ -69,7 +73,7 @@ void AJB_Label_Show(int client)
 	g_bLabelShown = true;
 }
 
-// Called from AJB_ClearWarden (death / resign / team switch / disconnect / map reset all route here).
+// Role cleanup, cloak and disguise hide the label without restoring stale wardenships.
 void AJB_Label_Hide()
 {
 	if (!g_bLabelShown)

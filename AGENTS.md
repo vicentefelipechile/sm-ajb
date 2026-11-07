@@ -177,6 +177,27 @@ git push origin v1.2.4
   If a helper does not exist yet, add it to the appropriate shared include rather than
   writing it inline in a single module. This avoids the drift of duplicated functions.
 
+## Visibility boost and special-day cells
+
+Guards can buy **Visibility** for 2 points (`sm_ajb_boosts_cost_visibility`). For 10 seconds,
+living RED players have TF2's native X-ray outline (`m_bGlowEnabled`), visible to everyone.
+Team changes and respawns refresh during the effect; overlapping purchases are refused.
+Round/map boundaries, disable and unload remove outlines owned by the boost, preserving
+outlines that were already enabled when it reached a player.
+
+Boost purchases, ongoing effects and survival/passive point rewards are disabled for
+Zombie Mode, Hunger Games, Cell Wars, Hide and Seek, Dodgeball, War Day, Class Warfare,
+and FF2. The module blocks `SpecialDay`/combat rounds; stale menus cannot bypass the block.
+Stored points stay intact, and boosts resume next normal round. Normal-round modifiers
+(including Sniper) and freedays keep boosts enabled.
+
+Ten seconds after live-round wishes apply, the core checks special days/freeday-all that
+requested open cells. It reads physical door state and reopens only doors that are not fully
+open, without changing the round state, repeating chat or pressing map buttons/relays.
+Explicit close requests (including Cell Wars) opt out. Verification supports `func_door`,
+`func_door_rotating`, `prop_door_rotating` and `func_movelinear`; custom brush/relay-only
+setups need identifiable physical door targets for verification.
+
 ## Database
 
 `ajb_admin` (guard bans) uses SQL via `configs/databases.cfg`. The entry name comes from
@@ -223,6 +244,11 @@ After the infection grace period, losing the last connected zombie automatically
 random living RED human. Dead BLU zombies waiting to respawn still count, so killing one does
 not infect an extra human. Joining BLU gives the zombie loadout and normal zombie respawn.
 During grace, its end must not infect another human if a zombie already exists.
+
+Player-caused infections of living humans send a client-only `player_death` notice with
+the infecting zombie as attacker and the fists icon. This adds a killfeed entry without
+server death hooks or real kill/death statistics. Lethal hits retain their existing death
+notice; patient zero and automatic replacements do not generate fake kills.
 
 AJB guard bans remain stored but do not block the zombie role; enforcement resumes when the
 wish ends or Last Request unloads. With no living humans, zombies win instead of attempting
@@ -278,6 +304,22 @@ The former `sm_ajb_mute_prisoners`, `sm_ajb_mute_unmute_freeday`, `sm_ajb_mute_u
 `sm_ajb_mute_deadtalk`, `sm_ajb_mute_deadtalk_crossteam` and `sm_ajb_mute_bypass_flags`
 ConVars are retired. Remove them from older `cfg/sourcemod/ajb_mutes.cfg` files; only
 `sm_ajb_mute_enabled` remains.
+
+## Cloak and role visuals
+
+While `TFCond_Cloaked` is active (including Dead Ringer), the overhead Warden label and
+orange rebel glow are hidden. Condition callbacks hide them immediately and restore them
+on decloak only if the living player still holds the role. Claiming warden or marking a
+rebel during cloak cannot reveal them; the rebel FX timer also respects cloak. This follows
+the full cloak duration, not the shorter Dead Ringer damage-resistance condition.
+
+The Warden label also stays hidden while `TFCond_Disguised` is active. Removing one condition
+does not reveal it while the other is still active; disguise does not hide the rebel glow.
+
+Living guard Spies with the Dead Ringer (item 59) recharge at twice their native rate.
+A post-think hook mirrors positive cloak-meter gains, capped at 100, without changing cloak
+drain or other watches. The bonus stops for prisoners, death or disabled AJB and needs no
+TF2Attributes dependency. Resupply still fills the meter normally.
 
 ## Spectator cameras
 
@@ -524,6 +566,7 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | `sm_ajb_boosts_enabled` | `1` | Enable the boosts system |
 | `sm_ajb_boosts_max_points` | `3` | Max points a player can earn-hold (0 = unlimited; admin grants ignore it) |
 | `sm_ajb_boosts_blu_every` | `2` | BLU survivors get +1 extra every N finished rounds |
+| `sm_ajb_boosts_cost_visibility` | `2` | Guard boost: native X-ray outlines on living RED players for 10 seconds |
 
 **Module — `ajb_lastrequest.sp`**
 

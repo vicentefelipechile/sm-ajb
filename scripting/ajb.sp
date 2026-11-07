@@ -91,8 +91,9 @@ bool g_bWardenMenuOpen[MAXPLAYERS + 1];
 #define AJB_PF_REBEL            (1 << 0)   // prisoner is a rebel
 #define AJB_PF_FREEDAY          (1 << 1)   // prisoner has an active freeday this round
 #define AJB_PF_FREEDAY_PENDING  (1 << 2)   // freeday queued for next round
-#define AJB_PF_SDKHOOKED        (1 << 3)   // OnTakeDamage/TraceAttack hooked for this client
+#define AJB_PF_SDKHOOKED        (1 << 3)   // Damage and post-think handlers hooked for this client
 int g_iPlayerFlags[MAXPLAYERS + 1];
+float g_flGuardCloakMeter[MAXPLAYERS + 1];
 
 bool g_bLastPrisonerAnnounced;
 

@@ -35,6 +35,18 @@
 		"ru"		"{1} Бусты отключены."
 	}
 
+	"Boosts Special Round"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Boosts are unavailable during minigames and special combat rounds."
+		"es"		"{1} Los boosts no están disponibles durante minijuegos y rondas especiales de combate."
+		"las"		"{1} Los boosts no están disponibles durante minijuegos y rondas especiales de combate."
+		"de"		"{1} Boosts sind während Minispielen und speziellen Kampfrunden nicht verfügbar."
+		"fr"		"{1} Les boosts sont indisponibles pendant les mini-jeux et les manches de combat spéciales."
+		"pt"		"{1} Boosts indisponíveis durante minijogos e rodadas especiais de combate."
+		"ru"		"{1} Бусты недоступны во время мини-игр и особых боевых раундов."
+	}
+
 	"Boosts Mode Inactive"
 	{
 		"#format"	"{1:s}"
@@ -141,6 +153,42 @@
 		"fr"		"Iron neck II ({1}) — survivez à 2 backstabs"
 		"pt"		"Iron neck II ({1}) — sobreviva a 2 backstabs"
 		"ru"		"Iron neck II ({1}) — переживите 2 бэкстаба"
+	}
+
+	"Boost Visibility"
+	{
+		"#format"	"{1:d}"
+		"en"		"Visibility · X-ray 10s ({1})"
+		"es"		"Visibilidad · rayos X 10s ({1})"
+		"las"		"Visibilidad · rayos X 10s ({1})"
+		"de"		"Sichtbarkeit · Röntgenblick 10s ({1})"
+		"fr"		"Visibilité · rayons X 10s ({1})"
+		"pt"		"Visibilidade · raios X 10s ({1})"
+		"ru"		"Видимость · рентген 10с ({1})"
+	}
+
+	"Boosts Visibility Already"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Visibility is already active."
+		"es"		"{1} Visibilidad ya está activa."
+		"las"		"{1} Visibilidad ya está activa."
+		"de"		"{1} Sichtbarkeit ist bereits aktiv."
+		"fr"		"{1} La visibilité est déjà active."
+		"pt"		"{1} Visibilidade já está ativa."
+		"ru"		"{1} Видимость уже активна."
+	}
+
+	"Boosts Purchased Visibility"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} RED players revealed through walls for 10s. Points: {2}."
+		"es"		"{1} Jugadores RED visibles a través de paredes durante 10s. Puntos: {2}."
+		"las"		"{1} Jugadores RED visibles a través de paredes durante 10s. Puntos: {2}."
+		"de"		"{1} RED-Spieler sind 10s durch Wände sichtbar. Punkte: {2}."
+		"fr"		"{1} Joueurs RED visibles à travers les murs pendant 10s. Points : {2}."
+		"pt"		"{1} Jogadores RED visíveis através das paredes por 10s. Pontos: {2}."
+		"ru"		"{1} Игроки RED видны сквозь стены на 10с. Очки: {2}."
 	}
 
 	"Boost Revive"

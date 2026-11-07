@@ -19,6 +19,8 @@ void AJB_HookClient(int client)
 
 	SDKHook(client, SDKHook_OnTakeDamage, AJB_OnTakeDamage);
 	SDKHook(client, SDKHook_TraceAttack, AJB_OnTraceAttack);
+	SDKHook(client, SDKHook_PostThinkPost, AJB_Weapons_GuardCloakPostThink);
+	g_flGuardCloakMeter[client] = -1.0;
 	AJB_FlagSet(client, AJB_PF_SDKHOOKED, true);
 }
 
@@ -33,6 +35,7 @@ void AJB_UnhookClient(int client)
 	{
 		SDKUnhook(client, SDKHook_OnTakeDamage, AJB_OnTakeDamage);
 		SDKUnhook(client, SDKHook_TraceAttack, AJB_OnTraceAttack);
+		SDKUnhook(client, SDKHook_PostThinkPost, AJB_Weapons_GuardCloakPostThink);
 	}
 
 	AJB_FlagSet(client, AJB_PF_SDKHOOKED, false);

@@ -556,6 +556,12 @@ void AJB_Rebel_EnsureGlow(int client)
 		return;
 	}
 
+	if (TF2_IsPlayerInCondition(client, TFCond_Cloaked))
+	{
+		AJB_Rebel_KillGlow(client);
+		return;
+	}
+
 	float mid[3];
 	AJB_Freeday_GetMidBody(client, mid);
 
@@ -631,6 +637,45 @@ int AJB_CreateGlow(const char[] color)
 	AcceptEntityInput(glow, "ShowSprite");
 
 	return glow;
+}
+
+// =========================================================================================================
+// Cloak and disguise visibility
+// =========================================================================================================
+
+public void TF2_OnConditionAdded(int client, TFCond condition)
+{
+	// Dead Ringer's cloak outlasts its damage resistance; follow Cloaked, not DeadRingered.
+	if (!g_bModeActive || (condition != TFCond_Cloaked && condition != TFCond_Disguised) || !AJB_IsValidClient(client))
+	{
+		return;
+	}
+
+	if (client == g_iWarden)
+	{
+		AJB_Label_Hide();
+	}
+	if (condition == TFCond_Cloaked)
+	{
+		AJB_Rebel_KillGlow(client);
+	}
+}
+
+public void TF2_OnConditionRemoved(int client, TFCond condition)
+{
+	if (!g_bModeActive || (condition != TFCond_Cloaked && condition != TFCond_Disguised) || !AJB_IsValidClient(client, true))
+	{
+		return;
+	}
+
+	if (client == g_iWarden)
+	{
+		AJB_Label_Show(client);
+	}
+	if (condition == TFCond_Cloaked && AJB_FlagGet(client, AJB_PF_REBEL))
+	{
+		AJB_Rebel_EnsureGlow(client);
+	}
 }
 
 // =========================================================================================================

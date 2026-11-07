@@ -33,6 +33,7 @@
 
 #define BOOST_ID_IRON_NECK     "iron_neck"
 #define BOOST_ID_REVIVE        "revive"
+#define BOOST_ID_VISIBILITY    "visibility"
 
 // RED (prisoner) boosts
 #define BOOST_ID_SECOND_WIND   "second_wind"
@@ -43,6 +44,8 @@
 
 #define BOOST_COST_IRON_NECK    1
 #define BOOST_COST_REVIVE        3
+#define BOOST_VISIBILITY_DURATION 10.0
+#define BOOST_VISIBILITY_TICK     0.1
 
 #define BOOST_COST_SECOND_WIND   1
 #define BOOST_COST_MAD_MILK      1
@@ -62,6 +65,7 @@
 // Per-player boolean state packed into one bitfield cell (see BoostPlayer.flags).
 #define BF_MELEE_CRIT    (1 << 0)   // RED: next melee hit is a full crit
 #define BF_DAMAGE_HOOKED (1 << 1)   // OnTakeDamage + OnTakeDamageAlive hooked for this client
+#define BF_VISIBILITY_GLOW (1 << 2) // Outline enabled by this module, not another source
 
 // =========================================================================================================
 // Plugin info
@@ -87,6 +91,7 @@ ConVar g_cvBluEvery;
 // Cost ConVars
 ConVar g_cvCostIronNeck;
 ConVar g_cvCostRevive;
+ConVar g_cvCostVisibility;
 ConVar g_cvCostSecondWind;
 ConVar g_cvCostMadMilk;
 ConVar g_cvCostMeleeCrit;
@@ -101,9 +106,9 @@ ConVar g_cvRegenPerTick;
 
 bool g_bHasCore;
 
-// Cached mirror of g_cvEnabled: OnTakeDamage is hooked on every client and fires for all
-// server-wide damage, so its early-out reads a bool instead of the ConVar accessor per hit.
+// Cache the round policy so damage hooks do not query natives on every hit.
 bool g_bBoostsEnabled;
+bool g_bSpecialRound;
 
 // All per-player boost data in one contiguous struct (cache locality; bools packed into flags).
 enum struct BoostPlayer
@@ -120,6 +125,8 @@ BoostPlayer g_Boost[MAXPLAYERS + 1];
 
 // Counts finished jail rounds for BLU passive points (every N rounds).
 int g_iFinishedRoundCount;
+Handle g_hVisibilityTimer;
+float g_flVisibilityEnd;
 
 // Flag accessors — the compiler inlines these to the same and/or/andnot it would emit inline.
 bool Boost_HasFlag(int client, int flag)
@@ -137,6 +144,49 @@ void Boost_SetFlag(int client, int flag, bool on)
 	{
 		g_Boost[client].flags &= ~flag;
 	}
+}
+
+// =========================================================================================================
+// Availability
+// =========================================================================================================
+
+void AJB_Boosts_ClearEffects()
+{
+	AJB_Boosts_StopVisibility();
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_Boost[i].backstabCharges = 0;
+		Boost_SetFlag(i, BF_MELEE_CRIT, false);
+		AJB_Boosts_StopRegen(i);
+	}
+}
+
+void AJB_Boosts_RefreshAvailability()
+{
+	bool active = g_bHasCore && AJB_IsEnabled();
+	if (active && (AJB_GetRoundState() == AJBState_SpecialDay || AJB_IsCombatDay()))
+	{
+		// Keep the block through round-end cleanup, when the core has already cleared its mode flags.
+		g_bSpecialRound = true;
+	}
+
+	g_bBoostsEnabled = g_cvEnabled.BoolValue && active && !g_bSpecialRound;
+	if (!g_bBoostsEnabled)
+	{
+		AJB_Boosts_ClearEffects();
+	}
+}
+
+bool AJB_Boosts_CheckAvailable(int client)
+{
+	AJB_Boosts_RefreshAvailability();
+	if (g_bBoostsEnabled)
+	{
+		return true;
+	}
+
+	AJB_Reply(client, g_bSpecialRound ? "Boosts Special Round" : "Boosts Disabled");
+	return false;
 }
 
 // =========================================================================================================
@@ -185,6 +235,7 @@ public void OnPluginStart()
 	// Costs
 	g_cvCostIronNeck = CreateConVar("sm_ajb_boosts_cost_iron_neck", "1", "Cost for Iron Neck (1 backstab block for Guards).", _, true, 1.0);
 	g_cvCostRevive = CreateConVar("sm_ajb_boosts_cost_revive", "3", "Cost for Warden Revive.", _, true, 1.0);
+	g_cvCostVisibility = CreateConVar("sm_ajb_boosts_cost_visibility", "2", "Cost for Visibility (native RED outlines for 10 seconds).", _, true, 1.0);
 	g_cvCostSecondWind = CreateConVar("sm_ajb_boosts_cost_second_wind", "1", "Cost for Second Wind.", _, true, 1.0);
 	g_cvCostMadMilk = CreateConVar("sm_ajb_boosts_cost_mad_milk", "1", "Cost for Mad Milk.", _, true, 1.0);
 	g_cvCostMeleeCrit = CreateConVar("sm_ajb_boosts_cost_melee_crit", "2", "Cost for Melee Crit.", _, true, 1.0);
@@ -214,6 +265,7 @@ public void OnPluginStart()
 	HookEvent("teamplay_round_win", Event_RoundWin, EventHookMode_Post);
 
 	g_bHasCore = LibraryExists(AJB_LIBRARY);
+	AJB_Boosts_RefreshAvailability();
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -228,16 +280,29 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
-	// Stop any running regen timers so a hot reload cannot leave stale handles.
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		AJB_Boosts_StopRegen(i);
-	}
+	AJB_Boosts_ClearEffects();
 }
 
 public void OnMapStart()
 {
 	g_iFinishedRoundCount = 0;
+	g_bSpecialRound = false;
+	AJB_Boosts_RefreshAvailability();
+}
+
+public void OnMapEnd()
+{
+	AJB_Boosts_ClearEffects();
+}
+
+public void AJB_OnModeChanged(bool enabled)
+{
+	AJB_Boosts_RefreshAvailability();
+}
+
+public void AJB_OnRoundStateChange(AJBRoundState oldState, AJBRoundState newState)
+{
+	AJB_Boosts_RefreshAvailability();
 }
 
 public void OnClientPutInServer(int client)
@@ -255,6 +320,7 @@ public void OnClientDisconnect(int client)
 // Full per-player wipe (points included) — connect/disconnect boundary.
 void AJB_Boosts_ResetClient(int client)
 {
+	AJB_Boosts_ClearVisibility(client);
 	AJB_Boosts_StopRegen(client);
 	g_Boost[client].points = 0;
 	g_Boost[client].spentThisRound = 0;
@@ -264,7 +330,7 @@ void AJB_Boosts_ResetClient(int client)
 
 public void OnBoostsEnabledChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	g_bBoostsEnabled = convar.BoolValue;
+	AJB_Boosts_RefreshAvailability();
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -272,6 +338,7 @@ public void OnLibraryAdded(const char[] name)
 	if (StrEqual(name, AJB_LIBRARY))
 	{
 		g_bHasCore = true;
+		AJB_Boosts_RefreshAvailability();
 	}
 }
 
@@ -280,6 +347,7 @@ public void OnLibraryRemoved(const char[] name)
 	if (StrEqual(name, AJB_LIBRARY))
 	{
 		g_bHasCore = false;
+		AJB_Boosts_RefreshAvailability();
 	}
 }
 
@@ -289,14 +357,14 @@ public void OnLibraryRemoved(const char[] name)
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
+	g_bSpecialRound = false;
+	AJB_Boosts_RefreshAvailability();
+	AJB_Boosts_ClearEffects();
 	int maxPts = g_cvMaxPoints.IntValue;
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_Boost[i].spentThisRound = 0;
-		g_Boost[i].backstabCharges = 0;
-		Boost_SetFlag(i, BF_MELEE_CRIT, false);
-		AJB_Boosts_StopRegen(i);
 
 		// Cap holdings to max (e.g. after cvar change or leftover from older builds).
 		if (maxPts > 0 && g_Boost[i].points > maxPts)
@@ -308,7 +376,8 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	AJB_Boosts_ClearEffects();
+	if (!g_bBoostsEnabled)
 	{
 		return;
 	}
@@ -330,13 +399,6 @@ void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 		{
 			AJB_Boosts_AddPoints(i, 1, "blu_passive");
 		}
-	}
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		g_Boost[i].backstabCharges = 0;
-		Boost_SetFlag(i, BF_MELEE_CRIT, false);
-		AJB_Boosts_StopRegen(i);
 	}
 }
 
@@ -454,6 +516,11 @@ void AJB_Boosts_AddPoints(int client, int amount, const char[] reason)
 
 bool AJB_Boosts_TrySpend(int client, int cost)
 {
+	if (!AJB_Boosts_CheckAvailable(client))
+	{
+		return false;
+	}
+
 	if (cost < 1)
 	{
 		return false;
@@ -478,6 +545,11 @@ bool AJB_Boosts_TrySpend(int client, int cost)
 
 void AJB_Boosts_ShowMenu(int client)
 {
+	if (!AJB_Boosts_CheckAvailable(client))
+	{
+		return;
+	}
+
 	Menu menu = new Menu(MenuHandler_Boosts);
 
 	char title[192];
@@ -493,6 +565,9 @@ void AJB_Boosts_ShowMenu(int client)
 		// Cost is code-owned; translations only hold the description.
 		Format(line, sizeof(line), "%T", "Boost Iron Neck", client, g_cvCostIronNeck.IntValue);
 		menu.AddItem(BOOST_ID_IRON_NECK, line, draw);
+
+		Format(line, sizeof(line), "%T", "Boost Visibility", client, g_cvCostVisibility.IntValue);
+		menu.AddItem(BOOST_ID_VISIBILITY, line, g_hVisibilityTimer == null ? draw : ITEMDRAW_DISABLED);
 
 		if (AJB_GetWarden() == client)
 		{
@@ -542,7 +617,7 @@ public int MenuHandler_Boosts(Menu menu, MenuAction action, int param1, int para
 	}
 
 	int client = param1;
-	if (!g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
+	if (!AJB_Boosts_CheckAvailable(client))
 	{
 		return 0;
 	}
@@ -564,6 +639,10 @@ public int MenuHandler_Boosts(Menu menu, MenuAction action, int param1, int para
 	else if (StrEqual(id, BOOST_ID_REVIVE))
 	{
 		AJB_Boosts_BuyRevive(client);
+	}
+	else if (StrEqual(id, BOOST_ID_VISIBILITY))
+	{
+		AJB_Boosts_BuyVisibility(client);
 	}
 	else if (StrEqual(id, BOOST_ID_SECOND_WIND))
 	{
@@ -613,6 +692,93 @@ void AJB_Boosts_BuyIronNeck(int client, int charges, int cost)
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
 	CPrintToChat(client, "%T", "Boosts Purchased Iron Neck", client, prefix, g_Boost[client].backstabCharges, g_Boost[client].points);
 	AJB_Boosts_ShowMenu(client);
+}
+
+void AJB_Boosts_BuyVisibility(int client)
+{
+	if (!AJB_IsGuard(client) || !IsPlayerAlive(client))
+	{
+		AJB_Chat(client, "Boosts Guards Alive Only");
+		return;
+	}
+
+	if (g_hVisibilityTimer != null)
+	{
+		AJB_Chat(client, "Boosts Visibility Already");
+		AJB_Boosts_ShowMenu(client);
+		return;
+	}
+
+	if (!AJB_Boosts_TrySpend(client, g_cvCostVisibility.IntValue))
+	{
+		AJB_Boosts_ShowMenu(client);
+		return;
+	}
+
+	g_flVisibilityEnd = GetGameTime() + BOOST_VISIBILITY_DURATION;
+	AJB_Boosts_UpdateVisibility();
+	g_hVisibilityTimer = CreateTimer(BOOST_VISIBILITY_TICK, Timer_BoostVisibility, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
+	char prefix[32];
+	AJB_GetPrefix(client, prefix, sizeof(prefix));
+	CPrintToChat(client, "%T", "Boosts Purchased Visibility", client, prefix, g_Boost[client].points);
+	AJB_Boosts_ShowMenu(client);
+}
+
+void AJB_Boosts_ClearVisibility(int client)
+{
+	if (!Boost_HasFlag(client, BF_VISIBILITY_GLOW))
+	{
+		return;
+	}
+
+	if (IsClientInGame(client))
+	{
+		SetEntProp(client, Prop_Send, "m_bGlowEnabled", 0);
+	}
+	Boost_SetFlag(client, BF_VISIBILITY_GLOW, false);
+}
+
+void AJB_Boosts_StopVisibility()
+{
+	delete g_hVisibilityTimer;
+	g_flVisibilityEnd = 0.0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		AJB_Boosts_ClearVisibility(i);
+	}
+}
+
+void AJB_Boosts_UpdateVisibility()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || GetClientTeam(i) != AJB_TEAM_RED)
+		{
+			AJB_Boosts_ClearVisibility(i);
+			continue;
+		}
+
+		// Preserve outlines that were already enabled before this boost.
+		if (!GetEntProp(i, Prop_Send, "m_bGlowEnabled"))
+		{
+			SetEntProp(i, Prop_Send, "m_bGlowEnabled", 1);
+			Boost_SetFlag(i, BF_VISIBILITY_GLOW, true);
+		}
+	}
+}
+
+Action Timer_BoostVisibility(Handle timer)
+{
+	if (GetGameTime() >= g_flVisibilityEnd)
+	{
+		g_hVisibilityTimer = null;
+		AJB_Boosts_StopVisibility();
+		return Plugin_Stop;
+	}
+
+	AJB_Boosts_UpdateVisibility();
+	return Plugin_Continue;
 }
 
 void AJB_Boosts_BuyRevive(int client)
@@ -708,6 +874,11 @@ public int MenuHandler_Revive(Menu menu, MenuAction action, int param1, int para
 	}
 
 	int client = param1;
+	if (!AJB_Boosts_CheckAvailable(client))
+	{
+		return 0;
+	}
+
 	if (AJB_GetWarden() != client)
 	{
 		return 0;
@@ -917,7 +1088,7 @@ void AJB_Boosts_StartRegen(int client, float duration)
 Action Timer_BoostRegen(Handle timer, int userid)
 {
 	int client = GetClientOfUserId(userid);
-	if (client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client) || GetGameTime() >= g_Boost[client].regenEnd)
+	if (!g_bBoostsEnabled || client < 1 || !IsClientInGame(client) || !IsPlayerAlive(client) || GetGameTime() >= g_Boost[client].regenEnd)
 	{
 		if (client >= 1 && client <= MaxClients && g_Boost[client].regenTimer == timer)
 		{

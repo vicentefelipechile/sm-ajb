@@ -161,6 +161,8 @@ void AJB_NotifyLiveRoundBegin()
 		Call_StartForward(g_hFwdLiveRoundBegin);
 		Call_Finish();
 	}
+
+	AJB_ScheduleSpecialDayCellCheck();
 }
 
 void Event_WaitingBegins(Event event, const char[] name, bool dontBroadcast)
