@@ -323,6 +323,9 @@ ConVars are retired. Remove them from older `cfg/sourcemod/ajb_mutes.cfg` files;
 
 ## Cloak and role visuals
 
+The overhead Warden label is sent only to other human players, never to the warden;
+TF2 otherwise renders their own label as an offscreen arrow at the edge of their HUD.
+
 While `TFCond_Cloaked` is active (including Dead Ringer), the overhead Warden label and
 orange rebel glow are hidden. Condition callbacks hide them immediately and restore them
 on decloak only if the living player still holds the role. Claiming warden or marking a

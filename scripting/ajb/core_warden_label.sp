@@ -1,6 +1,7 @@
 // =========================================================================================================
 // Warden overhead label
 // - A persistent TF2 world annotation that floats above the warden's head reading "Warden".
+// - Hidden from the warden so their own offscreen annotation does not clutter their HUD.
 // - Uses the same show_annotation / hide_annotation game events as the "Come here!" marker
 //   (core_warden_marker.sp), but with follow_entindex so the callout tracks the warden entity.
 // The warden is always alive while holding the role (death / team switch / disconnect all clear it),
@@ -22,7 +23,7 @@ void AJB_Label_OnPluginStart()
 	g_cvLabelEnabled = CreateConVar(
 		"sm_ajb_warden_label",
 		"1",
-		"1 = show a floating 'Warden' label above the warden's head while they hold the role.",
+		"1 = show other players a floating 'Warden' label above the warden's head while they hold the role.",
 		_, true, 0.0, true, 1.0);
 }
 
@@ -66,9 +67,17 @@ void AJB_Label_Show(int client)
 	ev.SetInt("id", AJB_LABEL_ANN_ID);
 	ev.SetString("text", text);
 	ev.SetFloat("lifetime", AJB_LABEL_LIFETIME);
-	ev.SetInt("visibilityBitfield", 0);        // 0 = visible to all players
+	ev.SetInt("visibilityBitfield", 0);
 	ev.SetString("play_sound", "");            // silent: no ping each time it (re)appears
-	ev.Fire();
+	// Send individually rather than using a 32-bit visibility mask on servers with more client slots.
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (i != client && IsClientInGame(i) && !IsFakeClient(i))
+		{
+			ev.FireToClient(i);
+		}
+	}
+	ev.Cancel();
 
 	g_bLabelShown = true;
 }
