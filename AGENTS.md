@@ -269,8 +269,11 @@ Guard bans remain stored but are suspended for these three wishes, then enforced
 
 Sniper remains a normal-round modifier: it does not change cells, teams or boost availability.
 Every `sm_ajb_lr_sniper_min`–`sm_ajb_lr_sniper_max` seconds it selects one living human from
-either team. Standing targets have `sm_ajb_lr_sniper_hit_chance` percent chance of a lethal
-hit; crouched targets always dodge. Misses still play the gunshot and announce the miss.
+either team. Standing targets have `sm_ajb_lr_sniper_hit_chance` percent chance of a critical
+bullet hit; crouched targets always dodge. Headshots use 50 base damage with TF2's native 3x
+critical multiplier (150 before defenses), not forced lethal damage. Overheal, Dead Ringer,
+invulnerability, resistances and damage hooks can allow survival. Misses still play the gunshot
+and announce the miss; hit notices do not claim the target died.
 
 After `sm_ajb_lr_sniper_duck_time` continuous seconds crouched, actually standing up triggers
 one non-critical body shot for `sm_ajb_lr_sniper_body_damage` base damage, independent of the
@@ -379,6 +382,14 @@ Living guard Spies with the Dead Ringer (item 59) recharge at twice their native
 A post-think hook mirrors positive cloak-meter gains, capped at 100, without changing cloak
 drain or other watches. The bonus stops for prisoners, death or disabled AJB and needs no
 TF2Attributes dependency. Resupply still fills the meter normally.
+
+Prisoners hitting guard Spies actively disguised as the prisoners' team are not automatically
+marked rebel and may damage them without a rebel mark, including hits that trigger Dead Ringer.
+Guards disguised as their own team, undisguised guards and incomplete disguises retain the
+normal rebel-on-hit policy. Existing rebel marks are never cleared by this exemption, and
+prep damage protection remains intact. `AJB_ClientDisguisedAsPrisoner` in `core_teams.sp` owns
+the disguise check; the damage hook snapshots it through `player_hurt` so fatal hits that
+remove a disguise cannot retroactively mark the attacker. The snapshot clears after damage.
 
 ## Spectator cameras
 
@@ -693,7 +704,7 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | `sm_ajb_lr_sniper_min` | `10.0` | Sniper: minimum seconds between random shots (2–300) |
 | `sm_ajb_lr_sniper_max` | `25.0` | Sniper: maximum seconds between random shots (5–600, clamped to minimum at runtime) |
 | `sm_ajb_lr_sniper_force` | `800.0` | Sniper: impact/ragdoll force (100–3000) |
-| `sm_ajb_lr_sniper_hit_chance` | `50.0` | Sniper: lethal hit chance (%) for the selected standing target; crouching always dodges (0–100) |
+| `sm_ajb_lr_sniper_hit_chance` | `50.0` | Sniper: critical hit chance (%) for the selected standing target; crouching always dodges (0–100) |
 | `sm_ajb_lr_sniper_duck_time` | `3.0` | Sniper: continuous crouch seconds before standing triggers a body shot (0.1–30) |
 | `sm_ajb_lr_sniper_body_damage` | `50.0` | Sniper: non-critical body shot base damage after a prolonged crouch (1–500) |
 | `sm_ajb_lr_cw_round_time` | `300` | Cell Wars: total round duration in seconds, survivors win on timeout (60–900) |

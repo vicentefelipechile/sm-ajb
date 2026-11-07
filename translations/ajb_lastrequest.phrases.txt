@@ -1397,13 +1397,13 @@
 	"LR Sniper Shot"
 	{
 		"#format"	"{1:s},{2:N}"
-		"en"		"{1} BANG! {2} was sniped out of nowhere!"
-		"es"		"{1} ¡BANG! ¡Un sniper le disparó a {2} desde las sombras!"
-		"las"		"{1} ¡BANG! ¡Un sniper le disparó a {2} desde las sombras!"
-		"de"		"{1} BANG! {2} wurde aus dem Nichts erschossen!"
-		"fr"		"{1} BANG ! {2} a été abattu por un sniper !"
-		"pt"		"{1} BANG! {2} foi atingido por um sniper do nada!"
-		"ru"		"{1} БАМ! {2} был застрелен снайпером из ниоткуда!"
+		"en"		"{1} BANG! A sniper fired at {2}'s head out of nowhere!"
+		"es"		"{1} ¡BANG! ¡Un francotirador disparó a la cabeza de {2} desde las sombras!"
+		"las"		"{1} ¡BANG! ¡Un francotirador disparó a la cabeza de {2} desde las sombras!"
+		"de"		"{1} BANG! Ein Scharfschütze hat aus dem Nichts auf den Kopf von {2} geschossen!"
+		"fr"		"{1} BANG ! Un sniper a tiré sur la tête de {2} de nulle part !"
+		"pt"		"{1} BANG! Um sniper atirou na cabeça de {2} do nada!"
+		"ru"		"{1} БАМ! Снайпер выстрелил в голову {2} из ниоткуда!"
 	}
 	"LR Wish CellWars"
 	{

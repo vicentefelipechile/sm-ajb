@@ -97,6 +97,7 @@ bool g_bWardenMenuOpen[MAXPLAYERS + 1];
 #define AJB_PF_SDKHOOKED        (1 << 3)   // Damage and post-think handlers hooked for this client
 #define AJB_PF_FIREWARDEN_VOTED (1 << 4)
 #define AJB_PF_WARDEN_FIRED     (1 << 5)
+#define AJB_PF_HIT_PRISONER_DISGUISE (1 << 6)
 int g_iPlayerFlags[MAXPLAYERS + 1];
 float g_flGuardCloakMeter[MAXPLAYERS + 1];
 

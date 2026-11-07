@@ -18,6 +18,7 @@ void AJB_HookClient(int client)
 	}
 
 	SDKHook(client, SDKHook_OnTakeDamage, AJB_OnTakeDamage);
+	SDKHook(client, SDKHook_OnTakeDamagePost, AJB_OnTakeDamagePost);
 	SDKHook(client, SDKHook_TraceAttack, AJB_OnTraceAttack);
 	SDKHook(client, SDKHook_PostThinkPost, AJB_Weapons_GuardCloakPostThink);
 	g_flGuardCloakMeter[client] = -1.0;
@@ -34,11 +35,13 @@ void AJB_UnhookClient(int client)
 	if (IsClientInGame(client))
 	{
 		SDKUnhook(client, SDKHook_OnTakeDamage, AJB_OnTakeDamage);
+		SDKUnhook(client, SDKHook_OnTakeDamagePost, AJB_OnTakeDamagePost);
 		SDKUnhook(client, SDKHook_TraceAttack, AJB_OnTraceAttack);
 		SDKUnhook(client, SDKHook_PostThinkPost, AJB_Weapons_GuardCloakPostThink);
 	}
 
 	AJB_FlagSet(client, AJB_PF_SDKHOOKED, false);
+	AJB_FlagSet(client, AJB_PF_HIT_PRISONER_DISGUISE, false);
 }
 
 void AJB_HookAllClients()
@@ -196,7 +199,8 @@ void AJB_TryRebelFromAttack(int attacker, int victim)
 		return;
 	}
 
-	if (!AJB_ClientIsPrisoner(attacker) || !AJB_ClientIsGuard(victim))
+	if (!AJB_ClientIsPrisoner(attacker) || !AJB_ClientIsGuard(victim)
+		|| AJB_ClientDisguisedAsPrisoner(victim))
 	{
 		return;
 	}
@@ -234,6 +238,9 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 	{
 		return Plugin_Continue;
 	}
+
+	// Preserve the visible team until player_hurt, even if this hit removes the disguise.
+	AJB_FlagSet(victim, AJB_PF_HIT_PRISONER_DISGUISE, AJB_ClientDisguisedAsPrisoner(victim));
 
 	// Mark rebel BEFORE the damage <= 0 early-out. Other plugins (or our own block)
 	// may have zeroed damage already — the hit still counts as rebelling.
@@ -295,8 +302,8 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 
 	if (attackerPrisoner && victimGuard)
 	{
-		// Combat day handling above rebel; war day allows free fire.
-		if (AJB_IsCombatDay())
+		// These hits are allowed without requiring a rebel mark.
+		if (AJB_IsCombatDay() || AJB_FlagGet(victim, AJB_PF_HIT_PRISONER_DISGUISE))
 		{
 			return Plugin_Continue;
 		}
@@ -342,6 +349,11 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 	}
 
 	return Plugin_Continue;
+}
+
+void AJB_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
+{
+	AJB_FlagSet(victim, AJB_PF_HIT_PRISONER_DISGUISE, false);
 }
 
 Action Event_PlayerBuiltObject(Event event, const char[] name, bool dontBroadcast)

@@ -42,7 +42,7 @@ void AJB_LR_SniperShoot(int victim, float damage, bool headshot = false)
 		AJB_ChatAll1N("LR Sniper Body Shot", victim);
 	}
 
-	SDKHooks_TakeDamage(victim, 0, 0, damage, DMG_BULLET | (headshot ? DMG_CRIT : 0), -1, vecForce);
+	SDKHooks_TakeDamage(victim, 0, 0, damage, DMG_BULLET | (headshot ? DMG_CRIT : 0), -1, vecForce, NULL_VECTOR, false);
 	if (IsPlayerAlive(victim))
 	{
 		return;
@@ -99,7 +99,8 @@ Action Timer_SniperShot(Handle timer)
 		float chance = g_cvSniperHitChance.FloatValue;
 		if (!(GetEntityFlags(victim) & FL_DUCKING) && (chance >= 100.0 || GetRandomFloat(0.0, 100.0) < chance))
 		{
-			damage = LR_SNIPER_LETHAL_DAMAGE;
+			// TF2 applies the native 3x critical multiplier, then the victim's defenses.
+			damage = LR_SNIPER_HEADSHOT_BASE_DAMAGE;
 		}
 		AJB_LR_SniperShoot(victim, damage, true);
 	}

@@ -37,6 +37,13 @@ bool AJB_ClientIsPrisoner(int client)
 	return GetClientTeam(client) == AJB_GetPrisonersTeam();
 }
 
+bool AJB_ClientDisguisedAsPrisoner(int client)
+{
+	return AJB_IsValidClient(client) && TF2_GetPlayerClass(client) == TFClass_Spy
+		&& TF2_IsPlayerInCondition(client, TFCond_Disguised)
+		&& GetEntProp(client, Prop_Send, "m_nDisguiseTeam") == AJB_GetPrisonersTeam();
+}
+
 int AJB_PickRandomAliveOnTeam(int team)
 {
 	int candidates[MAXPLAYERS];

@@ -384,7 +384,7 @@ void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 
 	int victim = GetClientOfUserId(event.GetInt("userid"));
 	int attacker = GetClientOfUserId(event.GetInt("attacker"));
-	if (victim < 1 || attacker < 1)
+	if (victim < 1 || attacker < 1 || AJB_FlagGet(victim, AJB_PF_HIT_PRISONER_DISGUISE))
 	{
 		return;
 	}

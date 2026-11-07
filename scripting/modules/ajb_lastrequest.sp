@@ -48,7 +48,7 @@
 #define LR_ZM_PROTECT_DEFAULT 5.0
 #define LR_ZM_ROUND_DEFAULT   300.0
 #define LR_ZM_MATE_Z_OFFSET   8.0
-#define LR_SNIPER_LETHAL_DAMAGE 5000.0
+#define LR_SNIPER_HEADSHOT_BASE_DAMAGE 50.0
 // Built-in wish entries in the menu (0..16). Items appended beyond this index belong to
 // external plugins via the AJB_OnLRWishMenu/AJB_OnLRWishSelect hooks in ajb/lrwish.inc.
 #define LR_WISH_BUILTIN_COUNT 17
