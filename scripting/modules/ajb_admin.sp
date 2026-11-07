@@ -1174,11 +1174,14 @@ void AJB_EnforceGuardBan(int client)
 		return;
 	}
 
-	// The ban remains stored; BLU is a zombie role only while this wish is active.
-	if (GetFeatureStatus(FeatureType_Native, "AJB_LR_GetActiveWish") == FeatureStatus_Available
-		&& AJB_LR_GetActiveWish() == LRWish_ZombieMode)
+	// Event teams are combat roles, not guards; stored bans resume after the wish ends.
+	if (GetFeatureStatus(FeatureType_Native, "AJB_LR_GetActiveWish") == FeatureStatus_Available)
 	{
-		return;
+		AJB_LRWish wish = AJB_LR_GetActiveWish();
+		if (wish == LRWish_ZombieMode || AJB_LR_UsesEqualTeams(wish))
+		{
+			return;
+		}
 	}
 
 	if (GetClientTeam(client) != AJB_GetGuardsTeam())

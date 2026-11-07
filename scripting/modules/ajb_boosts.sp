@@ -18,6 +18,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <ajb/ajb>
+#include <ajb/lrwish>
 #define REQUIRE_PLUGIN
 
 // Own library name for natives (see include/ajb/boosts.inc).
@@ -109,6 +110,7 @@ bool g_bHasCore;
 // Cache the round policy so damage hooks do not query natives on every hit.
 bool g_bBoostsEnabled;
 bool g_bSpecialRound;
+bool g_bRoundRewarded;
 
 // All per-player boost data in one contiguous struct (cache locality; bools packed into flags).
 enum struct BoostPlayer
@@ -262,7 +264,8 @@ public void OnPluginStart()
 	RegAdminCmd("sm_ajb_boosts_give", Command_GivePoints, ADMFLAG_GENERIC, "Usage: sm_ajb_boosts_give <#userid|name> <amount>");
 
 	HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_PostNoCopy);
-	HookEvent("teamplay_round_win", Event_RoundWin, EventHookMode_Post);
+	// Award before other plugins restore teams or remove special-day roles.
+	HookEvent("teamplay_round_win", Event_RoundWin, EventHookMode_Pre);
 
 	g_bHasCore = LibraryExists(AJB_LIBRARY);
 	AJB_Boosts_RefreshAvailability();
@@ -287,6 +290,7 @@ public void OnMapStart()
 {
 	g_iFinishedRoundCount = 0;
 	g_bSpecialRound = false;
+	g_bRoundRewarded = false;
 	AJB_Boosts_RefreshAvailability();
 }
 
@@ -358,6 +362,7 @@ public void OnLibraryRemoved(const char[] name)
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	g_bSpecialRound = false;
+	g_bRoundRewarded = false;
 	AJB_Boosts_RefreshAvailability();
 	AJB_Boosts_ClearEffects();
 	int maxPts = g_cvMaxPoints.IntValue;
@@ -377,23 +382,47 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 {
 	AJB_Boosts_ClearEffects();
-	if (!g_bBoostsEnabled)
+	if (g_bRoundRewarded || !g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
 	{
 		return;
 	}
+	g_bRoundRewarded = true;
+	AJB_Boosts_RefreshAvailability();
 
-	g_iFinishedRoundCount++;
+	if (!g_bSpecialRound)
+	{
+		g_iFinishedRoundCount++;
+	}
 
-	bool bluPassiveRound = (g_iFinishedRoundCount % g_cvBluEvery.IntValue) == 0;
+	bool bluPassiveRound = !g_bSpecialRound && (g_iFinishedRoundCount % g_cvBluEvery.IntValue) == 0;
+	AJB_LRWish wish = LRWish_None;
+	if (GetFeatureStatus(FeatureType_Native, "AJB_LR_GetActiveWish") == FeatureStatus_Available)
+	{
+		wish = AJB_LR_GetActiveWish();
+	}
+	// FFA uses a nominal team win; eliminated teammates are not winners.
+	bool teamReward = g_bSpecialRound && wish != LRWish_HungerGames && wish != LRWish_CellWars;
+	int winner = event.GetInt("team");
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || IsFakeClient(i) || !IsPlayerAlive(i))
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+		int team = GetClientTeam(i);
+		if (team != AJB_GetPrisonersTeam() && team != AJB_GetGuardsTeam())
 		{
 			continue;
 		}
 
-		AJB_Boosts_AddPoints(i, 1, "survive");
+		bool alive = IsPlayerAlive(i);
+		bool won = teamReward && team == winner;
+		if (!alive && !won)
+		{
+			continue;
+		}
+		AJB_Boosts_AddPoints(i, 1, alive ? "survive" : "win");
 
 		if (bluPassiveRound && AJB_IsGuard(i))
 		{

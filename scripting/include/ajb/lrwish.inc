@@ -34,6 +34,11 @@ enum AJB_LRWish
 	LRWish_Dodgeball
 };
 
+stock bool AJB_LR_UsesEqualTeams(AJB_LRWish wish)
+{
+	return wish == LRWish_WarDay || wish == LRWish_ClassWarfare || wish == LRWish_Dodgeball;
+}
+
 // Applied built-in round wish, not a pending or instant wish; None if absent or disabled.
 native AJB_LRWish AJB_LR_GetActiveWish();
 

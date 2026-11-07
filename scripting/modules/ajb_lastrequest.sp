@@ -20,6 +20,7 @@
 #define REQUIRE_PLUGIN
 
 #include <ajb/lrwish>
+#include <ajb/teams>
 #include <ajb/phrases>
 #include <ajb/cellwars>
 #include <ajb/dodgeball>
@@ -47,6 +48,7 @@
 #define LR_ZM_PROTECT_DEFAULT 5.0
 #define LR_ZM_ROUND_DEFAULT   300.0
 #define LR_ZM_MATE_Z_OFFSET   8.0
+#define LR_SNIPER_LETHAL_DAMAGE 5000.0
 // Built-in wish entries in the menu (0..16). Items appended beyond this index belong to
 // external plugins via the AJB_OnLRWishMenu/AJB_OnLRWishSelect hooks in ajb/lrwish.inc.
 #define LR_WISH_BUILTIN_COUNT 17
@@ -84,11 +86,15 @@ ConVar g_cvZMRoundTime;
 ConVar g_cvSniperMin;
 ConVar g_cvSniperMax;
 ConVar g_cvSniperForce;
+ConVar g_cvSniperHitChance;
+ConVar g_cvSniperDuckTime;
+ConVar g_cvSniperBodyDamage;
 ConVar g_cvEngineFriendlyFire;
 ConVar g_cvEngineSvTags;
 
 DynamicHook g_hSetWinningTeam;
 bool g_bHasCore;
+int g_iBalancedOriginalTeam[MAXPLAYERS + 1];
 
 // External wish hooks (ajb/lrwish.inc): fired when building the menu and when an external
 // item is picked. Created in OnPluginStart, freed in OnPluginEnd.
@@ -103,8 +109,9 @@ bool g_bHotReds;
 bool g_bLowGravity;
 int g_iSavedGravity = -1;
 
-// Sniper wish: random kills during round with velocity push
+// Short ducks dodge shots; prolonged ducks expose the player when they stand.
 bool g_bSniper;
+float g_fSniperDuckStart[MAXPLAYERS + 1];
 
 // Dodgeball globals
 float g_vecDBRedSpawn[3];
@@ -655,6 +662,9 @@ public void OnPluginStart()
 	g_cvSniperMin = CreateConVar("sm_ajb_lr_sniper_min", "10.0", "Sniper: minimum interval in seconds between sniper shots.", _, true, 2.0, true, 300.0);
 	g_cvSniperMax = CreateConVar("sm_ajb_lr_sniper_max", "25.0", "Sniper: maximum interval in seconds between sniper shots.", _, true, 5.0, true, 600.0);
 	g_cvSniperForce = CreateConVar("sm_ajb_lr_sniper_force", "800.0", "Sniper: ragdoll / impact force impulse.", _, true, 100.0, true, 3000.0);
+	g_cvSniperHitChance = CreateConVar("sm_ajb_lr_sniper_hit_chance", "50.0", "Sniper: percent chance to hit the selected standing player; crouching always dodges.", _, true, 0.0, true, 100.0);
+	g_cvSniperDuckTime = CreateConVar("sm_ajb_lr_sniper_duck_time", "3.0", "Sniper: continuous crouch seconds before standing triggers a body shot.", _, true, 0.1, true, 30.0);
+	g_cvSniperBodyDamage = CreateConVar("sm_ajb_lr_sniper_body_damage", "50.0", "Sniper: non-critical body shot damage after standing from a prolonged crouch.", _, true, 1.0, true, 500.0);
 
 	g_cvDBBaseSpeed = CreateConVar("sm_ajb_lr_db_speed_base", "700.0", "Initial rocket speed (dodgeball)");
 	g_cvDBSpeedInc = CreateConVar("sm_ajb_lr_db_speed_inc", "70.0", "Speed increase per reflect (dodgeball)");
@@ -760,6 +770,8 @@ public void OnMapEnd()
 
 public void OnClientPutInServer(int client)
 {
+	g_iBalancedOriginalTeam[client] = 0;
+	g_fSniperDuckStart[client] = -1.0;
 	AJB_LR_ZM_ResetAmbienceClient(client);
 	SDKHook(client, SDKHook_StartTouch, AJB_LR_OnStartTouch);
 	SDKHook(client, SDKHook_OnTakeDamage, AJB_LR_OnTakeDamage);
@@ -774,6 +786,13 @@ public void OnClientPostAdminCheck(int client)
 
 public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
 {
+	// Dodgeball flamethrowers are for reflecting rockets, not burning other players.
+	if (g_bDodgeball && attacker > 0 && attacker <= MaxClients && (damagetype & (DMG_BURN | DMG_SLOWBURN)))
+	{
+		damage = 0.0;
+		return Plugin_Handled;
+	}
+
 	if (g_bZombieMode)
 	{
 		return AJB_LR_ZM_OnTakeDamage(victim, attacker, damage);
@@ -802,6 +821,8 @@ public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, flo
 
 public void OnClientDisconnect(int client)
 {
+	g_iBalancedOriginalTeam[client] = 0;
+	g_fSniperDuckStart[client] = -1.0;
 	AJB_LR_DB_StopPreview(client);
 	AJB_LR_DB_RestoreWeapon(client);
 	g_bPickedFreeday[client] = false;
@@ -967,6 +988,8 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
+	g_fSniperDuckStart[client] = -1.0;
+
 	if (g_bHungerGames)
 	{
 		AJB_LR_HG_OnPlayerSpawn(client);
@@ -1073,6 +1096,13 @@ void AJB_LR_ApplyPendingWish()
 
 	AJB_LR_ClearPendingWish();
 	g_ActiveWish = apply;
+
+	// Queued JB bounces recheck the combat flag next frame, after this wish has started.
+	if (AJB_LR_UsesEqualTeams(apply)
+		&& AJB_BalanceTeamsEqual(AJB_GetPrisonersTeam(), AJB_GetGuardsTeam(), g_iBalancedOriginalTeam) > 0)
+	{
+		AJB_ChatAll("LR Teams Balanced");
+	}
 
 	switch (apply)
 	{
@@ -1478,6 +1508,9 @@ void AJB_LR_Cleanup(bool announce)
 	g_SetAllClassTarget = SetAllClass_All;
 	g_SetAllClassType = TFClass_Unknown;
 
+	AJB_LR_ClearClassWarfareActive();
+	AJB_RestoreBalancedTeams(g_iBalancedOriginalTeam);
+
 	if (announce && was)
 	{
 		AJB_ChatAll("LR Aborted");
@@ -1661,6 +1694,8 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 	{
 		return;
 	}
+
+	g_fSniperDuckStart[victim] = -1.0;
 
 	if (g_bHungerGames)
 	{

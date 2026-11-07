@@ -323,7 +323,9 @@ Action AJB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 		}
 	}
 
-	if (attackerPrisoner && victimPrisoner && g_RoundState == AJBState_CellsLocked && !AJB_IsCombatDay())
+	// Locked cells must not override an explicit friendly-fire game after prep.
+	if (attackerPrisoner && victimPrisoner && g_RoundState == AJBState_CellsLocked && !AJB_IsCombatDay()
+		&& (g_cvEngineFriendlyFire == null || !g_cvEngineFriendlyFire.BoolValue))
 	{
 		damage = 0.0;
 		return Plugin_Changed;

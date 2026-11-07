@@ -1346,6 +1346,54 @@
 		"ru"		"{1} Осторожно! Снайпер активен (выбрано {2}). Снайпер celится в игроков!"
 	}
 
+	"LR Teams Balanced"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Teams balanced for this event. Moved players return to their original teams when it ends."
+		"es"		"{1} Equipos equilibrados para este evento. Los jugadores trasladados volverán a sus equipos originales al terminar."
+		"las"		"{1} Equipos equilibrados para este evento. Los jugadores trasladados volverán a sus equipos originales al terminar."
+		"de"		"{1} Teams für dieses Event ausgeglichen. Versetzte Spieler kehren danach in ihre ursprünglichen Teams zurück."
+		"fr"		"{1} Équipes équilibrées pour cet événement. Les joueurs déplacés retrouveront leur équipe d'origine à la fin."
+		"pt"		"{1} Equipes equilibradas para este evento. Os jogadores transferidos voltarão às equipes originais no final."
+		"ru"		"{1} Команды сбалансированы на время события. Переведённые игроки вернутся в прежние команды после его завершения."
+	}
+
+	"LR Sniper Rules"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Crouch to dodge sniper shots! Stay crouched too long and standing up triggers a body shot. Hits while standing can kill!"
+		"es"		"{1} ¡Agáchate para esquivar! Si permaneces agachado demasiado tiempo, recibirás un tiro al cuerpo al levantarte. ¡Los disparos de pie pueden matarte!"
+		"las"		"{1} ¡Agáchate para esquivar! Si permaneces agachado demasiado tiempo, recibirás un tiro al cuerpo al levantarte. ¡Los disparos de pie pueden matarte!"
+		"de"		"{1} Ducke dich, um Schüssen auszuweichen! Wer zu lange geduckt bleibt, bekommt beim Aufstehen einen Körpertreffer. Treffer im Stehen können tödlich sein!"
+		"fr"		"{1} Accroupissez-vous pour esquiver ! Rester accroupi trop longtemps provoque un tir au corps en se relevant. Les tirs debout peuvent tuer !"
+		"pt"		"{1} Agache para desviar! Ficar agachado por muito tempo causa um tiro no corpo ao levantar. Tiros em pé podem matar!"
+		"ru"		"{1} Присядьте, чтобы уклониться! Если сидеть слишком долго, при вставании получите пулю в тело. Попадание стоя может убить!"
+	}
+
+	"LR Sniper Miss"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} BANG! The sniper missed {2}!"
+		"es"		"{1} ¡BANG! ¡El francotirador falló el disparo contra {2}!"
+		"las"		"{1} ¡BANG! ¡El francotirador falló el disparo contra {2}!"
+		"de"		"{1} BANG! Der Scharfschütze hat {2} verfehlt!"
+		"fr"		"{1} BANG ! Le sniper a raté {2} !"
+		"pt"		"{1} BANG! O sniper errou o tiro em {2}!"
+		"ru"		"{1} БАМ! Снайпер промахнулся по {2}!"
+	}
+
+	"LR Sniper Body Shot"
+	{
+		"#format"	"{1:s},{2:N}"
+		"en"		"{1} BANG! {2} stayed crouched too long and took a body shot when standing up!"
+		"es"		"{1} ¡BANG! ¡{2} estuvo agachado demasiado tiempo y recibió un tiro al cuerpo al levantarse!"
+		"las"		"{1} ¡BANG! ¡{2} estuvo agachado demasiado tiempo y recibió un tiro al cuerpo al levantarse!"
+		"de"		"{1} BANG! {2} blieb zu lange geduckt und bekam beim Aufstehen einen Körpertreffer!"
+		"fr"		"{1} BANG ! {2} est resté accroupi trop longtemps et a reçu un tir au corps en se relevant !"
+		"pt"		"{1} BANG! {2} ficou agachado por muito tempo e levou um tiro no corpo ao levantar!"
+		"ru"		"{1} БАМ! {2} сидел слишком долго и получил пулю в тело при вставании!"
+	}
+
 	"LR Sniper Shot"
 	{
 		"#format"	"{1:s},{2:N}"

@@ -185,11 +185,19 @@ Team changes and respawns refresh during the effect; overlapping purchases are r
 Round/map boundaries, disable and unload remove outlines owned by the boost, preserving
 outlines that were already enabled when it reached a player.
 
-Boost purchases, ongoing effects and survival/passive point rewards are disabled for
+Boost purchases and ongoing effects are disabled for
 Zombie Mode, Hunger Games, Cell Wars, Hide and Seek, Dodgeball, War Day, Class Warfare,
 and FF2. The module blocks `SpecialDay`/combat rounds; stale menus cannot bypass the block.
 Stored points stay intact, and boosts resume next normal round. Normal-round modifiers
 (including Sniper) and freedays keep boosts enabled.
+
+At special-round end, living participants or members of the winning team earn +1 boost point,
+once per player/round, respecting `sm_ajb_boosts_max_points`. Dead winners qualify in team
+events; Hunger Games and Cell Wars reward only survivors, not eliminated nominal teammates.
+The win hook runs before round cleanup so temporary event teams and FF2 survivors are still
+intact. Bots and spectators earn nothing. Purchases remain blocked until the next normal round.
+Normal rounds retain +1 for survivors and the periodic guard bonus; special rounds do not
+advance that bonus counter or grant an extra guard bonus. Disabled boosts/AJB grant no rewards.
 
 Ten seconds after live-round wishes apply, the core checks special days/freeday-all that
 requested open cells. It reads physical door state and reopens only doors that are not fully
@@ -211,6 +219,10 @@ Dodgeball applies `airblast cost decreased 0` and `airblast_pushback_disabled 1`
 prepared flamethrower through optional TF2Attributes. Rocket deflection is unchanged;
 previous runtime attributes are restored on respawn, disconnect and wish cleanup.
 Without TF2Attributes, it logs the missing dependency and retains the ammo refill timer.
+
+During Dodgeball, the shared player damage hook blocks player-sourced flame and afterburn
+damage without requiring TF2Attributes. Airblast, rocket damage, arena barrier damage and
+map hazards keep their existing behavior; other wishes are unaffected.
 
 Open `!ajb` → **Dodgeball**, or `sm_ajb_db_menu`. Requires admin + config access and the
 Last Request module; no wish needs to be running. The editor lives in
@@ -237,6 +249,34 @@ Last Request module; no wish needs to be running. The editor lives in
 `sm_ajb_db_setspawn <red|blu|rocket|center> [radius]` remains available. Rocket placement uses
 eye position; center without a radius preserves the existing range. Radius `0` means no barriers.
 Exports use a temporary file before replacing the config; unreadable configs are not overwritten.
+
+## Equal teams for combat events
+
+War Day, Class Warfare and Dodgeball balance connected RED/BLU participants (including bots)
+once at live-round start, before applying event classes, loadouts and teleports. Random players
+from the larger team move until the difference is at most one (e.g. 10 RED / 5 BLU → 8 / 7).
+There is no mid-round rebalancing for deaths, departures or late joins, and no balance ConVar.
+Other wishes, including Zombies, FF2, Hide and Seek and free-for-all modes, retain their roles.
+
+`AJB_LR_UsesEqualTeams` in `include/ajb/lrwish.inc` owns the wish list. Shared utilities in
+`include/ajb/teams.inc` use safe spectator transit and respawn only previously living players.
+Dead players remain dead; spectators are excluded. Cleanup restores moved participants' original
+teams on round end/restart, map end, disable, core removal or LR unload; players who opted into
+spectator are not forced back. Disconnect clears the saved team so client slot reuse is safe.
+Guard bans remain stored but are suspended for these three wishes, then enforced normally again.
+
+## Watch out! Sniper crouch rules
+
+Sniper remains a normal-round modifier: it does not change cells, teams or boost availability.
+Every `sm_ajb_lr_sniper_min`–`sm_ajb_lr_sniper_max` seconds it selects one living human from
+either team. Standing targets have `sm_ajb_lr_sniper_hit_chance` percent chance of a lethal
+hit; crouched targets always dodge. Misses still play the gunshot and announce the miss.
+
+After `sm_ajb_lr_sniper_duck_time` continuous seconds crouched, actually standing up triggers
+one non-critical body shot for `sm_ajb_lr_sniper_body_damage` base damage, independent of the
+random shot timer/chance. Short ducks do not trigger it. Physical crouch state is checked
+after movement commands, so releasing duck under a low ceiling does not count as standing.
+Death, spawn, disconnect and wish cleanup clear the stored crouch time.
 
 ## Zombie Mode team changes
 
@@ -344,6 +384,13 @@ TF2Attributes dependency. Resupply still fills the meter normally.
 
 While AJB is active, the core sets `mp_forcecamera 0` so dead players can follow either
 team. The previous value is restored when AJB is disabled, the map ends or the core unloads.
+
+## Friendly fire and locked cells
+
+After prep, enabling `mp_friendlyfire` allows prisoner-versus-prisoner damage even while the
+round remains `CellsLocked`; closed-cell protection must not override the warden's toggle.
+Prep still blocks player-versus-player damage. Guard-versus-guard protection remains controlled
+by `sm_ajb_ff_protect_guards`, independent of friendly fire.
 
 ## Guard sentries and Wrangler
 
@@ -643,6 +690,12 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | `sm_ajb_lr_zm_fog_end` | `1300` | Zombie Mode: fog end distance in units, must exceed start |
 | `sm_ajb_lr_zm_fog_density` | `0.88` | Zombie Mode: maximum fog density (0–1) |
 | `sm_ajb_lr_zm_music` | empty | Zombie Mode: MP3/WAV path relative to sound/, empty disables music |
+| `sm_ajb_lr_sniper_min` | `10.0` | Sniper: minimum seconds between random shots (2–300) |
+| `sm_ajb_lr_sniper_max` | `25.0` | Sniper: maximum seconds between random shots (5–600, clamped to minimum at runtime) |
+| `sm_ajb_lr_sniper_force` | `800.0` | Sniper: impact/ragdoll force (100–3000) |
+| `sm_ajb_lr_sniper_hit_chance` | `50.0` | Sniper: lethal hit chance (%) for the selected standing target; crouching always dodges (0–100) |
+| `sm_ajb_lr_sniper_duck_time` | `3.0` | Sniper: continuous crouch seconds before standing triggers a body shot (0.1–30) |
+| `sm_ajb_lr_sniper_body_damage` | `50.0` | Sniper: non-critical body shot base damage after a prolonged crouch (1–500) |
 | `sm_ajb_lr_cw_round_time` | `300` | Cell Wars: total round duration in seconds, survivors win on timeout (60–900) |
 | `sm_ajb_lr_cw_teleport_delay` | `4.0` | Cell Wars: seconds between jump teleports (0 = no cooldown) (0–30) |
 | `sm_ajb_lr_cw_camp_time` | `20` | Cell Wars: seconds in the same cell before camping damage starts (0 = disabled, ≤120) |
