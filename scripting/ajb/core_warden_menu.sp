@@ -14,16 +14,17 @@
 //   }
 //
 // Labels prefixed with "phrase:" are looked up in the translations file. A page may
-// hold up to 9 numbered items (Panel keys 1-9); extra items are dropped with a log.
-// Exit is always pinned to key 0/10. With more than one page a Prev/Next row is
-// appended automatically (pages defining sm_ajb_menu_next/prev skip the auto entry).
+// hold up to 8 numbered actions (Panel keys 1-8); extra items are dropped with a log.
+// Key 9 is reserved for cycling pages; exit is pinned to key 0/10.
+// Configured sm_ajb_menu_next/prev entries are ignored so navigation stays on key 9.
 // Missing/empty file falls back to the built-in two-page menu (same layout as the
 // shipped default config).
 
 #define AJB_WARDEN_MENU_FILE        "configs/ajb/warden_menu.cfg"
 #define AJB_WARDEN_MENU_MAX_PAGES   8
 #define AJB_WARDEN_MENU_MAX_ENTRIES 16
-#define AJB_WARDEN_MENU_MAX_ITEMS   9
+#define AJB_WARDEN_MENU_MAX_ITEMS   8
+#define AJB_WARDEN_MENU_NAV_KEY     9
 #define AJB_WARDEN_MENU_TITLE_LEN   64
 #define AJB_WARDEN_MENU_ENTRY_LEN   64
 #define AJB_WARDEN_MENU_CMD_LEN     96
@@ -35,7 +36,6 @@ int g_iWardenMenuEntryCount[AJB_WARDEN_MENU_MAX_PAGES];
 int g_iWardenMenuPageCount;
 
 // A panel's key mapping is valid only for the config revision that drew it.
-#define AJB_WARDEN_KEY_AUTO_PREV  -2
 #define AJB_WARDEN_KEY_AUTO_NEXT  -3
 int g_iWardenKeyEntry[MAXPLAYERS + 1][11];
 int g_iWardenMenuRevision;
@@ -141,6 +141,11 @@ void AJB_WardenMenu_LoadPages(KeyValues kv)
 
 				kv.GetSectionName(g_szWardenMenuEntryLabel[page][entries], AJB_WARDEN_MENU_ENTRY_LEN);
 				kv.GetString(NULL_STRING, g_szWardenMenuEntryCmd[page][entries], AJB_WARDEN_MENU_CMD_LEN);
+				if (StrEqual(g_szWardenMenuEntryCmd[page][entries], "sm_ajb_menu_next")
+					|| StrEqual(g_szWardenMenuEntryCmd[page][entries], "sm_ajb_menu_prev"))
+				{
+					continue;
+				}
 				if (g_szWardenMenuEntryCmd[page][entries][0] != '\0')
 				{
 					items++;
@@ -273,7 +278,7 @@ void AJB_Warden_ShowMenu(int client)
 			continue;
 		}
 
-		// A page holds at most 9 numbered items (Panel keys 1..9).
+		// Key 9 must remain available even when every action is visible.
 		if (key > AJB_WARDEN_MENU_MAX_ITEMS)
 		{
 			continue;
@@ -286,49 +291,14 @@ void AJB_Warden_ShowMenu(int client)
 		key++;
 	}
 
-	// Page navigation is menu chrome, not a warden function — with more than one page
-	// a separator + Prev/Next row is appended automatically (translated). Pages that
-	// already place the nav command themselves are skipped to avoid duplicates.
+	// A fixed cycling key avoids moving navigation when actions are hidden or pages differ in size.
 	if (g_iWardenMenuPageCount > 1)
 	{
-		bool wantPrev = page > 0;
-		bool wantNext = page < g_iWardenMenuPageCount - 1;
-		if (wantPrev || wantNext)
-		{
-			for (int e = 0; e < g_iWardenMenuEntryCount[page]; e++)
-			{
-				if (StrEqual(g_szWardenMenuEntryCmd[page][e], "sm_ajb_menu_prev"))
-				{
-					wantPrev = false;
-				}
-				if (StrEqual(g_szWardenMenuEntryCmd[page][e], "sm_ajb_menu_next"))
-				{
-					wantNext = false;
-				}
-			}
-
-			// Nav consumes numbered slots like any item — a full page loses it.
-			if ((wantPrev || wantNext) && key <= AJB_WARDEN_MENU_MAX_ITEMS)
-			{
-				panel.DrawText("──────────────");
-			}
-			if (wantPrev && key <= AJB_WARDEN_MENU_MAX_ITEMS)
-			{
-				Format(line, sizeof(line), "%T", "Warden Page Prev", client);
-				panel.CurrentKey = key;
-				panel.DrawItem(line);
-				g_iWardenKeyEntry[client][key] = AJB_WARDEN_KEY_AUTO_PREV;
-				key++;
-			}
-			if (wantNext && key <= AJB_WARDEN_MENU_MAX_ITEMS)
-			{
-				Format(line, sizeof(line), "%T", "Warden Page Next", client);
-				panel.CurrentKey = key;
-				panel.DrawItem(line);
-				g_iWardenKeyEntry[client][key] = AJB_WARDEN_KEY_AUTO_NEXT;
-				key++;
-			}
-		}
+		panel.DrawText("──────────────");
+		Format(line, sizeof(line), "%T", "Warden Page Next", client);
+		panel.CurrentKey = AJB_WARDEN_MENU_NAV_KEY;
+		panel.DrawItem(line);
+		g_iWardenKeyEntry[client][AJB_WARDEN_MENU_NAV_KEY] = AJB_WARDEN_KEY_AUTO_NEXT;
 	}
 
 	// Exit pinned to key 0 (slot 10), the TF2 convention. The handler maps both 0 and
@@ -529,19 +499,13 @@ public int AJB_Warden_PanelHandler(Menu menu, MenuAction action, int param1, int
 	}
 
 	int page = g_iWardenMenuPage[client];
-	int entry = (key >= 1 && key <= 9) ? g_iWardenKeyEntry[client][key] : -1;
+	int entry = (key >= 1 && key <= AJB_WARDEN_MENU_NAV_KEY) ? g_iWardenKeyEntry[client][key] : -1;
 
 	// Auto page nav (drawn by the menu, not the config) — allowed even while dead.
-	if (entry == AJB_WARDEN_KEY_AUTO_PREV)
-	{
-		g_iWardenMenuPage[client] = (page > 0) ? page - 1 : 0;
-		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
-		return 0;
-	}
 	if (entry == AJB_WARDEN_KEY_AUTO_NEXT)
 	{
 		int next = page + 1;
-		g_iWardenMenuPage[client] = (next >= g_iWardenMenuPageCount) ? g_iWardenMenuPageCount - 1 : next;
+		g_iWardenMenuPage[client] = (next >= g_iWardenMenuPageCount) ? 0 : next;
 		RequestFrame(Frame_WardenMenu, GetClientUserId(client));
 		return 0;
 	}
@@ -795,7 +759,7 @@ Action Command_MenuNext(int client, int args)
 	int page = g_iWardenMenuPage[client] + 1;
 	if (page >= g_iWardenMenuPageCount)
 	{
-		page = g_iWardenMenuPageCount - 1;
+		page = 0;
 	}
 	g_iWardenMenuPage[client] = page;
 	RequestFrame(Frame_WardenMenu, GetClientUserId(client));

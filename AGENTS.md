@@ -479,10 +479,11 @@ The warden menu layout is data-driven from `configs/ajb/warden_menu.cfg`
 layout to the shipped default). First-level keys are pages (shown as `── name ──`
 headers); each entry is `"label" "command"`. Empty command value = un-numbered text
 line (free slot); `phrase:` label prefix = translation lookup; a page holds at most
-9 numbered items (Panel keys 1–9, extra dropped with a log); exit is always key 0/10.
-With more than one page a translated Prev/Next row is appended automatically (pages
-that define `sm_ajb_menu_next`/`sm_ajb_menu_prev` skip the auto entry for that
-direction; nav consumes numbered slots, so multi-page menus should stay ≤ 8 items).
+8 numbered actions (Panel keys 1–8, extra dropped with a log); exit is always key 0/10.
+Key 9 is reserved for next-page navigation and cycles from the last page to the first;
+with only one page, key 9 is unused. Configured `sm_ajb_menu_next`/`sm_ajb_menu_prev`
+entries are ignored so they cannot move or duplicate the fixed navigation button.
+Both commands remain available for binds; `sm_ajb_menu_next` also cycles at the last page.
 Items whose feature ConVar is off are hidden (marker/collisions/friendlyfire/votes/
 rebel control). On select the command runs as the warden via `FakeClientCommandEx`
 and the menu reopens, except for the screen-owning commands (`sm_ajb_lr` → fires the
