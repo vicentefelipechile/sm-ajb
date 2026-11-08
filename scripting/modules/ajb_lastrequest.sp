@@ -1,7 +1,7 @@
 // =========================================================================================================
 // Another Jailbreak - Last Request
 // Classic JB wishes (not melee duels): freeday, warday, class warfare, custom, hot reds,
-// suicide, low grav, hide and seek, hunger games, zombie mode.
+// suicide, low grav, hide and seek, hunger games, zombie mode and Freeze Tag.
 // =========================================================================================================
 
 #pragma semicolon 1
@@ -25,8 +25,10 @@
 #include <ajb/cellwars>
 #include <ajb/dodgeball>
 #include <ajb/weapons>
+#include <ajb/fog>
+#include <ajb/render>
 
-#define PLUGIN_VERSION "1.3.0"
+#define PLUGIN_VERSION "1.4.0"
 
 #define LR_SUICIDE_DELAY   5.0
 #define LR_HOT_DPS         8.0
@@ -49,9 +51,9 @@
 #define LR_ZM_ROUND_DEFAULT   300.0
 #define LR_ZM_MATE_Z_OFFSET   8.0
 #define LR_SNIPER_HEADSHOT_BASE_DAMAGE 50.0
-// Built-in wish entries in the menu (0..16). Items appended beyond this index belong to
+// Built-in wish entries in the menu (0..17). Items appended beyond this index belong to
 // external plugins via the AJB_OnLRWishMenu/AJB_OnLRWishSelect hooks in ajb/lrwish.inc.
-#define LR_WISH_BUILTIN_COUNT 17
+#define LR_WISH_BUILTIN_COUNT 18
 
 enum AJB_SetAllClassTarget
 {
@@ -63,7 +65,7 @@ enum AJB_SetAllClassTarget
 public Plugin myinfo =
 {
 	name        = "Another Jailbreak - Last Request",
-	author      = "SummerTYT",
+	author      = "SummerTYT, Winewald (Yeti wish)",
 	description = "Another Jailbreak - classic Last Request wishes.",
 	version     = PLUGIN_VERSION,
 	url         = ""
@@ -196,6 +198,16 @@ ConVar g_cvCWTeleportDelay;
 ConVar g_cvCWCampTime;
 ConVar g_cvCWCampDamage;
 ConVar g_cvCWTeleportHeal;
+
+// Freeze Tag shares the LR queue, damage hook and lifecycle with the built-in wishes.
+bool g_bYeti;
+bool g_bYetiApplying;
+bool g_bYetiEnding;
+int g_iYeti;
+int g_iPendingYetiChooser;
+Handle g_hYetiEquipWearable;
+Handle g_hYetiRespawnTimer;
+Handle g_hYetiHud;
 
 // Admin self-pick: open the full wish menu regardless of team/alive state.
 bool g_bAdminForcingWish;
@@ -504,6 +516,9 @@ void AJB_LR_ShowWishMenu(int prisoner)
 	Format(line, sizeof(line), "%T", "LR Wish Suicide", prisoner);
 	menu.AddItem("suicide", line);
 
+	Format(line, sizeof(line), "%T", "LR Wish Yeti", prisoner);
+	menu.AddItem("yeti", line);
+
 	// External wishes (ajb_ff2, ...) append their items here. They own their own
 	// queue/apply; the LR module only closes its state when one claims a pick.
 	Call_StartForward(g_hWishMenuFwd);
@@ -559,6 +574,7 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 		case 14: AJB_LR_DoSniper(client);
 		case 15: AJB_LR_DoDodgeball(client);
 		case 16: AJB_LR_DoSuicide(client);
+		case 17: AJB_LR_DoYeti(client);
 	}
 
 	// Choices at or beyond the built-in count belong to external plugins (ajb/lrwish.inc).
@@ -600,6 +616,7 @@ public void OnMapStart()
 	PrecacheSound("weapons/sentry_spot.wav");
 	AJB_LR_DB_PrecacheVisuals();
 	AJB_LR_DB_LoadConfig();
+	AJB_LR_Yeti_Precache();
 }
 
 public void OnConfigsExecuted()
@@ -609,6 +626,10 @@ public void OnConfigsExecuted()
 
 public MRESReturn Detour_SetWinningTeam(DHookReturn hReturn, DHookParam hParams)
 {
+	if (g_bYeti && !g_bYetiEnding)
+	{
+		return MRES_Supercede;
+	}
 	if (g_bHungerGames && !g_bHGEnding)
 	{
 		return MRES_Supercede;
@@ -640,6 +661,7 @@ public void OnPluginStart()
 {
 	CreateConVar("sm_ajb_lr_version", PLUGIN_VERSION, "AJB Last Request module version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	g_cvEnabled = CreateConVar("sm_ajb_lr_enabled", "1", "Enable Last Request offers.", _, true, 0.0, true, 1.0);
+	g_cvEnabled.AddChangeHook(OnLREnabledChanged);
 	g_cvMenuTime = CreateConVar("sm_ajb_lr_menu_time", "30", "Seconds the prisoner has to pick an LR.", _, true, 5.0, true, 90.0);
 	g_cvSuicideDelay = CreateConVar("sm_ajb_lr_suicide_delay", "5", "Seconds before suicide LR kills the prisoner.", _, true, 1.0, true, 30.0);
 	g_cvHotDamage = CreateConVar("sm_ajb_lr_hot_damage", "8", "Damage per tick when Hot Reds touch a guard.", _, true, 1.0, true, 100.0);
@@ -654,6 +676,7 @@ public void OnPluginStart()
 	g_cvZMSpawnProtect = CreateConVar("sm_ajb_lr_zm_spawn_protect", "5", "Zombie Mode: invulnerability seconds after a zombie respawns (spawn-camp protection).", _, true, 0.0, true, 30.0);
 	g_cvZMRoundTime = CreateConVar("sm_ajb_lr_zm_round_time", "300", "Zombie Mode: total round duration in seconds (humans win on timeout if any remain).", _, true, 60.0, true, 900.0);
 	AJB_LR_ZM_InitAmbience();
+	AJB_LR_Yeti_Init();
 	g_cvCWRoundTime = CreateConVar("sm_ajb_lr_cw_round_time", "300", "Cell Wars: total round duration in seconds (survivors win on timeout).", _, true, 60.0, true, 900.0);
 	g_cvCWTeleportDelay = CreateConVar("sm_ajb_lr_cw_teleport_delay", "4.0", "Cell Wars: seconds between jump teleports (0 = no cooldown).", _, true, 0.0, true, 30.0);
 	g_cvCWCampTime = CreateConVar("sm_ajb_lr_cw_camp_time", "20.0", "Cell Wars: seconds in the same cell before camping damage starts (0 = disabled).", _, false, 0.0, true, 120.0);
@@ -719,6 +742,8 @@ public void OnPluginStart()
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 	HookEvent("player_team", Event_ZMPlayerTeam, EventHookMode_Post);
+	HookEvent("player_team", Event_YetiPlayerTeam, EventHookMode_Post);
+	HookEvent("post_inventory_application", Event_YetiInventory, EventHookMode_Post);
 	HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_PostNoCopy);
 	// Pre: swallow engine auto-wins while HG is live; only g_bHGEnding ends (last standing / timeout).
 	HookEvent("teamplay_round_win", Event_RoundWinPre, EventHookMode_Pre);
@@ -726,6 +751,9 @@ public void OnPluginStart()
 
 	AddCommandListener(Listener_Say, "say");
 	AddCommandListener(Listener_Say, "say_team");
+	AddCommandListener(Listener_YetiVoice, "voicemenu");
+	AddCommandListener(Listener_YetiTaunt, "taunt");
+	AddCommandListener(Listener_YetiTaunt, "+taunt");
 
 	g_hWishMenuFwd = CreateGlobalForward("AJB_OnLRWishMenu", ET_Ignore, Param_Cell, Param_Cell);
 	g_hWishSelectFwd = CreateGlobalForward("AJB_OnLRWishSelect", ET_Event, Param_Cell, Param_String);
@@ -738,6 +766,7 @@ public void OnPluginStart()
 		{
 			SDKHook(i, SDKHook_StartTouch, AJB_LR_OnStartTouch);
 			SDKHook(i, SDKHook_OnTakeDamage, AJB_LR_OnTakeDamage);
+			AJB_LR_Yeti_ResetClient(i);
 		}
 	}
 
@@ -759,6 +788,8 @@ public void OnPluginEnd()
 	}
 
 	AJB_LR_Cleanup(false);
+	delete g_hYetiEquipWearable;
+	delete g_hYetiHud;
 }
 
 public void OnMapEnd()
@@ -770,6 +801,7 @@ public void OnMapEnd()
 
 public void OnClientPutInServer(int client)
 {
+	AJB_LR_Yeti_ResetClient(client);
 	g_iBalancedOriginalTeam[client] = 0;
 	g_fSniperDuckStart[client] = -1.0;
 	AJB_LR_ZM_ResetAmbienceClient(client);
@@ -782,10 +814,15 @@ public void OnClientPutInServer(int client)
 public void OnClientPostAdminCheck(int client)
 {
 	RequestFrame(Frame_ZMAmbience, GetClientUserId(client));
+	RequestFrame(Frame_YetiAmbience, GetClientUserId(client));
 }
 
 public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
 {
+	if (g_bYeti)
+	{
+		return AJB_LR_Yeti_OnTakeDamage(victim, attacker, weapon, damage);
+	}
 	// Dodgeball flamethrowers are for reflecting rockets, not burning other players.
 	if (g_bDodgeball && attacker > 0 && attacker <= MaxClients && (damagetype & (DMG_BURN | DMG_SLOWBURN)))
 	{
@@ -821,6 +858,8 @@ public Action AJB_LR_OnTakeDamage(int victim, int &attacker, int &inflictor, flo
 
 public void OnClientDisconnect(int client)
 {
+	if (g_bYeti && client == g_iYeti) g_iYeti = 0;
+	AJB_LR_Yeti_ResetClient(client);
 	g_iBalancedOriginalTeam[client] = 0;
 	g_fSniperDuckStart[client] = -1.0;
 	AJB_LR_DB_StopPreview(client);
@@ -880,6 +919,21 @@ public void AJB_OnModeChanged(bool enabled)
 		AJB_LR_Cleanup(false);
 		AJB_LR_ClearPendingWish();
 	}
+}
+
+void OnLREnabledChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (!convar.BoolValue)
+	{
+		AJB_LR_Cleanup(false);
+		AJB_LR_ClearPendingWish();
+	}
+}
+
+public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
+{
+	if (g_bYeti) return AJB_LR_Yeti_OnRunCmd(client, buttons);
+	return AJB_LR_CW_OnRunCmd(client, buttons);
 }
 
 public void AJB_OnLastPrisoner(int client)
@@ -990,6 +1044,13 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 
 	g_fSniperDuckStart[client] = -1.0;
 
+	if (g_bYeti)
+	{
+		AJB_LR_Yeti_Thaw(client);
+		RequestFrame(Frame_YetiPrepareClient, GetClientUserId(client));
+		return;
+	}
+
 	if (g_bHungerGames)
 	{
 		AJB_LR_HG_OnPlayerSpawn(client);
@@ -1033,6 +1094,7 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 
 void AJB_LR_ClearPendingWish()
 {
+	g_iPendingYetiChooser = 0;
 	g_PendingWish = LRWish_None;
 	g_sPendingCustom[0] = '\0';
 	g_PendingClassRed = TFClass_Unknown;
@@ -1093,6 +1155,7 @@ void AJB_LR_ApplyPendingWish()
 	TFClassType setAllClass = g_PendingSetAllClassType;
 	char chooser[64];
 	strcopy(chooser, sizeof(chooser), g_sPendingChooserName);
+	int yetiChooser = g_iPendingYetiChooser;
 
 	AJB_LR_ClearPendingWish();
 	g_ActiveWish = apply;
@@ -1210,6 +1273,10 @@ void AJB_LR_ApplyPendingWish()
 		case LRWish_Dodgeball:
 		{
 			AJB_LR_ApplyDodgeball(chooser);
+		}
+		case LRWish_Yeti:
+		{
+			AJB_LR_ApplyYeti(chooser, yetiChooser);
 		}
 		default:
 		{
@@ -1348,15 +1415,17 @@ void AJB_LR_KillAllModeTimers()
 	AJB_LR_KillSniperTimer();
 	AJB_LR_KillCWTimers();
 	AJB_LR_KillDBTimers();
+	AJB_LR_Yeti_KillTimers();
 }
 
 void AJB_LR_Cleanup(bool announce)
 {
 	AJB_LR_ZM_StopAmbience();
-	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bZombieMode || g_bSniper || g_bCellWars || g_bDodgeball);
+	bool was = (g_iPrisoner > 0 || g_bMenuOpen || g_bAwaitingCustom || g_bHotReds || g_bLowGravity || g_bHideSeek || g_bHungerGames || g_bZombieMode || g_bSniper || g_bCellWars || g_bDodgeball || g_bYeti);
 	bool wasChoosing = g_bHasCore && AJB_GetRoundState() == AJBState_LRChoosing;
 
 	AJB_LR_KillAllModeTimers();
+	AJB_LR_Yeti_Cleanup();
 	g_ActiveWish = LRWish_None;
 
 	g_iPrisoner = 0;
@@ -1697,6 +1766,16 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 
 	g_fSniperDuckStart[victim] = -1.0;
 
+	if (g_bYeti && !g_bYetiApplying && !g_bYetiEnding)
+	{
+		AJB_LR_Yeti_Thaw(victim);
+		if (victim == g_iYeti)
+		{
+			delete g_hYetiRespawnTimer;
+			g_hYetiRespawnTimer = CreateTimer(2.0, Timer_YetiRespawn, GetClientUserId(victim), TIMER_FLAG_NO_MAPCHANGE);
+		}
+	}
+
 	if (g_bHungerGames)
 	{
 		AJB_LR_HG_OnPlayerDeath(victim);
@@ -1751,3 +1830,5 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 #include "lastrequest/wish_sniper.sp"
 #include "lastrequest/wish_dodgeball.sp"
 #include "lastrequest/wish_dodgeball_editor.sp"
+#include "lastrequest/wish_yeti.sp"
+#include "lastrequest/wish_yeti_ambience.sp"

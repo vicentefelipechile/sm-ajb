@@ -1,5 +1,232 @@
 "Phrases"
 {
+	"LR Wish Yeti"
+	{
+		"en" "Escape from the Yeti (Freeze Tag)"
+		"es" "Escapa del Yeti (Freeze Tag)"
+		"las" "Escapa del Yeti (Freeze Tag)"
+		"de" "Flucht vor dem Yeti (Freeze Tag)"
+		"fr" "Échappez au Yéti (Freeze Tag)"
+		"pt" "Fuja do Yeti (Freeze Tag)"
+		"ru" "Побег от Йети (Freeze Tag)"
+	}
+
+	"LR Chose Yeti"
+	{
+		"#format" "{1:s},{2:N}"
+		"en" "{1} {2} chose Escape from the Yeti."
+		"es" "{1} {2} eligió Escapa del Yeti."
+		"las" "{1} {2} eligió Escapa del Yeti."
+		"de" "{1} {2} hat Flucht vor dem Yeti gewählt."
+		"fr" "{1} {2} a choisi Échappez au Yéti."
+		"pt" "{1} {2} escolheu Fuja do Yeti."
+		"ru" "{1} {2} выбрал Побег от Йети."
+	}
+
+	"LR Applied Yeti"
+	{
+		"#format" "{1:s},{2:s}"
+		"en" "{1} Escape from the Yeti: {2}."
+		"es" "{1} Escapa del Yeti: {2}."
+		"las" "{1} Escapa del Yeti: {2}."
+		"de" "{1} Flucht vor dem Yeti: {2}."
+		"fr" "{1} Échappez au Yéti : {2}."
+		"pt" "{1} Fuja do Yeti: {2}."
+		"ru" "{1} Побег от Йети: {2}."
+	}
+
+	"LR Yeti Not Enough Players"
+	{
+		"#format" "{1:s}"
+		"en" "{1} Escape from the Yeti needs at least two participants. Wish cancelled."
+		"es" "{1} Escapa del Yeti necesita al menos dos participantes. Deseo cancelado."
+		"las" "{1} Escapa del Yeti necesita al menos dos participantes. Deseo cancelado."
+		"de" "{1} Flucht vor dem Yeti benötigt mindestens zwei Teilnehmer. Wunsch abgebrochen."
+		"fr" "{1} Il faut au moins deux participants. Souhait annulé."
+		"pt" "{1} Fuja do Yeti precisa de pelo menos dois participantes. Desejo cancelado."
+		"ru" "{1} Для Побега от Йети нужны хотя бы два участника. Желание отменено."
+	}
+
+	"LR Yeti Is"
+	{
+		"#format" "{1:s},{2:N},{3:d}"
+		"en" "{1} {2} is the Yeti. You have {3} seconds to hide."
+		"es" "{1} {2} es el Yeti. Tienen {3} segundos para esconderse."
+		"las" "{1} {2} es el Yeti. Tienen {3} segundos para esconderse."
+		"de" "{1} {2} ist der Yeti. Ihr habt {3} Sekunden zum Verstecken."
+		"fr" "{1} {2} est le Yéti. Vous avez {3} secondes pour vous cacher."
+		"pt" "{1} {2} é o Yeti. Vocês têm {3} segundos para se esconder."
+		"ru" "{1} {2} — Йети. У вас {3} секунд, чтобы спрятаться."
+	}
+
+	"LR Yeti Tip"
+	{
+		"#format" "{1:s}"
+		"en" "{1} The Yeti is invincible. Slow it with Jarate or Mad Milk. Stand near frozen teammates to thaw them; more helpers thaw faster. Survive until time runs out!"
+		"es" "{1} El Yeti es invencible. Frena al Yeti con Fraskungfú o Leche Loca. Acércate a los compañeros congelados para descongelarlos; más ayudantes lo hacen más rápido. ¡Sobrevive hasta que termine el tiempo!"
+		"las" "{1} El Yeti es invencible. Frénalo con Jarate o Leche Loca. Acércate a los compañeros congelados para descongelarlos; más ayudantes lo hacen más rápido. ¡Sobrevive hasta que termine el tiempo!"
+		"de" "{1} Der Yeti ist unverwundbar. Jarate und Mad Milk bremsen ihn. Taue eingefrorene Mitspieler auf, indem du neben ihnen stehst; mehr Helfer sind schneller. Überlebe bis zum Zeitlimit!"
+		"fr" "{1} Le Yéti est invincible. Ralentissez-le avec du Jaraté ou du Lait frelaté. Restez près des alliés gelés pour les dégeler ; plusieurs alliés accélèrent le dégel. Survivez jusqu'à la fin du temps !"
+		"pt" "{1} O Yeti é invencível. Retarde-o com Jarratê ou Leite Louco. Fique perto de aliados congelados para descongelá-los; mais ajudantes aceleram o processo. Sobreviva até o tempo acabar!"
+		"ru" "{1} Йети неуязвим. Замедляйте его Банкате или Зломолоком. Стойте рядом с замёрзшими союзниками, чтобы отогреть их; вместе быстрее. Доживите до конца времени!"
+	}
+
+	"LR Yeti Released"
+	{
+		"#format" "{1:s}"
+		"en" "{1} The Yeti is hunting!"
+		"es" "{1} ¡El Yeti salió a cazar!"
+		"las" "{1} ¡El Yeti salió a cazar!"
+		"de" "{1} Der Yeti geht auf die Jagd!"
+		"fr" "{1} Le Yéti part à la chasse !"
+		"pt" "{1} O Yeti saiu para caçar!"
+		"ru" "{1} Йети вышел на охоту!"
+	}
+
+	"LR Yeti Controls"
+	{
+		"#format" "{1:s}"
+		"en" "{1} Left click: freeze or climb a wall. Medic call: roar at 100% rage. Right click: charge."
+		"es" "{1} Clic izquierdo: congelar o escalar una pared. Llamar al médico: rugir con 100% de furia. Clic derecho: embestir."
+		"las" "{1} Clic izquierdo: congelar o escalar una pared. Llamar al médico: rugir con 100% de furia. Clic derecho: embestir."
+		"de" "{1} Linksklick: einfrieren oder Wände erklimmen. Medic-Ruf: bei 100% Wut brüllen. Rechtsklick: Ansturm."
+		"fr" "{1} Clic gauche : geler ou escalader un mur. Appel au Medic : rugir à 100% de rage. Clic droit : charger."
+		"pt" "{1} Clique esquerdo: congelar ou escalar paredes. Chamar médico: rugir com 100% de fúria. Clique direito: investir."
+		"ru" "{1} ЛКМ: заморозка или подъём по стене. Зов медика: рёв при 100% ярости. ПКМ: рывок."
+	}
+
+	"LR Yeti Slowed"
+	{
+		"#format" "{1:s}"
+		"en" "{1} The Yeti was slowed!"
+		"es" "{1} ¡El Yeti fue ralentizado!"
+		"las" "{1} ¡El Yeti fue ralentizado!"
+		"de" "{1} Der Yeti wurde verlangsamt!"
+		"fr" "{1} Le Yéti a été ralenti !"
+		"pt" "{1} O Yeti foi retardado!"
+		"ru" "{1} Йети замедлен!"
+	}
+
+	"LR Yeti Frozen"
+	{
+		"#format" "{1:s},{2:N}"
+		"en" "{1} {2} was frozen."
+		"es" "{1} {2} quedó congelado."
+		"las" "{1} {2} quedó congelado."
+		"de" "{1} {2} wurde eingefroren."
+		"fr" "{1} {2} a été gelé."
+		"pt" "{1} {2} foi congelado."
+		"ru" "{1} {2} заморожен."
+	}
+
+	"LR Yeti Frozen Help"
+	{
+		"#format" "{1:s}"
+		"en" "{1} You are frozen. A nearby teammate can thaw you."
+		"es" "{1} Estás congelado. Un compañero cercano puede descongelarte."
+		"las" "{1} Estás congelado. Un compañero cercano puede descongelarte."
+		"de" "{1} Du bist eingefroren. Ein Mitspieler in deiner Nähe kann dich auftauen."
+		"fr" "{1} Vous êtes gelé. Un allié proche peut vous dégeler."
+		"pt" "{1} Você está congelado. Um aliado próximo pode descongelar você."
+		"ru" "{1} Вы заморожены. Союзник рядом может вас отогреть."
+	}
+
+	"LR Yeti Thawed"
+	{
+		"#format" "{1:s},{2:N},{3:N}"
+		"en" "{1} {2} thawed {3}."
+		"es" "{1} {2} descongeló a {3}."
+		"las" "{1} {2} descongeló a {3}."
+		"de" "{1} {2} hat {3} aufgetaut."
+		"fr" "{1} {2} a dégelé {3}."
+		"pt" "{1} {2} descongelou {3}."
+		"ru" "{1} {2} отогрел {3}."
+	}
+
+	"LR Yeti Roared"
+	{
+		"#format" "{1:s}"
+		"en" "{1} The Yeti roared! Nearby free humans were revealed."
+		"es" "{1} ¡El Yeti rugió! Los humanos libres cercanos quedaron revelados."
+		"las" "{1} ¡El Yeti rugió! Los humanos libres cercanos quedaron revelados."
+		"de" "{1} Der Yeti hat gebrüllt! Freie Menschen in der Nähe wurden aufgedeckt."
+		"fr" "{1} Le Yéti a rugi ! Les humains libres à proximité ont été révélés."
+		"pt" "{1} O Yeti rugiu! Humanos livres próximos foram revelados."
+		"ru" "{1} Йети взревел! Свободные люди поблизости обнаружены."
+	}
+
+	"LR Yeti Humans Win"
+	{
+		"#format" "{1:s}"
+		"en" "{1} The humans survived. Humans win!"
+		"es" "{1} Los humanos sobrevivieron. ¡Ganan los humanos!"
+		"las" "{1} Los humanos sobrevivieron. ¡Ganan los humanos!"
+		"de" "{1} Die Menschen haben überlebt. Die Menschen gewinnen!"
+		"fr" "{1} Les humains ont survécu. Les humains gagnent !"
+		"pt" "{1} Os humanos sobreviveram. Vitória dos humanos!"
+		"ru" "{1} Люди выжили. Люди победили!"
+	}
+
+	"LR Yeti Wins"
+	{
+		"#format" "{1:s}"
+		"en" "{1} No humans remain free. The Yeti wins!"
+		"es" "{1} No quedan humanos libres. ¡Gana el Yeti!"
+		"las" "{1} No quedan humanos libres. ¡Gana el Yeti!"
+		"de" "{1} Kein Mensch ist mehr frei. Der Yeti gewinnt!"
+		"fr" "{1} Aucun humain n'est encore libre. Le Yéti gagne !"
+		"pt" "{1} Não restam humanos livres. Vitória do Yeti!"
+		"ru" "{1} Свободных людей не осталось. Йети победил!"
+	}
+
+	"LR Yeti Thaw Progress"
+	{
+		"#format" "{1:d},{2:d}"
+		"en" "Thawing: {1}% | Helpers: {2}"
+		"es" "Descongelando: {1}% | Ayudantes: {2}"
+		"las" "Descongelando: {1}% | Ayudantes: {2}"
+		"de" "Auftauen: {1}% | Helfer: {2}"
+		"fr" "Dégel : {1}% | Alliés : {2}"
+		"pt" "Descongelando: {1}% | Ajudantes: {2}"
+		"ru" "Отогрев: {1}% | Помощников: {2}"
+	}
+
+	"LR Yeti Thaw Other"
+	{
+		"#format" "{1:N},{2:d}"
+		"en" "Thawing {1}: {2}%"
+		"es" "Descongelando a {1}: {2}%"
+		"las" "Descongelando a {1}: {2}%"
+		"de" "{1} auftauen: {2}%"
+		"fr" "Dégel de {1} : {2}%"
+		"pt" "Descongelando {1}: {2}%"
+		"ru" "Отогрев {1}: {2}%"
+	}
+
+	"LR Yeti Ability HUD"
+	{
+		"#format" "{1:d},{2:d},{3:d},{4:d}"
+		"en" "Rage (Medic): {1}% | Charge (right click): {2}s\nFree: {3} | Frozen: {4}"
+		"es" "Furia (médico): {1}% | Embestida (clic derecho): {2}s\nLibres: {3} | Congelados: {4}"
+		"las" "Furia (médico): {1}% | Embestida (clic derecho): {2}s\nLibres: {3} | Congelados: {4}"
+		"de" "Wut (Medic): {1}% | Ansturm (Rechtsklick): {2}s\nFrei: {3} | Eingefroren: {4}"
+		"fr" "Rage (Medic) : {1}% | Charge (clic droit) : {2}s\nLibres : {3} | Gelés : {4}"
+		"pt" "Fúria (médico): {1}% | Investida (clique direito): {2}s\nLivres: {3} | Congelados: {4}"
+		"ru" "Ярость (медик): {1}% | Рывок (ПКМ): {2}с\nСвободны: {3} | Заморожены: {4}"
+	}
+
+	"LR Yeti Human HUD"
+	{
+		"#format" "{1:d},{2:d}"
+		"en" "Free: {1} | Frozen: {2}"
+		"es" "Libres: {1} | Congelados: {2}"
+		"las" "Libres: {1} | Congelados: {2}"
+		"de" "Frei: {1} | Eingefroren: {2}"
+		"fr" "Libres : {1} | Gelés : {2}"
+		"pt" "Livres: {1} | Congelados: {2}"
+		"ru" "Свободны: {1} | Заморожены: {2}"
+	}
+
 	"Prefix"
 	{
 		"en"		"{green}[AJB]{default}"

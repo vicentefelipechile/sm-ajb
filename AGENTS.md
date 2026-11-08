@@ -187,7 +187,7 @@ outlines that were already enabled when it reached a player.
 
 Boost purchases and ongoing effects are disabled for
 Zombie Mode, Hunger Games, Cell Wars, Hide and Seek, Dodgeball, War Day, Class Warfare,
-and FF2. The module blocks `SpecialDay`/combat rounds; stale menus cannot bypass the block.
+Freeze Tag and FF2. The module blocks `SpecialDay`/combat rounds; stale menus cannot bypass the block.
 Stored points stay intact, and boosts resume next normal round. Normal-round modifiers
 (including Sniper) and freedays keep boosts enabled.
 
@@ -249,6 +249,67 @@ Last Request module; no wish needs to be running. The editor lives in
 `sm_ajb_db_setspawn <red|blu|rocket|center> [radius]` remains available. Rocket placement uses
 eye position; center without a radius preserves the existing range. Radius `0` means no barriers.
 Exports use a temporary file before replacing the config; unreadable configs are not overwritten.
+
+## Escape from the Yeti (Freeze Tag)
+
+Freeze Tag is a built-in Last Request (`LRWish_Yeti`), implemented in `wish_yeti.sp` and
+`wish_yeti_ambience.sp` inside `ajb_lastrequest`; the Yeti wish's author is **Winewald**.
+Preserve his authorship in both fragments and the module credits. It uses the normal wish queue, admin wish picker, shared phrase helpers and LR cleanup,
+not a separate plugin, translation file or `sm_yeti` commands.
+
+At live-round start it selects a random guard (fallback: any participant), or the LR chooser
+with `sm_ajb_lr_yeti_pick 1`. At least two connected team participants are required; bots count.
+The Yeti becomes a Heavy on the guard side; everyone else joins the prisoner side with melee,
+plus Mad Milk for Scouts and Jarate for Snipers. Cells open once through `AJB_BeginCombatDay`.
+Guard bans are suspended for this combat role, not deleted. Boosts remain blocked by the normal
+combat-day policy. Original teams and the Yeti's class return on cleanup; spectator opt-outs stay out.
+
+The invincible Yeti waits through the hide window, then freezes humans with fists. Frozen humans
+cannot move, attack or taunt and take no damage. Free teammates within the thaw radius stack their
+help; thaw progress decays without help. No free humans means the Yeti wins; timeout or the Yeti
+leaving its team/server means humans win. Real Yeti deaths respawn it after two seconds; Dead Ringer
+notices are ignored. Jarate/Mad Milk slow it, with immunity against permanent slow chaining.
+The Medic call spends 100 rage to reveal nearby free humans; right click charges, and fist swings
+against walls climb. Resupply reapplies event weapons, and late guards are folded onto the human side.
+
+Only AJB's phase timer shows remaining round time. The extra HUD contains abilities and free/frozen
+counts, and hint text shows thaw progress; no center-text round countdown is added.
+Fog uses `include/ajb/fog.inc` (also used by Zombie Mode) without changing the master controller.
+`include/ajb/render.inc` snapshots render modes/colors with entity references before tinting statues.
+Cleanup restores owned outlines, fog, tint, movement and attack locks and stops wind/heartbeat.
+Ambience deadlines and reveal expiry share one tick timer instead of per-player sound/reveal timers.
+`mp_ignore_round_win_conditions` is saved during the wish and restored before a forced win or cleanup,
+covering automatic wins on hosts without the x86 `SetWinningTeam` hook.
+Yeti cosmetics use stock TF2 items 1187/1189/1188 and SourceMod's current `RemoveWearable` offset
+minus one for `EquipWearable`; missing gamedata logs an error and leaves the Heavy without Yeti parts.
+No custom downloads or FF2 runtime are needed.
+
+All `sm_ajb_lr_yeti_*` settings persist in `cfg/sourcemod/ajb_lastrequest.cfg`:
+
+| Suffix | Default | Purpose |
+| --- | --- | --- |
+| `round_time` | `300` | Total seconds, including hide time (60–900) |
+| `hide_time` | `20` | Hide seconds (0–60; 0 = immediate release) |
+| `pick` | `0` | 0 = random guard, 1 = LR chooser |
+| `speed` | `340` | Yeti movement speed (150–520) |
+| `thaw_time` | `5` | Seconds per helper to thaw (1–30) |
+| `thaw_radius` | `160` | Helper radius (50–500) |
+| `slow_time` | `3` | Jarate/Milk slow seconds (0.5–10) |
+| `slow_factor` | `0.45` | Slowed speed multiplier (0.1–1) |
+| `slow_immune` | `4` | Immunity seconds after slow (0–30) |
+| `rage_per_sec` | `1.5` | Rage per hunting second (0–50) |
+| `rage_per_freeze` | `20` | Rage per freeze (0–100) |
+| `roar_radius` | `1500` | Reveal radius (200–5000) |
+| `roar_reveal` | `3` | Outline seconds (1–10) |
+| `charge_cooldown` | `10` | Seconds between charges (1–60) |
+| `charge_force` | `1100` | Horizontal impulse (300–3000) |
+| `climb` | `1` | Wall climbing enabled (0/1) |
+| `climb_force` | `600` | Vertical impulse (100–1500) |
+| `growl_min` | `25` | Minimum ambient growl interval (5–300) |
+| `growl_max` | `45` | Maximum interval, clamped to minimum (5–300) |
+| `heart_radius` | `1000` | Heartbeat distance (100–4000) |
+| `wind_volume` | `0.45` | Wind volume (0–1; 0 = silent) |
+| `wind_length` | `16` | Wind repeat interval (2–120) |
 
 ## Equal teams for combat events
 
@@ -446,7 +507,7 @@ Dismissal locks follow the client session; reconnecting clears them.
 fight via the `ff2r` natives (`FF2R_GetSpecialData` / `FF2R_CreateBoss`). It injects its wish
 into the Last Request menu through the external wish hooks in `include/ajb/lrwish.inc`
 (`AJB_OnLRWishMenu` / `AJB_OnLRWishSelect`), fired by `ajb_lastrequest` for menu items at
-index >= `LR_WISH_BUILTIN_COUNT`. The LR module does not know about the FF2 wish: it only
+index >= `LR_WISH_BUILTIN_COUNT` (18). The LR module does not know about the FF2 wish: it only
 closes its own menu state when the external plugin returns `Plugin_Handled`.
 
 Compile-time only: `include/ff2r.inc` + `include/cfgmap.inc` are vendored from the FF2

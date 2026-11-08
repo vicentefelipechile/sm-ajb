@@ -1178,7 +1178,7 @@ void AJB_EnforceGuardBan(int client)
 	if (GetFeatureStatus(FeatureType_Native, "AJB_LR_GetActiveWish") == FeatureStatus_Available)
 	{
 		AJB_LRWish wish = AJB_LR_GetActiveWish();
-		if (wish == LRWish_ZombieMode || AJB_LR_UsesEqualTeams(wish))
+		if (wish == LRWish_ZombieMode || wish == LRWish_Yeti || AJB_LR_UsesEqualTeams(wish))
 		{
 			return;
 		}

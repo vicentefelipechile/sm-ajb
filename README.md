@@ -44,6 +44,9 @@ Paths relative to `addons/sourcemod`:
 
 ConVars are saved under `tf/cfg/sourcemod/ajb*.cfg`.
 
+**Escape from the Yeti (Freeze Tag)** is included in the Last Request menu. Configure it with
+`sm_ajb_lr_yeti_*` in `tf/cfg/sourcemod/ajb_lastrequest.cfg` (default: 300-second round, 20 seconds to hide).
+
 Passive warden dismissal is configured in `tf/cfg/sourcemod/ajb.cfg`:
 
 ```cfg
@@ -71,3 +74,5 @@ Change the map or reconnect players after adding custom audio so they can downlo
 Music plays once per round; looping WAV files can use their embedded loop points.
 
 Author: **SummerTYT**
+
+Yeti wish author: **Winewald**

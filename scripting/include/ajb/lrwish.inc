@@ -31,7 +31,8 @@ enum AJB_LRWish
 	LRWish_GuardMelee,
 	LRWish_ZombieMode,
 	LRWish_CellWars,
-	LRWish_Dodgeball
+	LRWish_Dodgeball,
+	LRWish_Yeti
 };
 
 stock bool AJB_LR_UsesEqualTeams(AJB_LRWish wish)

@@ -105,17 +105,7 @@ void AJB_LR_ZM_ApplyAmbience(int client)
 		return;
 	}
 
-	int fog = EntRefToEntIndex(g_iZMFogRef);
-	if (fog != INVALID_ENT_REFERENCE && HasEntProp(client, Prop_Send, "m_PlayerFog.m_hCtrl"))
-	{
-		if (!g_bZMFogSaved[client])
-		{
-			int old = GetEntPropEnt(client, Prop_Send, "m_PlayerFog.m_hCtrl");
-			g_iZMOldFog[client] = old > MaxClients && old != fog ? EntIndexToEntRef(old) : INVALID_ENT_REFERENCE;
-			g_bZMFogSaved[client] = true;
-		}
-		SetEntPropEnt(client, Prop_Send, "m_PlayerFog.m_hCtrl", fog);
-	}
+	AJB_ApplyClientFog(client, g_iZMFogRef, g_bZMFogSaved[client], g_iZMOldFog[client]);
 
 	if (g_sZMMusic[0] != '\0' && !g_bZMMusicHeard[client])
 	{
@@ -138,14 +128,7 @@ void AJB_LR_ZM_StopFog()
 	int fog = EntRefToEntIndex(g_iZMFogRef);
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (g_bZMFogSaved[i] && IsClientInGame(i) && HasEntProp(i, Prop_Send, "m_PlayerFog.m_hCtrl")
-			&& GetEntPropEnt(i, Prop_Send, "m_PlayerFog.m_hCtrl") == fog)
-		{
-			int old = EntRefToEntIndex(g_iZMOldFog[i]);
-			SetEntPropEnt(i, Prop_Send, "m_PlayerFog.m_hCtrl", old > MaxClients ? old : -1);
-		}
-		g_bZMFogSaved[i] = false;
-		g_iZMOldFog[i] = INVALID_ENT_REFERENCE;
+		AJB_RestoreClientFog(i, g_iZMFogRef, g_bZMFogSaved[i], g_iZMOldFog[i]);
 	}
 
 	if (fog != INVALID_ENT_REFERENCE)
@@ -186,30 +169,7 @@ void AJB_LR_ZM_StartFog()
 		strcopy(color, sizeof(color), LR_ZM_FOG_COLOR);
 	}
 
-	int fog = CreateEntityByName("env_fog_controller");
-	if (fog == -1)
-	{
-		LogError("[AJB-LR] Could not create Zombie Mode fog controller.");
-		return;
-	}
-	DispatchKeyValue(fog, "targetname", "ajb_zm_fog");
-	// Assign per player rather than replacing the map's master fog controller.
-	DispatchKeyValue(fog, "spawnflags", "0");
-	DispatchKeyValue(fog, "fogenable", "1");
-	DispatchKeyValue(fog, "fogblend", "0");
-	DispatchKeyValue(fog, "fogcolor", color);
-	DispatchKeyValue(fog, "fogcolor2", color);
-	DispatchKeyValueFloat(fog, "fogstart", start);
-	DispatchKeyValueFloat(fog, "fogend", end);
-	DispatchKeyValueFloat(fog, "fogmaxdensity", g_cvZMFogDensity.FloatValue);
-	if (!DispatchSpawn(fog))
-	{
-		LogError("[AJB-LR] Could not spawn Zombie Mode fog controller.");
-		AcceptEntityInput(fog, "Kill");
-		return;
-	}
-	AcceptEntityInput(fog, "TurnOn");
-	g_iZMFogRef = EntIndexToEntRef(fog);
+	g_iZMFogRef = AJB_CreateFog("ajb_zm_fog", color, start, end, g_cvZMFogDensity.FloatValue);
 }
 
 void AJB_LR_ZM_StartAmbience()

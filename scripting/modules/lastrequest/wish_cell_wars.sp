@@ -315,7 +315,7 @@ void AJB_LR_ChatAllCellWarsApplied(const char[] chooserName, bool meleeOnly)
 	AJB_LR_ChatAllCellWarsImpl("LR Applied CellWars", false, 0, chooserName, meleeOnly);
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
+Action AJB_LR_CW_OnRunCmd(int client, int buttons)
 {
 	// Fast path: this callback runs for every user command of every player on the
 	// server; only Cell Wars needs it (jump-to-random-spawn). Leave without touching

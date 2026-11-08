@@ -8,6 +8,35 @@
 #define _ajb_weapons_included
 
 #include <sdktools>
+#include <tf2_stocks>
+
+// Event loadouts must not inherit the normal prisoner's configurable weapon allowlist.
+stock void AJB_StripEventWeapons(int client, bool keepMelee, bool keepJars = false)
+{
+	for (int slot = 0; slot <= 7; slot++)
+	{
+		if (keepMelee && slot == TFWeaponSlot_Melee) continue;
+		int weapon = GetPlayerWeaponSlot(client, slot);
+		if (weapon <= MaxClients) continue;
+		char classname[64];
+		GetEntityClassname(weapon, classname, sizeof(classname));
+		if (keepJars && (StrEqual(classname, "tf_weapon_jar") || StrEqual(classname, "tf_weapon_jar_milk"))) continue;
+		TF2_RemoveWeaponSlot(client, slot);
+	}
+
+	static const char wearables[][] = {"tf_wearable_demoshield", "tf_wearable_razorback"};
+	for (int i = 0; i < sizeof(wearables); i++)
+	{
+		int entity = -1;
+		while ((entity = FindEntityByClassname(entity, wearables[i])) != -1)
+		{
+			if (GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
+			{
+				TF2_RemoveWearable(client, entity);
+			}
+		}
+	}
+}
 
 stock int AJB_GiveStockWeapon(int client, const char[] classname, int defIndex)
 {
