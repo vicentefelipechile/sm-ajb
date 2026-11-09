@@ -86,13 +86,13 @@
 	"LR Yeti Controls"
 	{
 		"#format" "{1:s}"
-		"en" "{1} Left click: freeze or climb a wall. Medic call: roar at 100% rage. Right click: charge."
-		"es" "{1} Clic izquierdo: congelar o escalar una pared. Llamar al médico: rugir con 100% de furia. Clic derecho: embestir."
-		"las" "{1} Clic izquierdo: congelar o escalar una pared. Llamar al médico: rugir con 100% de furia. Clic derecho: embestir."
-		"de" "{1} Linksklick: einfrieren oder Wände erklimmen. Medic-Ruf: bei 100% Wut brüllen. Rechtsklick: Ansturm."
-		"fr" "{1} Clic gauche : geler ou escalader un mur. Appel au Medic : rugir à 100% de rage. Clic droit : charger."
-		"pt" "{1} Clique esquerdo: congelar ou escalar paredes. Chamar médico: rugir com 100% de fúria. Clique direito: investir."
-		"ru" "{1} ЛКМ: заморозка или подъём по стене. Зов медика: рёв при 100% ярости. ПКМ: рывок."
+		"en" "{1} Left click: freeze or climb a wall. Medic call: roar at 100% rage. Right click: charge and freeze on contact."
+		"es" "{1} Clic izquierdo: congelar o escalar una pared. Llamar al médico: rugir con 100% de furia. Clic derecho: embestir y congelar al contacto."
+		"las" "{1} Clic izquierdo: congelar o escalar una pared. Llamar al médico: rugir con 100% de furia. Clic derecho: embestir y congelar al contacto."
+		"de" "{1} Linksklick: einfrieren oder Wände erklimmen. Medic-Ruf: bei 100% Wut brüllen. Rechtsklick: Ansturm, friert bei Kontakt ein."
+		"fr" "{1} Clic gauche : geler ou escalader un mur. Appel au Medic : rugir à 100% de rage. Clic droit : charger et geler au contact."
+		"pt" "{1} Clique esquerdo: congelar ou escalar paredes. Chamar médico: rugir com 100% de fúria. Clique direito: investir e congelar ao contato."
+		"ru" "{1} ЛКМ: заморозка или подъём по стене. Зов медика: рёв при 100% ярости. ПКМ: рывок с заморозкой при касании."
 	}
 
 	"LR Yeti Slowed"
@@ -146,13 +146,13 @@
 	"LR Yeti Roared"
 	{
 		"#format" "{1:s}"
-		"en" "{1} The Yeti roared! Nearby free humans were revealed."
-		"es" "{1} ¡El Yeti rugió! Los humanos libres cercanos quedaron revelados."
-		"las" "{1} ¡El Yeti rugió! Los humanos libres cercanos quedaron revelados."
-		"de" "{1} Der Yeti hat gebrüllt! Freie Menschen in der Nähe wurden aufgedeckt."
-		"fr" "{1} Le Yéti a rugi ! Les humains libres à proximité ont été révélés."
-		"pt" "{1} O Yeti rugiu! Humanos livres próximos foram revelados."
-		"ru" "{1} Йети взревел! Свободные люди поблизости обнаружены."
+		"en" "{1} The Yeti roared! Nearby humans were revealed and stunned."
+		"es" "{1} ¡El Yeti rugió! Los humanos cercanos quedaron revelados y aturdidos."
+		"las" "{1} ¡El Yeti rugió! Los humanos cercanos quedaron revelados y aturdidos."
+		"de" "{1} Der Yeti hat gebrüllt! Menschen in der Nähe wurden aufgedeckt und betäubt."
+		"fr" "{1} Le Yéti a rugi ! Les humains à proximité sont révélés et étourdis."
+		"pt" "{1} O Yeti rugiu! Humanos próximos foram revelados e atordoados."
+		"ru" "{1} Йети взревел! Люди поблизости обнаружены и оглушены."
 	}
 
 	"LR Yeti Humans Win"

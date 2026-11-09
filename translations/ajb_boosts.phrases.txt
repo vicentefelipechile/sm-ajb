@@ -13,14 +13,14 @@
 
 	"Boosts Menu Title"
 	{
-		"#format"	"{1:d},{2:d}"
-		"en"		"Boosts\nPoints: {1} · Spent: {2}"
-		"es"		"Boosts\nPuntos: {1} · Gastados: {2}"
-		"las"		"Boosts\nPuntos: {1} · Gastados: {2}"
-		"de"		"Boosts\nPunkte: {1} · Ausgegeben: {2}"
-		"fr"		"Boosts\nPoints : {1} · Dépensés : {2}"
-		"pt"		"Boosts\nPontos: {1} · Gastos: {2}"
-		"ru"		"Бусты\nОчки: {1} · Потрачено: {2}"
+		"#format"	"{1:d},{2:d},{3:d}"
+		"en"		"Boosts\nPoints: {1} · Spent: {2}\nBank: {3}"
+		"es"		"Boosts\nPuntos: {1} · Gastados: {2}\nBanco: {3}"
+		"las"		"Boosts\nPuntos: {1} · Gastados: {2}\nBanco: {3}"
+		"de"		"Boosts\nPunkte: {1} · Ausgegeben: {2}\nBank: {3}"
+		"fr"		"Boosts\nPoints : {1} · Dépensés : {2}\nBanque : {3}"
+		"pt"		"Boosts\nPontos: {1} · Gastos: {2}\nBanco: {3}"
+		"ru"		"Бусты\nОчки: {1} · Потрачено: {2}\nБанк: {3}"
 	}
 
 	"Boosts Disabled"
@@ -73,26 +73,26 @@
 
 	"Boosts Points"
 	{
-		"#format"	"{1:s},{2:d}"
-		"en"		"{1} You have {2} point(s)."
-		"es"		"{1} Tienes {2} punto(s)."
-		"las"		"{1} Tienes {2} punto(s)."
-		"de"		"{1} Du hast {2} Punkt(e)."
-		"fr"		"{1} Vous avez {2} point(s)."
-		"pt"		"{1} Você tem {2} ponto(s)."
-		"ru"		"{1} У вас {2} очк(ов)."
+		"#format"	"{1:s},{2:d},{3:d}"
+		"en"		"{1} You have {2} point(s). Bank: {3}."
+		"es"		"{1} Tienes {2} punto(s). Banco: {3}."
+		"las"		"{1} Tienes {2} punto(s). Banco: {3}."
+		"de"		"{1} Du hast {2} Punkt(e). Bank: {3}."
+		"fr"		"{1} Vous avez {2} point(s). Banque : {3}."
+		"pt"		"{1} Você tem {2} ponto(s). Banco: {3}."
+		"ru"		"{1} У вас {2} очк(ов). Банк: {3}."
 	}
 
 	"Boosts Points Gained"
 	{
-		"#format"	"{1:s},{2:d},{3:d}"
-		"en"		"{1} +{2} point(s) (total {3})."
-		"es"		"{1} +{2} punto(s) (total {3})."
-		"las"		"{1} +{2} punto(s) (total {3})."
-		"de"		"{1} +{2} Punkt(e) (gesamt {3})."
-		"fr"		"{1} +{2} point(s) (total {3})."
-		"pt"		"{1} +{2} ponto(s) (total {3})."
-		"ru"		"{1} +{2} очк(ов) (всего {3})."
+		"#format"	"{1:s},{2:d},{3:d},{4:d}"
+		"en"		"{1} +{2} point(s) (available {3}, bank {4})."
+		"es"		"{1} +{2} punto(s) (disponibles {3}, banco {4})."
+		"las"		"{1} +{2} punto(s) (disponibles {3}, banco {4})."
+		"de"		"{1} +{2} Punkt(e) (verfügbar {3}, Bank {4})."
+		"fr"		"{1} +{2} point(s) (disponibles {3}, banque {4})."
+		"pt"		"{1} +{2} ponto(s) (disponíveis {3}, banco {4})."
+		"ru"		"{1} +{2} очк(ов) (доступно {3}, банк {4})."
 	}
 
 	"Boosts Points Left"

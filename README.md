@@ -44,6 +44,11 @@ Paths relative to `addons/sourcemod`:
 
 ConVars are saved under `tf/cfg/sourcemod/ajb*.cfg`.
 
+The point bank persists by SteamID64 using `configs/databases.cfg` entry `ajb` (fallback:
+`storage-local`). In `tf/cfg/sourcemod/ajb_boosts.cfg`, `sm_ajb_boosts_bank_max_points "30"`
+sets its deposit limit; excess is discarded when full. Savings refill available points at
+the next round start, without replacing unspent points.
+
 **Escape from the Yeti (Freeze Tag)** is included in the Last Request menu. Configure it with
 `sm_ajb_lr_yeti_*` in `tf/cfg/sourcemod/ajb_lastrequest.cfg` (default: 300-second round, 20 seconds to hide).
 

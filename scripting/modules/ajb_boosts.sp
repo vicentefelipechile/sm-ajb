@@ -25,6 +25,8 @@
 #define AJB_BOOSTS_LIBRARY "ajb_boosts"
 
 #include <ajb/phrases>
+#include <ajb/boosts_bank>
+#include <ajb/teams>
 
 // =========================================================================================================
 // Constants
@@ -47,6 +49,9 @@
 #define BOOST_COST_REVIVE        3
 #define BOOST_VISIBILITY_DURATION 10.0
 #define BOOST_VISIBILITY_TICK     0.1
+#define BOOST_LONE_BLU_DAMAGE_FACTOR 0.5
+#define BOOST_LONE_BLU_REGEN_HP 3
+#define BOOST_LONE_BLU_REGEN_TICK 1.0
 
 #define BOOST_COST_SECOND_WIND   1
 #define BOOST_COST_MAD_MILK      1
@@ -87,6 +92,7 @@ public Plugin myinfo =
 
 ConVar g_cvEnabled;
 ConVar g_cvMaxPoints;
+ConVar g_cvBankMaxPoints;
 ConVar g_cvBluEvery;
 
 // Cost ConVars
@@ -111,6 +117,8 @@ bool g_bHasCore;
 bool g_bBoostsEnabled;
 bool g_bSpecialRound;
 bool g_bRoundRewarded;
+bool g_bLoneBluLive;
+Handle g_hLoneBluRegenTimer;
 
 // All per-player boost data in one contiguous struct (cache locality; bools packed into flags).
 enum struct BoostPlayer
@@ -191,6 +199,39 @@ bool AJB_Boosts_CheckAvailable(int client)
 	return false;
 }
 
+int AJB_Boosts_GetLoneBlu()
+{
+	if (!g_bBoostsEnabled || !g_bLoneBluLive || !g_bHasCore) return 0;
+	AJBRoundState state = AJB_GetRoundState();
+	if (state < AJBState_CellsLocked || state > AJBState_LRChosen || AJB_IsCombatDay()) return 0;
+	return AJB_GetOnlyClientOnTeam(AJB_TEAM_BLU);
+}
+
+Action Timer_LoneBluRegen(Handle timer)
+{
+	int client = AJB_Boosts_GetLoneBlu();
+	if (client > 0 && IsPlayerAlive(client))
+	{
+		AJB_Boosts_AddHealth(client, BOOST_LONE_BLU_REGEN_HP);
+	}
+	return Plugin_Continue;
+}
+
+public void AJB_OnLiveRoundBegin()
+{
+	g_bLoneBluLive = true;
+}
+
+public void AJB_OnPrepStart(float duration)
+{
+	g_bLoneBluLive = false;
+}
+
+void Event_LoneBluRoundReset(Event event, const char[] name, bool dontBroadcast)
+{
+	g_bLoneBluLive = false;
+}
+
 // =========================================================================================================
 // Lifecycle
 // =========================================================================================================
@@ -231,7 +272,8 @@ public void OnPluginStart()
 	g_cvEnabled = CreateConVar("sm_ajb_boosts_enabled", "1", "Enable the boosts system.", _, true, 0.0, true, 1.0);
 	g_bBoostsEnabled = g_cvEnabled.BoolValue;
 	g_cvEnabled.AddChangeHook(OnBoostsEnabledChanged);
-	g_cvMaxPoints = CreateConVar("sm_ajb_boosts_max_points", "3", "Max points a player can EARN-hold (0 = unlimited). Admin grants ignore this.", _, true, 0.0);
+	g_cvMaxPoints = CreateConVar("sm_ajb_boosts_max_points", "3", "Max available earned points (0 = unlimited). Excess is banked until next round. Admin grants bypass this until next round.", _, true, 0.0);
+	g_cvBankMaxPoints = CreateConVar("sm_ajb_boosts_bank_max_points", "30", "Max stored bank points per player. Excess is discarded when full (0 = no new deposits).", _, true, 0.0);
 	g_cvBluEvery = CreateConVar("sm_ajb_boosts_blu_every", "2", "BLU surviving players get +1 extra every N finished rounds.", _, true, 1.0);
 
 	// Costs
@@ -251,6 +293,7 @@ public void OnPluginStart()
 	g_cvRegenPerTick = CreateConVar("sm_ajb_boosts_regen_per_tick", "5", "HP restored per second tick during Regen.", _, true, 1.0);
 
 	AutoExecConfig(true, "ajb_boosts");
+	AJB_Boosts_BankConnect();
 
 	LoadTranslations("ajb_boosts.phrases");
 	LoadTranslations("ajb.phrases");
@@ -264,6 +307,9 @@ public void OnPluginStart()
 	RegAdminCmd("sm_ajb_boosts_give", Command_GivePoints, ADMFLAG_GENERIC, "Usage: sm_ajb_boosts_give <#userid|name> <amount>");
 
 	HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_PostNoCopy);
+	// Reset before the core can announce a zero-prep live round in its post hook.
+	HookEvent("teamplay_round_start", Event_LoneBluRoundReset, EventHookMode_Pre);
+	g_hLoneBluRegenTimer = CreateTimer(BOOST_LONE_BLU_REGEN_TICK, Timer_LoneBluRegen, _, TIMER_REPEAT);
 	// Award before other plugins restore teams or remove special-day roles.
 	HookEvent("teamplay_round_win", Event_RoundWin, EventHookMode_Pre);
 
@@ -284,10 +330,14 @@ public void OnPluginStart()
 public void OnPluginEnd()
 {
 	AJB_Boosts_ClearEffects();
+	delete g_hLoneBluRegenTimer;
+	delete g_hBoostBankDB;
 }
 
 public void OnMapStart()
 {
+	g_bLoneBluLive = false;
+	AJB_Boosts_BankConnect();
 	g_iFinishedRoundCount = 0;
 	g_bSpecialRound = false;
 	g_bRoundRewarded = false;
@@ -296,11 +346,13 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
+	g_bLoneBluLive = false;
 	AJB_Boosts_ClearEffects();
 }
 
 public void AJB_OnModeChanged(bool enabled)
 {
+	if (!enabled) g_bLoneBluLive = false;
 	AJB_Boosts_RefreshAvailability();
 }
 
@@ -315,6 +367,11 @@ public void OnClientPutInServer(int client)
 	AJB_Boosts_HookClient(client);
 }
 
+public void OnClientPostAdminCheck(int client)
+{
+	AJB_Boosts_BankLoad(client);
+}
+
 public void OnClientDisconnect(int client)
 {
 	AJB_Boosts_ResetClient(client);
@@ -327,6 +384,7 @@ void AJB_Boosts_ResetClient(int client)
 	AJB_Boosts_ClearVisibility(client);
 	AJB_Boosts_StopRegen(client);
 	g_Boost[client].points = 0;
+	AJB_Boosts_BankReset(client);
 	g_Boost[client].spentThisRound = 0;
 	g_Boost[client].backstabCharges = 0;
 	Boost_SetFlag(client, BF_MELEE_CRIT, false);
@@ -351,6 +409,7 @@ public void OnLibraryRemoved(const char[] name)
 	if (StrEqual(name, AJB_LIBRARY))
 	{
 		g_bHasCore = false;
+		g_bLoneBluLive = false;
 		AJB_Boosts_RefreshAvailability();
 	}
 }
@@ -370,17 +429,29 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_Boost[i].spentThisRound = 0;
+		if (!IsClientInGame(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+		AJB_Boosts_BankLoad(i);
 
-		// Cap holdings to max (e.g. after cvar change or leftover from older builds).
+		// Preserve excess admin grants and holdings above a lowered cap.
 		if (maxPts > 0 && g_Boost[i].points > maxPts)
 		{
-			g_Boost[i].points = maxPts;
+			if (AJB_Boosts_BankDeposit(i, g_Boost[i].points - maxPts, g_cvBankMaxPoints.IntValue))
+			{
+				g_Boost[i].points = maxPts;
+			}
 		}
+
+		int refill = maxPts > 0 ? maxPts - g_Boost[i].points : g_iBoostBank[i];
+		g_Boost[i].points += AJB_Boosts_BankWithdraw(i, refill);
 	}
 }
 
 void Event_RoundWin(Event event, const char[] name, bool dontBroadcast)
 {
+	g_bLoneBluLive = false;
 	AJB_Boosts_ClearEffects();
 	if (g_bRoundRewarded || !g_cvEnabled.BoolValue || !g_bHasCore || !AJB_IsEnabled())
 	{
@@ -445,7 +516,7 @@ Action Command_Points(int client, int args)
 
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
-	CReplyToCommand(client, "%T", "Boosts Points", client, prefix, g_Boost[client].points);
+	CReplyToCommand(client, "%T", "Boosts Points", client, prefix, g_Boost[client].points, g_iBoostBank[client]);
 	return Plugin_Handled;
 }
 
@@ -519,27 +590,42 @@ void AJB_Boosts_AddPoints(int client, int amount, const char[] reason)
 		return;
 	}
 
-	// Admin grants are intentional and bypass the earn-holdings cap; earned points respect it.
+	// Admin grants bypass the cap until round start; rewards never reduce existing holdings.
 	bool isAdmin = StrEqual(reason, "admin");
 	int maxPts = g_cvMaxPoints.IntValue;
-	int next = g_Boost[client].points + amount;
-	if (!isAdmin && maxPts > 0 && next > maxPts)
+	int banked;
+	if (!isAdmin && amount > 0 && maxPts > 0)
 	{
-		next = maxPts;
+		int room = maxPts - g_Boost[client].points;
+		if (room < 0)
+		{
+			room = 0;
+		}
+		if (amount > room && AJB_Boosts_BankLoad(client))
+		{
+			int previousBank = g_iBoostBank[client];
+			// Keep the reward available if persistence fails instead of losing it.
+			if (AJB_Boosts_BankDeposit(client, amount - room, g_cvBankMaxPoints.IntValue))
+			{
+				banked = g_iBoostBank[client] - previousBank;
+				amount = room;
+			}
+		}
 	}
+	int next = g_Boost[client].points + amount;
 	if (next < 0)
 	{
 		next = 0;
 	}
 
-	int gained = next - g_Boost[client].points;
+	int gained = next - g_Boost[client].points + banked;
 	g_Boost[client].points = next;
 
 	if (gained > 0 && !isAdmin)
 	{
 		char prefix[32];
 		AJB_GetPrefix(client, prefix, sizeof(prefix));
-		CPrintToChat(client, "%T", "Boosts Points Gained", client, prefix, gained, g_Boost[client].points);
+		CPrintToChat(client, "%T", "Boosts Points Gained", client, prefix, gained, g_Boost[client].points, g_iBoostBank[client]);
 	}
 }
 
@@ -582,7 +668,7 @@ void AJB_Boosts_ShowMenu(int client)
 	Menu menu = new Menu(MenuHandler_Boosts);
 
 	char title[192];
-	Format(title, sizeof(title), "%T", "Boosts Menu Title", client, g_Boost[client].points, g_Boost[client].spentThisRound);
+	Format(title, sizeof(title), "%T", "Boosts Menu Title", client, g_Boost[client].points, g_Boost[client].spentThisRound, g_iBoostBank[client]);
 	menu.SetTitle(title);
 
 	// Dead players may open the panel to plan, but purchases stay locked.
@@ -1082,8 +1168,12 @@ void AJB_Boosts_AddHealth(int client, int amount, bool allowOverheal = false)
 		return;
 	}
 
-	int health = GetClientHealth(client) + amount;
 	int maxHealth = GetEntProp(client, Prop_Data, "m_iMaxHealth");
+	if (!allowOverheal && GetClientHealth(client) >= maxHealth)
+	{
+		return;
+	}
+	int health = GetClientHealth(client) + amount;
 	int cap = allowOverheal ? (maxHealth + amount) : maxHealth;
 	if (health > cap)
 	{
@@ -1236,12 +1326,18 @@ Action AJB_Boosts_OnTakeDamageAlive(int victim, int &attacker, int &inflictor, f
 		return Plugin_Continue;
 	}
 
+	bool loneBlu = GetClientTeam(victim) == AJB_TEAM_BLU && victim == AJB_Boosts_GetLoneBlu();
+	if (loneBlu)
+	{
+		damage *= BOOST_LONE_BLU_DAMAGE_FACTOR;
+	}
+
 	if (g_Boost[victim].backstabCharges <= 0
 		|| !IsClientInGame(victim)
 		|| !IsPlayerAlive(victim)
 		|| damagecustom != TF_CUSTOM_BACKSTAB)
 	{
-		return Plugin_Continue;
+		return loneBlu ? Plugin_Changed : Plugin_Continue;
 	}
 
 	g_Boost[victim].backstabCharges--;
@@ -1255,6 +1351,7 @@ Action AJB_Boosts_OnTakeDamageAlive(int victim, int &attacker, int &inflictor, f
 		keep = 1;
 	}
 	damage = float(health - keep);
+	if (loneBlu) damage *= BOOST_LONE_BLU_DAMAGE_FACTOR;
 
 	// Backstabs carry DMG_CRIT; leave it set and the reduced amount can still be scaled.
 	damagetype &= ~DMG_CRIT;

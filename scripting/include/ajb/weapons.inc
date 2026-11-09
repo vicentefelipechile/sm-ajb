@@ -62,3 +62,14 @@ stock int AJB_GiveStockWeapon(int client, const char[] classname, int defIndex)
 	EquipPlayerWeapon(client, weapon);
 	return weapon;
 }
+
+// Advance the native meter more slowly without changing weapon attributes or its HUD scale.
+stock void AJB_ScaleEffectBarRecharge(int weapon, float elapsed, float multiplier)
+{
+	if (elapsed <= 0.0 || multiplier <= 0.0) return;
+	float deadline = GetEntPropFloat(weapon, Prop_Send, "m_flEffectBarRegenTime");
+	if (deadline > GetGameTime())
+	{
+		SetEntPropFloat(weapon, Prop_Send, "m_flEffectBarRegenTime", deadline + elapsed * (1.0 - 1.0 / multiplier));
+	}
+}

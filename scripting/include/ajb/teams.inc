@@ -1,5 +1,5 @@
 // =========================================================================================================
-// Another Jailbreak — Temporary equal-team balancing for combat events
+// Another Jailbreak — Team queries and temporary combat-event balancing
 // =========================================================================================================
 
 #if defined _ajb_teams_included
@@ -11,6 +11,18 @@
 #include <tf2_stocks>
 
 #include <ajb/ajb>
+
+stock int AJB_GetOnlyClientOnTeam(int team)
+{
+	int only;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || GetClientTeam(i) != team) continue;
+		if (only != 0) return 0;
+		only = i;
+	}
+	return only;
+}
 
 stock int AJB_BalanceTeamsEqual(int redTeam, int bluTeam, int[] originalTeams)
 {

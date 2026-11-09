@@ -369,6 +369,7 @@ Action Timer_LateStartRoundClock(Handle timer)
 
 public void OnPluginEnd()
 {
+	AJB_Weapons_SetNormalChargeRegen(false);
 	AJB_Prep_Stop();
 	AJB_PlayerFx_StopTimer();
 	AJB_WardenHealth_OnPluginEnd();
@@ -443,6 +444,7 @@ public void OnConfigsExecuted()
 
 public void OnMapEnd()
 {
+	AJB_Weapons_SetNormalChargeRegen(false);
 	AJB_Prep_Stop();
 	AJB_PlayerFx_StopTimer();
 	AJB_KillCellsAutoTimer();

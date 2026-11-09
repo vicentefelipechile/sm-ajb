@@ -179,6 +179,16 @@ git push origin v1.2.4
 
 ## Visibility boost and special-day cells
 
+During live normal rounds, exactly one connected BLU team member automatically receives
+50% damage reduction and 3 HP per second, capped at class maximum without removing overheal.
+Only BLU membership is queried: RED population is never counted. Dead BLU members and bots
+still count, so a surviving guard in a multi-BLU team does not qualify. Membership is checked
+on every damage/healing application; adding a second BLU immediately removes eligibility.
+This free passive bonus uses `ajb_boosts`' normal availability policy (no special/combat days,
+prep, waiting, round end or disabled module/mode). Reduction runs in `OnTakeDamageAlive` after
+native damage multipliers, without filtering attacker or damage type, and stacks with Iron Neck.
+It spends no points, adds no attributes and leaves no persistent effects to restore.
+
 Guards can buy **Visibility** for 2 points (`sm_ajb_boosts_cost_visibility`). For 10 seconds,
 living RED players have TF2's native X-ray outline (`m_bGlowEnabled`), visible to everyone.
 Team changes and respawns refresh during the effect; overlapping purchases are refused.
@@ -190,6 +200,23 @@ Zombie Mode, Hunger Games, Cell Wars, Hide and Seek, Dodgeball, War Day, Class W
 Freeze Tag and FF2. The module blocks `SpecialDay`/combat rounds; stale menus cannot bypass the block.
 Stored points stay intact, and boosts resume next normal round. Normal-round modifiers
 (including Sniper) and freedays keep boosts enabled.
+
+Earned points above `sm_ajb_boosts_max_points` go into a per-player bank instead of being
+discarded. At round start, the bank fills only the available space up to that cap; unspent
+points remain intact and a full balance leaves the bank untouched. Purchases never withdraw
+from the bank mid-round. Admin grants still bypass the cap during the round; their remaining
+excess is banked at the next round start, also preserving points after a cap reduction.
+With available cap `0`, all banked points become available at round start. The boosts menu
+and `sm_ajb_points` show both balances. `sm_ajb_boosts_bank_max_points` defaults to `30` and
+limits new deposits; overflow beyond a full bank is discarded, and `0` blocks new deposits.
+Lowering the bank limit does not delete existing savings; deposits resume once there is room.
+`include/ajb/boosts_bank.inc` persists the bank by SteamID64 in `ajb_boost_bank`, using the
+`ajb` database entry or `storage-local` if absent (SQLite or MySQL). Bank balances survive
+disconnects, map changes, module reloads and server restarts. Available points remain
+session-only. Bank writes commit before changing available points; failed deposits leave
+the reward available, and failed withdrawals leave the bank untouched. Failed connections
+retry on map start; failed per-player loads retry on round start. Bank reads/writes are
+synchronous after asynchronous connection; prefer local SQLite to avoid remote SQL latency.
 
 At special-round end, living participants or members of the winning team earn +1 boost point,
 once per player/round, respecting `sm_ajb_boosts_max_points`. Dead winners qualify in team
@@ -212,6 +239,9 @@ setups need identifiable physical door targets for verification.
 `sm_ajb_admin_db` (default `ajb`); the repo ships an `ajb` SQLite entry. If that entry is
 missing, `AJB_DB_Connect` falls back to the stock `storage-local` SQLite entry. The table
 (`ajb_guardbans`) is created portably for SQLite or MySQL.
+
+`ajb_boosts` independently uses the `ajb` entry (fallback: `storage-local`) for its
+`ajb_boost_bank` table. It does not require `ajb_admin` to be loaded.
 
 ## Dodgeball visual setup
 
@@ -271,6 +301,16 @@ leaving its team/server means humans win. Real Yeti deaths respawn it after two 
 notices are ignored. Jarate/Mad Milk slow it, with immunity against permanent slow chaining.
 The Medic call spends 100 rage to reveal nearby free humans; right click charges, and fist swings
 against walls climb. Resupply reapplies event weapons, and late guards are folded onto the human side.
+
+The roar also applies a native panic stun for 5 seconds with 75% movement slowdown, including
+Scouts; reveal duration still uses `sm_ajb_lr_yeti_roar_reveal`. Owned stuns clear on team/spawn/
+death transitions and cleanup. A charge freezes free humans on physical contact during its
+0.8-second ability window, without a melee swing; ordinary contact does not freeze. Charge
+state clears on inventory preparation, death, team changes and cleanup.
+Mad Milk's native effect-bar progress advances at half speed during this wish (roughly 40
+seconds instead of 20), including while holstered or frozen. The shared helper in
+`include/ajb/weapons.inc` delays the native deadline, retaining the native HUD meter and any
+weapon recharge modifiers without TF2Attributes. Jarate and other wishes are unchanged.
 
 Only AJB's phase timer shows remaining round time. The extra HUD contains abilities and free/frozen
 counts, and hint text shows thaw progress; no center-text round countdown is added.
@@ -456,6 +496,15 @@ remove a disguise cannot retroactively mark the attacker. The snapshot clears af
 
 While AJB is active, the core sets `mp_forcecamera 0` so dead players can follow either
 team. The previous value is restored when AJB is disabled, the map ends or the core unloads.
+
+## Demoman charge recharge
+
+Live normal rounds use one third of the saved `tf_demoman_charge_regen_rate`, making passive
+shield recharge take three times as long for both teams. This does not depend on the number
+of Demomen. Charge duration, shield modifiers and kill-based charge rewards remain native.
+`AJB_Weapons_SetNormalChargeRegen` applies the replicated engine rate after live-round wishes
+and restores the saved value on special/combat days, round cleanup, waiting, mode disable,
+map end and core unload. Prep and special rounds retain the server's original rate.
 
 ## Friendly fire and locked cells
 
@@ -734,7 +783,8 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | ConVar | Default | Purpose |
 | --- | --- | --- |
 | `sm_ajb_boosts_enabled` | `1` | Enable the boosts system |
-| `sm_ajb_boosts_max_points` | `3` | Max points a player can earn-hold (0 = unlimited; admin grants ignore it) |
+| `sm_ajb_boosts_max_points` | `3` | Max available earned points; excess is banked and refills at round start (0 = unlimited; admin grants bypass until next round) |
+| `sm_ajb_boosts_bank_max_points` | `30` | Maximum banked points from new deposits; full-bank overflow is discarded (0 = no new deposits; existing savings retained) |
 | `sm_ajb_boosts_blu_every` | `2` | BLU survivors get +1 extra every N finished rounds |
 | `sm_ajb_boosts_cost_visibility` | `2` | Guard boost: native X-ray outlines on living RED players for 10 seconds |
 

@@ -9,6 +9,10 @@
 #define LR_YETI_MILK 222
 #define LR_YETI_JARATE 58
 #define LR_YETI_CHARGE_LIFT 280.0
+#define LR_YETI_CHARGE_DURATION 0.8
+#define LR_YETI_ROAR_STUN_TIME 5.0
+#define LR_YETI_ROAR_SLOWDOWN 0.75
+#define LR_YETI_MILK_RECHARGE_MULTIPLIER 2.0
 #define LR_YETI_CLIMB_REACH 100.0
 #define LR_YETI_HUD_REFRESH 0.5
 #define LR_YETI_THAW_DECAY 0.2
@@ -49,12 +53,14 @@ TFClassType g_YetiOriginalClass;
 int g_iYetiLastButtons;
 float g_fYetiRage;
 float g_fYetiNextCharge;
+float g_fYetiChargeUntil;
 float g_fYetiSlowUntil;
 float g_fYetiImmuneUntil;
 float g_fYetiReleaseAt;
 float g_fYetiLastTick;
 float g_fYetiNextHud;
 float g_fYetiRevealUntil[MAXPLAYERS + 1];
+float g_fYetiRoarStunUntil[MAXPLAYERS + 1];
 bool g_bYetiOwnGlow[MAXPLAYERS + 1];
 bool g_bYetiFrozen[MAXPLAYERS + 1];
 float g_fYetiThaw[MAXPLAYERS + 1];
@@ -162,6 +168,7 @@ void AJB_LR_ApplyYeti(const char[] chooser, int chooserUserid)
 	g_YetiOriginalClass = TF2_GetPlayerClass(yeti);
 	g_fYetiRage = 0.0;
 	g_fYetiNextCharge = 0.0;
+	g_fYetiChargeUntil = 0.0;
 	g_fYetiSlowUntil = 0.0;
 	g_fYetiImmuneUntil = 0.0;
 	g_iYetiLastButtons = 0;
@@ -263,6 +270,9 @@ void Frame_YetiPrepareClient(int userid)
 		AJB_LR_Yeti_Dress(client);
 		SDKUnhook(client, SDKHook_PreThinkPost, Hook_YetiThink);
 		SDKHook(client, SDKHook_PreThinkPost, Hook_YetiThink);
+		SDKUnhook(client, SDKHook_Touch, Hook_YetiChargeTouch);
+		SDKHook(client, SDKHook_Touch, Hook_YetiChargeTouch);
+		g_fYetiChargeUntil = 0.0;
 		if (g_bYetiHiding) SetEntityMoveType(client, MOVETYPE_NONE);
 	}
 	else
@@ -346,6 +356,15 @@ void Hook_YetiThink(int client)
 	SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", speed);
 }
 
+Action Hook_YetiChargeTouch(int client, int other)
+{
+	if (!g_bYeti || g_bYetiEnding || g_bYetiApplying || g_bYetiHiding || client != g_iYeti
+		|| !IsPlayerAlive(client) || GetGameTime() >= g_fYetiChargeUntil
+		|| other < 1 || other > MaxClients || !AJB_LR_Yeti_IsFreeHuman(other)) return Plugin_Continue;
+	AJB_LR_Yeti_Freeze(other);
+	return Plugin_Continue;
+}
+
 Action AJB_LR_Yeti_OnTakeDamage(int victim, int attacker, int weapon, float &damage)
 {
 	if (g_bYetiEnding) return Plugin_Continue;
@@ -393,6 +412,12 @@ void AJB_LR_Yeti_Freeze(int client)
 
 void AJB_LR_Yeti_Thaw(int client)
 {
+	if (client == g_iYeti) g_fYetiChargeUntil = 0.0;
+	if (g_fYetiRoarStunUntil[client] > GetGameTime() && IsClientInGame(client))
+	{
+		TF2_RemoveCondition(client, TFCond_Dazed);
+	}
+	g_fYetiRoarStunUntil[client] = 0.0;
 	if (!g_bYetiFrozen[client]) return;
 	g_bYetiFrozen[client] = false;
 	g_fYetiThaw[client] = 0.0;
@@ -438,6 +463,12 @@ Action Listener_YetiVoice(int client, const char[] command, int argc)
 		if (!AJB_LR_Yeti_IsFreeHuman(i)) continue;
 		GetClientAbsOrigin(i, position);
 		if (AJB_GetDistanceSqr(origin, position) > radius * radius) continue;
+		if (!TF2_IsPlayerInCondition(i, TFCond_Dazed) || g_fYetiRoarStunUntil[i] > GetGameTime())
+		{
+			g_fYetiRoarStunUntil[i] = GetGameTime() + LR_YETI_ROAR_STUN_TIME;
+		}
+		TF2_StunPlayer(i, LR_YETI_ROAR_STUN_TIME, LR_YETI_ROAR_SLOWDOWN,
+			TF_STUNFLAGS_GHOSTSCARE | TF_STUNFLAG_SLOWDOWN, client);
 		if (!GetEntProp(i, Prop_Send, "m_bGlowEnabled"))
 		{
 			g_bYetiOwnGlow[i] = true;
@@ -463,6 +494,7 @@ Action AJB_LR_Yeti_OnRunCmd(int client, int &buttons)
 	float now = GetGameTime();
 	if (!pressed || now < g_fYetiNextCharge || now < g_fYetiSlowUntil) return Plugin_Continue;
 	g_fYetiNextCharge = now + g_cvYetiChargeCooldown.FloatValue;
+	g_fYetiChargeUntil = now + LR_YETI_CHARGE_DURATION;
 	float angles[3], velocity[3];
 	GetClientEyeAngles(client, angles);
 	angles[0] = 0.0;
@@ -556,6 +588,17 @@ Action Timer_YetiTick(Handle timer)
 		{
 			GetClientAbsOrigin(i, positions[i]);
 			if (g_bYetiFrozen[i]) frozenCount++;
+			if (TF2_GetPlayerClass(i) == TFClass_Scout)
+			{
+				int milk = GetPlayerWeaponSlot(i, TFWeaponSlot_Secondary);
+				if (milk > MaxClients)
+				{
+					char classname[32];
+					GetEntityClassname(milk, classname, sizeof(classname));
+					if (StrEqual(classname, "tf_weapon_jar_milk"))
+						AJB_ScaleEffectBarRecharge(milk, elapsed, LR_YETI_MILK_RECHARGE_MULTIPLIER);
+				}
+			}
 		}
 	}
 	// Check the same snapshot used for thawing so an all-frozen team cannot rescue itself.
@@ -684,6 +727,7 @@ void AJB_LR_Yeti_Cleanup()
 		if (i == g_iYeti)
 		{
 			SDKUnhook(i, SDKHook_PreThinkPost, Hook_YetiThink);
+			SDKUnhook(i, SDKHook_Touch, Hook_YetiChargeTouch);
 			if (IsPlayerAlive(i)) SetEntityMoveType(i, MOVETYPE_WALK);
 			if (g_YetiOriginalClass != TFClass_Unknown) TF2_SetPlayerClass(i, g_YetiOriginalClass, false, true);
 		}

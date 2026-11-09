@@ -16,6 +16,10 @@ void AJB_SetRoundState(AJBRoundState newState)
 
 	AJBRoundState oldState = g_RoundState;
 	g_RoundState = newState;
+	if (newState < AJBState_CellsLocked || newState > AJBState_LRChosen)
+	{
+		AJB_Weapons_SetNormalChargeRegen(false);
+	}
 
 	Call_StartForward(g_hFwdRoundState);
 	Call_PushCell(oldState);
@@ -88,6 +92,7 @@ Action Timer_RemoveEntity(Handle timer, int ref)
 // Stop AJB runtime that must not leak into the next round (warden, prep, clocks).
 void AJB_CleanupRoundRuntime()
 {
+	AJB_Weapons_SetNormalChargeRegen(false);
 	AJB_Prep_Stop();
 	AJB_KillCellsAutoTimer();
 	AJB_KillRoundExpireTimer();
@@ -165,6 +170,8 @@ void AJB_NotifyLiveRoundBegin()
 		Call_Finish();
 	}
 
+	AJB_Weapons_SetNormalChargeRegen(!AJB_IsCombatDay()
+		&& g_RoundState >= AJBState_CellsLocked && g_RoundState <= AJBState_LRChosen);
 	AJB_ScheduleSpecialDayCellCheck();
 }
 

@@ -12,7 +12,7 @@
 // Current boost points for a player (0 if invalid / module missing).
 native int AJB_Boosts_GetPoints(int client);
 
-// Add (positive) or remove (negative) points. Clamped by max/min. Returns new total.
+// Adjust available points (minimum 0), bypassing the cap until next round. Returns available points.
 native int AJB_Boosts_AddPointsEx(int client, int amount);
 
 public SharedPlugin __pl_ajb_boosts =

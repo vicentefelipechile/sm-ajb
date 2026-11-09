@@ -28,6 +28,7 @@ static int g_iSavedForceCamera = -1;
 
 void AJB_ApplyEngineCvarPolicy()
 {
+	if (!g_bModeActive) AJB_Weapons_SetNormalChargeRegen(false);
 	AJB_ApplyEngineMovementPolicy();
 	AJB_ApplyEngineArenaQueuePolicy();
 	AJB_ApplyEngineTeamsUnbalancePolicy();

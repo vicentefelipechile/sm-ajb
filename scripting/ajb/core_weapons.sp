@@ -23,6 +23,35 @@ int g_iWeaponWearableCount;
 
 #define AJB_DEAD_RINGER_DEF_INDEX 59
 #define AJB_CLOAK_METER_MAX 100.0
+#define AJB_DEMO_CHARGE_RECHARGE_MULTIPLIER 3.0
+
+ConVar g_cvDemoChargeRegen;
+float g_fSavedDemoChargeRegen = -1.0;
+
+void AJB_Weapons_SetNormalChargeRegen(bool enabled)
+{
+	if (g_cvDemoChargeRegen == null)
+	{
+		g_cvDemoChargeRegen = FindConVar("tf_demoman_charge_regen_rate");
+	}
+	if (g_cvDemoChargeRegen == null)
+	{
+		if (enabled) LogError("[AJB] tf_demoman_charge_regen_rate ConVar not found.");
+		return;
+	}
+
+	if (enabled && g_fSavedDemoChargeRegen < 0.0)
+	{
+		// The replicated native rate preserves shield modifiers and client prediction.
+		g_fSavedDemoChargeRegen = g_cvDemoChargeRegen.FloatValue;
+		g_cvDemoChargeRegen.SetFloat(g_fSavedDemoChargeRegen / AJB_DEMO_CHARGE_RECHARGE_MULTIPLIER);
+	}
+	else if (!enabled && g_fSavedDemoChargeRegen >= 0.0)
+	{
+		g_cvDemoChargeRegen.SetFloat(g_fSavedDemoChargeRegen);
+		g_fSavedDemoChargeRegen = -1.0;
+	}
+}
 
 void AJB_Weapons_TrackWeaponWearable(int entity)
 {
