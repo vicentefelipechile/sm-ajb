@@ -1493,13 +1493,13 @@
 	"LR Freeday Others None"
 	{
 		"#format"	"{1:s}"
-		"en"		"{1} No living prisoners."
-		"es"		"{1} No hay prisioneros vivos."
-		"las"		"{1} No hay prisioneros vivos."
-		"de"		"{1} Keine lebenden Gefangenen."
-		"fr"		"{1} Aucun prisonnier vivant."
-		"pt"		"{1} Nenhum prisioneiro vivo."
-		"ru"		"{1} Нет живых заключённых."
+		"en"		"{1} No players available."
+		"es"		"{1} No hay jugadores disponibles."
+		"las"		"{1} No hay jugadores disponibles."
+		"de"		"{1} Keine Spieler verfügbar."
+		"fr"		"{1} Aucun joueur disponible."
+		"pt"		"{1} Nenhum jogador disponível."
+		"ru"		"{1} Нет доступных игроков."
 	}
 
 	"LR Freeday Others Cap"

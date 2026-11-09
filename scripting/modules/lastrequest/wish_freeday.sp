@@ -9,18 +9,18 @@ void AJB_LR_DoFreedayMe(int prisoner)
 	AJB_LR_QueueWish(prisoner, LRWish_FreedayMe, "LR Chose Freeday Me");
 }
 
-// Build ordered list: chooser first, then every other living prisoner.
+// Next-round recipients can be on any team or dead when chosen.
 int AJB_LR_CollectFreedayTargets(int prisoner, int[] list, int maxList)
 {
 	int n = 0;
-	if (prisoner > 0 && IsClientInGame(prisoner) && IsPlayerAlive(prisoner) && AJB_IsPrisoner(prisoner))
+	if (prisoner > 0 && IsClientInGame(prisoner))
 	{
 		list[n++] = prisoner;
 	}
 
 	for (int i = 1; i <= MaxClients && n < maxList; i++)
 	{
-		if (i == prisoner || !IsClientInGame(i) || !IsPlayerAlive(i) || !AJB_IsPrisoner(i))
+		if (i == prisoner || !IsClientInGame(i))
 		{
 			continue;
 		}
@@ -160,7 +160,7 @@ public int PanelHandler_FreedayOthers(Menu menu, MenuAction action, int param1, 
 	}
 
 	int target = GetClientOfUserId(g_iFreedaySlotUserId[param2 - 1]);
-	if (target < 1 || !IsClientInGame(target) || !IsPlayerAlive(target) || !AJB_IsPrisoner(target))
+	if (target < 1 || !IsClientInGame(target))
 	{
 		AJB_LR_ShowFreedayOthersMenu(client);
 		return 0;
@@ -266,7 +266,7 @@ public int PanelHandler_FreedayReview(Menu menu, MenuAction action, int param1, 
 	int given = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (g_bPickedFreeday[i] && IsClientInGame(i) && AJB_IsPrisoner(i))
+		if (g_bPickedFreeday[i] && IsClientInGame(i))
 		{
 			AJB_SetPlayerFreeday(i, true);
 			given++;

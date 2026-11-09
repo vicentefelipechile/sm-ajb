@@ -232,7 +232,7 @@ Handle g_hHGEndTimer;
 Handle g_hZMGraceTimer;  // fires -> pick patient zero
 Handle g_hZMEndTimer;    // timeout -> humans win if any RED alive
 
-// Freeday multi-pick (panel; chooser listed first, then other living prisoners)
+// Freeday multi-pick (panel; chooser listed first, then all other players)
 bool g_bPickedFreeday[MAXPLAYERS + 1];
 int g_iFreedayPickCount;
 int g_iFreedayMenuPage;
