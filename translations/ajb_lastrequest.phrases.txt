@@ -485,6 +485,29 @@
 		"ru"		"Желания"
 	}
 
+	"LR Preferences Title"
+	{
+		"en"		"Last Request\n[X] Preferred · Select again to clear"
+		"es"		"Deseos\n[X] Preferido · Repetir para quitar"
+		"las"		"Deseos\n[X] Preferido · Repetir para quitar"
+		"de"		"Last Request\n[X] Bevorzugt · Erneut wählen zum Löschen"
+		"fr"		"Last Request\n[X] Préféré · Resélectionner pour retirer"
+		"pt"		"Desejos\n[X] Preferido · Selecione de novo para remover"
+		"ru"		"Желания\n[X] Любимое · Нажмите ещё раз, чтобы убрать"
+	}
+
+	"LR Preferences Loading"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} Your preferences are loading. Try again shortly."
+		"es"		"{1} Tus preferencias se están cargando. Inténtalo de nuevo en un momento."
+		"las"		"{1} Tus preferencias se están cargando. Inténtalo de nuevo en un momento."
+		"de"		"{1} Deine Einstellungen werden geladen. Versuche es gleich noch einmal."
+		"fr"		"{1} Vos préférences sont en cours de chargement. Réessayez dans un instant."
+		"pt"		"{1} Suas preferências estão carregando. Tente novamente em instantes."
+		"ru"		"{1} Ваши настройки загружаются. Повторите попытку чуть позже."
+	}
+
 	"LR Aborted"
 	{
 		"#format"	"{1:s}"

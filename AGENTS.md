@@ -550,6 +550,29 @@ and threshold are counted on each command (without duplicating votes); departure
 map changes and core reloads reset it. Ratio bounds are 0.01–1; cooldown 0 disables the wait.
 Dismissal locks follow the client session; reconnecting clears them.
 
+## Public wish catalogue and preference
+
+`sm_lastrequest` (`!lastrequest`) lets any in-game player browse the same wish catalogue,
+including external wishes such as FF2, regardless of team, life state or LR eligibility.
+Selecting an entry only toggles that player's preferred wish, marked `[X]`; selecting it
+again clears the preference. It never grants LR, queues a wish or calls external selection
+forwards. Currently unavailable entries may still be saved for future maps.
+
+`ajb_lastrequest` uses the SourceMod Client Preferences extension and the private cookie
+`ajb_lr_preferred_wish`. Only the stable menu token is stored, not an index or translated
+label. Cookie reads/writes wait for `AreClientCookiesCached`; browsing remains available
+while cookies load. No separate SQL table or per-slot preference cache is used.
+
+`AJB_LR_OpenForPrisoner` starts the normal offer timers before trying the preference, so
+instant queue/custom/submenu paths retain their normal cleanup and permissions. Only an
+available item from a fresh wish menu can be automatically selected. Missing, disabled or
+unclaimed external entries fall back to the ordinary chooser without deleting the cookie.
+Wishes with secondary choices still open their existing menus; those options are not saved.
+Admin self-pick and `sm_reopenlr` remain manual. Custom wish input ignores chat commands.
+
+`AJB_LR_CreateWishMenu` owns the single wish list and extension forward; `AJB_LR_SelectWish`
+is shared only by authorized manual/automatic choices, never by the preference menu.
+
 ## FF2 Boss Wish (`ajb_ff2.sp`) — dependencies & degraded modes
 
 `ajb_ff2` is a standalone module that turns the next live round into a Freak Fortress 2 boss
@@ -701,6 +724,7 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | Command | Access | Purpose |
 | --- | --- | --- |
 | `sm_ajb_lr` | console | Warden: grant Last Request to a prisoner |
+| `sm_lastrequest` | console | Everyone: browse wishes and toggle a cookie-backed preferred wish (`[X]`) |
 | `sm_ajb_lr_force <#userid\|name>` | GENERIC | Force LR menu for a living prisoner |
 | `sm_reopenlr`, `sm_ajb_reopenlr` | console | Prisoner: reopen your LR menu if a map vote / external menu closed it |
 | `sm_ajb_db_menu` | CONFIG | Open the private visual Dodgeball map editor |

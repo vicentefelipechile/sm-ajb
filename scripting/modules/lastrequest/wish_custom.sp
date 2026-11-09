@@ -51,7 +51,8 @@ Action Listener_Say(int client, const char[] command, int argc)
 	StripQuotes(text);
 	TrimString(text);
 
-	if (text[0] == '\0' || text[0] == '/')
+	// Opening the public catalogue must not submit a chat command as the custom wish.
+	if (text[0] == '\0' || text[0] == '/' || text[0] == '!')
 	{
 		return Plugin_Continue;
 	}

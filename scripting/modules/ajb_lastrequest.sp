@@ -13,6 +13,7 @@
 #include <tf2>
 #include <tf2_stocks>
 #include <dhooks>
+#include <clientprefs>
 
 #undef REQUIRE_PLUGIN
 #include <tf2attributes>
@@ -102,6 +103,7 @@ int g_iBalancedOriginalTeam[MAXPLAYERS + 1];
 // item is picked. Created in OnPluginStart, freed in OnPluginEnd.
 Handle g_hWishMenuFwd;
 Handle g_hWishSelectFwd;
+Cookie g_hPreferredWishCookie;
 
 int g_iPrisoner;
 bool g_bMenuOpen;
@@ -423,8 +425,8 @@ public int MenuHandler_Grant(Menu menu, MenuAction action, int param1, int param
 
 	if (target > 0 && IsClientInGame(target) && IsPlayerAlive(target) && AJB_IsPrisoner(target))
 	{
-		AJB_LR_OpenForPrisoner(target);
 		AJB_ChatAll2N("LR Granted By Warden", warden, target);
+		AJB_LR_OpenForPrisoner(target);
 	}
 	return 0;
 }
@@ -445,8 +447,8 @@ void AJB_LR_OpenForPrisoner(int prisoner)
 		AJB_SetRoundState(AJBState_LRChoosing);
 	}
 
-	AJB_LR_ShowWishMenu(prisoner);
 	AJB_LR_StartMenuTimers(prisoner);
+	if (!AJB_LR_TryPreferredWish(prisoner)) AJB_LR_ShowWishMenu(prisoner);
 }
 
 void AJB_LR_ShowWishMenu(int prisoner)
@@ -460,7 +462,22 @@ void AJB_LR_ShowWishMenu(int prisoner)
 		return;
 	}
 
-	Menu menu = new Menu(MenuHandler_Wish);
+	Menu menu = AJB_LR_CreateWishMenu(prisoner);
+	menu.ExitButton = false;
+	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
+}
+
+Menu AJB_LR_CreateWishMenu(int prisoner, bool preferences = false)
+{
+	Menu menu;
+	if (preferences)
+	{
+		menu = new Menu(MenuHandler_WishPreference, MENU_ACTIONS_DEFAULT | MenuAction_DrawItem | MenuAction_DisplayItem);
+	}
+	else
+	{
+		menu = new Menu(MenuHandler_Wish);
+	}
 	char title[64], line[96];
 	Format(title, sizeof(title), "%T", "LR Wish Menu Title", prisoner);
 	menu.SetTitle(title);
@@ -526,8 +543,7 @@ void AJB_LR_ShowWishMenu(int prisoner)
 	Call_PushCell(menu);
 	Call_Finish();
 
-	menu.ExitButton = false;
-	menu.Display(prisoner, RoundToFloor(g_cvMenuTime.FloatValue));
+	return menu;
 }
 
 public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2)
@@ -543,13 +559,23 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 		return 0;
 	}
 
-	int client = param1;
-	if (!IsClientInGame(client) || !AJB_LR_IsMenuAllowed(client))
+	AJB_LR_SelectWish(param1, menu, param2);
+	return 0;
+}
+
+bool AJB_LR_SelectWish(int client, Menu menu, int item)
+{
+	if (!AJB_LR_IsMenuAllowed(client) || item < 0 || item >= menu.ItemCount)
 	{
-		return 0;
+		return false;
 	}
 
-	switch (param2)
+	char token[32];
+	int style;
+	menu.GetItem(item, token, sizeof(token), style);
+	if (style & (ITEMDRAW_DISABLED | ITEMDRAW_IGNORE)) return false;
+
+	switch (item)
 	{
 		case 0: AJB_LR_DoFreedayMe(client);
 		case 1:
@@ -578,10 +604,8 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 	}
 
 	// Choices at or beyond the built-in count belong to external plugins (ajb/lrwish.inc).
-	if (param2 >= LR_WISH_BUILTIN_COUNT)
+	if (item >= LR_WISH_BUILTIN_COUNT)
 	{
-		char token[32];
-		menu.GetItem(param2, token, sizeof(token));
 		if (token[0] != '\0')
 		{
 			Action result;
@@ -595,10 +619,88 @@ public int MenuHandler_Wish(Menu menu, MenuAction action, int param1, int param2
 				// External plugin owns this wish: free the LR phase and let it queue its own.
 				AJB_LR_CloseMenuState();
 				AJB_LR_MarkWishChosen();
+				return true;
 			}
 		}
+		return false;
 	}
 
+	return true;
+}
+
+// =========================================================================================================
+// Public wish catalogue and saved preference
+// =========================================================================================================
+
+bool AJB_LR_TryPreferredWish(int client)
+{
+	if (IsFakeClient(client) || !AreClientCookiesCached(client)) return false;
+	char preferred[32];
+	g_hPreferredWishCookie.Get(client, preferred, sizeof(preferred));
+	if (preferred[0] == '\0') return false;
+
+	Menu menu = AJB_LR_CreateWishMenu(client);
+	bool selected;
+	for (int i = 0; i < menu.ItemCount; i++)
+	{
+		char token[32];
+		menu.GetItem(i, token, sizeof(token));
+		if (!StrEqual(token, preferred)) continue;
+		selected = AJB_LR_SelectWish(client, menu, i);
+		break;
+	}
+	delete menu;
+	return selected;
+}
+
+void AJB_LR_ShowWishPreferences(int client, int position = 0)
+{
+	Menu menu = AJB_LR_CreateWishMenu(client, true);
+	menu.SetTitle("%T", "LR Preferences Title", client);
+	menu.ExitButton = true;
+	menu.DisplayAt(client, position, MENU_TIME_FOREVER);
+}
+
+Action Command_LastRequest(int client, int args)
+{
+	if (client < 1 || !IsClientInGame(client))
+	{
+		AJB_Reply(client, "LR Ingame Only");
+		return Plugin_Handled;
+	}
+	AJB_LR_ShowWishPreferences(client);
+	return Plugin_Handled;
+}
+
+public int MenuHandler_WishPreference(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+	// An unavailable wish can still be saved for other maps or unmarked here; this never grants LR.
+	if (action == MenuAction_DrawItem) return ITEMDRAW_DEFAULT;
+	if (action != MenuAction_DisplayItem && action != MenuAction_Select) return 0;
+	if (!IsClientInGame(param1)) return 0;
+
+	char token[32], preferred[32], label[128];
+	menu.GetItem(param2, token, sizeof(token), _, label, sizeof(label));
+	if (!AreClientCookiesCached(param1) || IsFakeClient(param1))
+	{
+		if (action == MenuAction_Select) AJB_Reply(param1, "LR Preferences Loading");
+		return 0;
+	}
+	g_hPreferredWishCookie.Get(param1, preferred, sizeof(preferred));
+	if (action == MenuAction_DisplayItem)
+	{
+		if (!StrEqual(token, preferred)) return 0;
+		Format(label, sizeof(label), "[X] %s", label);
+		return RedrawMenuItem(label);
+	}
+
+	g_hPreferredWishCookie.Set(param1, StrEqual(token, preferred) ? "" : token);
+	AJB_LR_ShowWishPreferences(param1, GetMenuSelectionPosition());
 	return 0;
 }
 
@@ -659,6 +761,7 @@ public int Native_LR_GetActiveWish(Handle plugin, int numParams)
 
 public void OnPluginStart()
 {
+	g_hPreferredWishCookie = new Cookie("ajb_lr_preferred_wish", "Preferred Last Request wish token.", CookieAccess_Private);
 	CreateConVar("sm_ajb_lr_version", PLUGIN_VERSION, "AJB Last Request module version.", FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	g_cvEnabled = CreateConVar("sm_ajb_lr_enabled", "1", "Enable Last Request offers.", _, true, 0.0, true, 1.0);
 	g_cvEnabled.AddChangeHook(OnLREnabledChanged);
@@ -733,6 +836,7 @@ public void OnPluginStart()
 	LoadTranslations("common.phrases");
 
 	RegConsoleCmd("sm_ajb_lr", Command_LR, "Warden: grant Last Request to a prisoner.");
+	RegConsoleCmd("sm_lastrequest", Command_LastRequest, "Browse Last Request wishes and choose your saved preference.");
 	RegAdminCmd("sm_ajb_lr_force", Command_ForceLR, ADMFLAG_GENERIC, "Force LR menu for a living prisoner.");
 	RegConsoleCmd("sm_reopenlr", Command_ReopenLR, "Prisoner: reopen your Last Request menu if it got closed (e.g. by a map vote).");
 	RegConsoleCmd("sm_ajb_reopenlr", Command_ReopenLR, "Prisoner: reopen your Last Request menu if it got closed (e.g. by a map vote).");
@@ -775,6 +879,7 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
+	delete g_hPreferredWishCookie;
 	AJB_LR_DB_StopAllPreviews();
 	delete g_hWishMenuFwd;
 	g_hWishMenuFwd = null;
@@ -1678,11 +1783,11 @@ public Action Command_ForceLR(int client, int args)
 		return Plugin_Handled;
 	}
 
-	AJB_LR_OpenForPrisoner(target);
 	char prefix[32];
 	AJB_GetPrefix(client, prefix, sizeof(prefix));
 	StrCat(prefix, sizeof(prefix), " ");
 	AJB_AdminBroadcast(client, "Activity Forced LR", target);
+	AJB_LR_OpenForPrisoner(target);
 	return Plugin_Handled;
 }
 

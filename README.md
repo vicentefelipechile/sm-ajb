@@ -26,8 +26,12 @@ or `-SyncOnly` to copy configuration, translations and gamedata without compilin
 | `!ajb` | Admin menu |
 | `!ajb_mutes` | Warden voice menu: player → mute / unmute |
 | `!ajb_lr` | Warden: grant a Last Request |
+| `!lastrequest` | Everyone: browse wishes and toggle a saved preferred wish marked `[X]` |
 | `!reopenlr` | Reopen your Last Request menu |
 | `!boosts` | Boosts menu |
+
+The preferred wish is selected when you receive Last Request; extra options still use their
+normal submenus. Preferences use SourceMod's Client Preferences cookies (`clientprefs` required).
 
 **Dodgeball:** `!ajb` → **Dodgeball**. Set team spawns, rocket position and arena range with a
 private preview. Changes save automatically. Requires admin + config access; live rounds are read-only.

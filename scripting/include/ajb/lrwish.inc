@@ -44,13 +44,13 @@ stock bool AJB_LR_UsesEqualTeams(AJB_LRWish wish)
 native AJB_LRWish AJB_LR_GetActiveWish();
 
 /**
- * Called when the Last Request wish menu is built, after all built-in wishes.
+ * Called when a wish menu is built, including the public preference catalogue, after built-ins.
  *
  * Add your own items here with a unique token:
  *     menu.AddItem("ff2boss", label);
  * Use ITEMDRAW_DISABLED to show the wish but keep it unselectable.
  *
- * @param client	Prisoner the menu is being built for
+ * @param client	Player the menu is being built for (may be dead, BLU or a spectator)
  * @param menu		Menu handle (do not delete, do not display)
  *
  * @noreturn
