@@ -330,6 +330,10 @@ public void OnPluginStart()
 public void OnPluginEnd()
 {
 	AJB_Boosts_ClearEffects();
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		AJB_Boosts_BankStoreAvailable(i, g_Boost[i].points, g_cvBankMaxPoints.IntValue);
+	}
 	delete g_hLoneBluRegenTimer;
 	delete g_hBoostBankDB;
 }
@@ -348,6 +352,10 @@ public void OnMapEnd()
 {
 	g_bLoneBluLive = false;
 	AJB_Boosts_ClearEffects();
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		AJB_Boosts_BankStoreAvailable(i, g_Boost[i].points, g_cvBankMaxPoints.IntValue);
+	}
 }
 
 public void AJB_OnModeChanged(bool enabled)
@@ -374,6 +382,7 @@ public void OnClientPostAdminCheck(int client)
 
 public void OnClientDisconnect(int client)
 {
+	AJB_Boosts_BankStoreAvailable(client, g_Boost[client].points, g_cvBankMaxPoints.IntValue);
 	AJB_Boosts_ResetClient(client);
 	Boost_SetFlag(client, BF_DAMAGE_HOOKED, false);
 }

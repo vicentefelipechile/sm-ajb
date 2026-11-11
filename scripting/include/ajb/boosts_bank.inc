@@ -147,6 +147,19 @@ bool AJB_Boosts_BankDeposit(int client, int amount, int limit)
 	return AJB_Boosts_BankSave(client, g_iBoostBank[client] + amount);
 }
 
+void AJB_Boosts_BankStoreAvailable(int client, int &points, int limit)
+{
+	if (points <= 0) return;
+	if (!AJB_Boosts_BankDeposit(client, points, limit))
+	{
+		LogError("[AJB-Boosts] Could not bank %d available points for client %d.", points, client);
+		return;
+	}
+
+	// Clear only after committing so map end followed by disconnect cannot deposit twice.
+	points = 0;
+}
+
 int AJB_Boosts_BankWithdraw(int client, int amount)
 {
 	if (!AJB_Boosts_BankLoad(client) || amount <= 0)

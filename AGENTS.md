@@ -212,9 +212,11 @@ limits new deposits; overflow beyond a full bank is discarded, and `0` blocks ne
 Lowering the bank limit does not delete existing savings; deposits resume once there is room.
 `include/ajb/boosts_bank.inc` persists the bank by SteamID64 in `ajb_boost_bank`, using the
 `ajb` database entry or `storage-local` if absent (SQLite or MySQL). Bank balances survive
-disconnects, map changes, module reloads and server restarts. Available points remain
-session-only. Bank writes commit before changing available points; failed deposits leave
-the reward available, and failed withdrawals leave the bank untouched. Failed connections
+disconnects, map changes, module reloads and server restarts. Available points move into the
+bank at map end, disconnect and module unload, respecting the bank deposit limit; successful
+transfers clear the available balance to prevent duplicate deposits. Bank writes commit before
+changing available points; failed deposits leave the reward available, and failed withdrawals
+leave the bank untouched. Failed connections
 retry on map start; failed per-player loads retry on round start. Bank reads/writes are
 synchronous after asynchronous connection; prefer local SQLite to avoid remote SQL latency.
 
@@ -249,6 +251,10 @@ Dodgeball applies `airblast cost decreased 0` and `airblast_pushback_disabled 1`
 prepared flamethrower through optional TF2Attributes. Rocket deflection is unchanged;
 previous runtime attributes are restored on respawn, disconnect and wish cleanup.
 Without TF2Attributes, it logs the missing dependency and retains the ammo refill timer.
+
+Primary fire is blocked through the existing command hook; secondary fire still reflects rockets.
+Optional TF2Attributes also sets both player airblast vulnerability multipliers to zero, saving
+and restoring previous runtime values independently of the weapon. Ammo refills to 200 every 0.5 seconds.
 
 During Dodgeball, the shared player damage hook blocks player-sourced flame and afterburn
 damage without requiring TF2Attributes. Airblast, rocket damage, arena barrier damage and
@@ -551,6 +557,10 @@ map changes and core reloads reset it. Ratio bounds are 0.01–1; cooldown 0 dis
 Dismissal locks follow the client session; reconnecting clears them.
 
 ## Public wish catalogue and preference
+
+Freeday for others only lists prisoners, alive or dead. Selection and confirmation discard
+recipients who disconnected or changed teams, and require at least one valid recipient before
+consuming the wish. Admin freeday grants retain their existing permissions and team policy.
 
 `sm_lastrequest` (`!lastrequest`) lets any in-game player browse the same wish catalogue,
 including external wishes such as FF2, regardless of team, life state or LR eligibility.

@@ -13,6 +13,11 @@ static int g_iDBWeaponRef[MAXPLAYERS + 1];
 static bool g_bDBHadWeaponAttribute[MAXPLAYERS + 1][sizeof(g_sDBWeaponAttributes)];
 static float g_fDBSavedWeaponAttribute[MAXPLAYERS + 1][sizeof(g_sDBWeaponAttributes)];
 
+static const char g_sDBPlayerAttributes[][] = { "airblast vulnerability multiplier", "airblast vertical vulnerability multiplier" };
+static bool g_bDBPlayerAttrSet[MAXPLAYERS + 1];
+static bool g_bDBHadPlayerAttribute[MAXPLAYERS + 1][sizeof(g_sDBPlayerAttributes)];
+static float g_fDBSavedPlayerAttribute[MAXPLAYERS + 1][sizeof(g_sDBPlayerAttributes)];
+
 // Arena boundary visuals: dual rings + vertical posts so the safe radius is readable in 3D.
 #define DB_ZONE_REDRAW      0.50
 #define DB_ZONE_RING_LIFE   0.55
@@ -70,6 +75,31 @@ void AJB_LR_DB_CacheZoneGeometry()
 
 void AJB_LR_DB_RestoreWeapon(int client)
 {
+	// Player attributes outlive the weapon and must restore even if it was removed.
+	if (g_bDBPlayerAttrSet[client])
+	{
+		g_bDBPlayerAttrSet[client] = false;
+		if (IsClientInGame(client) && LibraryExists("tf2attributes"))
+		{
+			for (int i = 0; i < sizeof(g_sDBPlayerAttributes); i++)
+			{
+				bool restored;
+				if (g_bDBHadPlayerAttribute[client][i])
+				{
+					restored = TF2Attrib_SetByName(client, g_sDBPlayerAttributes[i], g_fDBSavedPlayerAttribute[client][i]);
+				}
+				else
+				{
+					restored = TF2Attrib_RemoveByName(client, g_sDBPlayerAttributes[i]);
+				}
+				if (!restored)
+				{
+					LogError("[AJB-LR] Failed to restore Dodgeball attribute %s on client %d.", g_sDBPlayerAttributes[i], client);
+				}
+			}
+		}
+	}
+
 	if (g_iDBWeaponRef[client] == 0)
 	{
 		return;
@@ -547,6 +577,21 @@ void Frame_DBPreparePlayer(int userid)
 		return;
 	}
 
+	g_bDBPlayerAttrSet[client] = true;
+	for (int i = 0; i < sizeof(g_sDBPlayerAttributes); i++)
+	{
+		Address attribute = TF2Attrib_GetByName(client, g_sDBPlayerAttributes[i]);
+		g_bDBHadPlayerAttribute[client][i] = attribute != Address_Null;
+		if (attribute != Address_Null)
+		{
+			g_fDBSavedPlayerAttribute[client][i] = TF2Attrib_GetValue(attribute);
+		}
+		if (!TF2Attrib_SetByName(client, g_sDBPlayerAttributes[i], 0.0))
+		{
+			LogError("[AJB-LR] Failed to set Dodgeball attribute %s on client %d.", g_sDBPlayerAttributes[i], client);
+		}
+	}
+
 	g_iDBWeaponRef[client] = EntIndexToEntRef(primary);
 	for (int i = 0; i < sizeof(g_sDBWeaponAttributes); i++)
 	{
@@ -935,7 +980,7 @@ Action Timer_DBAmmo(Handle timer)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			if (GetEntProp(i, Prop_Send, "m_iAmmo", _, 1) < 100)
+			if (GetEntProp(i, Prop_Send, "m_iAmmo", _, 1) < 200)
 			{
 				SetEntProp(i, Prop_Send, "m_iAmmo", 200, _, 1);
 			}

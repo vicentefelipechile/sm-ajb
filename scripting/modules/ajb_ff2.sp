@@ -113,6 +113,16 @@ Action Timer_FF2EndApplying(Handle timer)
 ConVar g_cvFreekill;
 int g_iFreekillOld;
 
+bool FF2_IsLibraryUp()
+{
+	return (LibraryExists("ff2r") || LibraryExists("freak_fortress_2"))
+		&& GetFeatureStatus(FeatureType_Native, "FF2R_GetGamemodeType") == FeatureStatus_Available
+		&& GetFeatureStatus(FeatureType_Native, "FF2R_GetSpecialCount") == FeatureStatus_Available
+		&& GetFeatureStatus(FeatureType_Native, "FF2R_GetSpecialData") == FeatureStatus_Available
+		&& GetFeatureStatus(FeatureType_Native, "FF2R_GetBossData") == FeatureStatus_Available
+		&& GetFeatureStatus(FeatureType_Native, "FF2R_CreateBoss") == FeatureStatus_Available;
+}
+
 // =========================================================================================================
 // Plugin lifecycle
 // =========================================================================================================
@@ -131,8 +141,9 @@ public void OnPluginStart()
 	LoadTranslations("ajb_ff2.phrases");
 
 	g_bHasCore = LibraryExists(AJB_LIBRARY);
-	g_bFF2Loaded = LibraryExists("ff2r");
+	g_bFF2Loaded = FF2_IsLibraryUp();
 	g_cvFreekill = FindConVar("sm_ajb_freekill_detect");
+	CheckSubplugins();
 
 	LogMessage("[AJB-FF2] loaded (core %s, ff2r %s, %d bosses, subplugins %s).",
 		g_bHasCore ? "present" : "missing",
@@ -141,8 +152,22 @@ public void OnPluginStart()
 		g_bSubpluginsPresent ? "ok" : "missing");
 }
 
+public void OnAllPluginsLoaded()
+{
+	g_bHasCore = LibraryExists(AJB_LIBRARY);
+	g_bFF2Loaded = FF2_IsLibraryUp();
+	CheckSubplugins();
+}
+
 public void OnMapStart()
 {
+	g_bFF2Loaded = FF2_IsLibraryUp();
+	CheckSubplugins();
+}
+
+public void OnConfigsExecuted()
+{
+	g_bFF2Loaded = FF2_IsLibraryUp();
 	CheckSubplugins();
 }
 
@@ -164,9 +189,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		g_bHasCore = true;
 	}
-	else if (StrEqual(name, "ff2r"))
+	else if (StrEqual(name, "ff2r") || StrEqual(name, "freak_fortress_2"))
 	{
-		g_bFF2Loaded = true;
+		g_bFF2Loaded = FF2_IsLibraryUp();
+		CheckSubplugins();
 	}
 }
 
@@ -176,7 +202,7 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		g_bHasCore = false;
 	}
-	else if (StrEqual(name, "ff2r"))
+	else if (StrEqual(name, "ff2r") || StrEqual(name, "freak_fortress_2"))
 	{
 		// FF2 unloaded mid-round: the boss is gone with it, finish the round on teams alone.
 		g_bFF2Loaded = false;
@@ -198,6 +224,7 @@ public void AJB_OnLRWishMenu(int client, Menu menu)
 		return;
 	}
 
+	g_bFF2Loaded = FF2_IsLibraryUp();
 	char line[96];
 	if (!g_bFF2Loaded)
 	{
@@ -735,6 +762,8 @@ void FF2_ChatAllNoAbilities()
 
 public Action Cmd_Status(int client, int args)
 {
+	g_bFF2Loaded = FF2_IsLibraryUp();
+	CheckSubplugins();
 	ReplyToCommand(client, "[AJB-FF2] ff2r plugin: %s", g_bFF2Loaded ? "loaded" : "MISSING (wish disabled)");
 	if (g_bFF2Loaded)
 	{

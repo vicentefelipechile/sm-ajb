@@ -1037,6 +1037,11 @@ void OnLREnabledChanged(ConVar convar, const char[] oldValue, const char[] newVa
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
+	if (g_bDodgeball && (buttons & IN_ATTACK))
+	{
+		buttons &= ~IN_ATTACK;
+		return Plugin_Changed;
+	}
 	if (g_bYeti) return AJB_LR_Yeti_OnRunCmd(client, buttons);
 	return AJB_LR_CW_OnRunCmd(client, buttons);
 }

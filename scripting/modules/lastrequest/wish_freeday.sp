@@ -9,18 +9,33 @@ void AJB_LR_DoFreedayMe(int prisoner)
 	AJB_LR_QueueWish(prisoner, LRWish_FreedayMe, "LR Chose Freeday Me");
 }
 
-// Next-round recipients can be on any team or dead when chosen.
+void AJB_LR_RefreshFreedayPicks()
+{
+	g_iFreedayPickCount = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!g_bPickedFreeday[i]) continue;
+		if (!AJB_IsPrisoner(i))
+		{
+			g_bPickedFreeday[i] = false;
+			continue;
+		}
+		g_iFreedayPickCount++;
+	}
+}
+
+// Only prisoners may receive this wish; dead prisoners remain eligible.
 int AJB_LR_CollectFreedayTargets(int prisoner, int[] list, int maxList)
 {
 	int n = 0;
-	if (prisoner > 0 && IsClientInGame(prisoner))
+	if (maxList > 0 && AJB_IsPrisoner(prisoner))
 	{
 		list[n++] = prisoner;
 	}
 
 	for (int i = 1; i <= MaxClients && n < maxList; i++)
 	{
-		if (i == prisoner || !IsClientInGame(i))
+		if (i == prisoner || !AJB_IsPrisoner(i))
 		{
 			continue;
 		}
@@ -31,6 +46,7 @@ int AJB_LR_CollectFreedayTargets(int prisoner, int[] list, int maxList)
 
 void AJB_LR_ShowFreedayOthersMenu(int prisoner)
 {
+	AJB_LR_RefreshFreedayPicks();
 	int list[MAXPLAYERS + 1];
 	int total = AJB_LR_CollectFreedayTargets(prisoner, list, sizeof(list));
 	if (total < 1)
@@ -124,6 +140,7 @@ public int PanelHandler_FreedayOthers(Menu menu, MenuAction action, int param1, 
 	}
 
 	// 1..6 = player row, 7 = confirm, 8 = prev, 9 = next
+	AJB_LR_RefreshFreedayPicks();
 	if (param2 == 8)
 	{
 		if (g_iFreedayMenuPage > 0)
@@ -160,7 +177,7 @@ public int PanelHandler_FreedayOthers(Menu menu, MenuAction action, int param1, 
 	}
 
 	int target = GetClientOfUserId(g_iFreedaySlotUserId[param2 - 1]);
-	if (target < 1 || !IsClientInGame(target))
+	if (!AJB_IsPrisoner(target))
 	{
 		AJB_LR_ShowFreedayOthersMenu(client);
 		return 0;
@@ -207,7 +224,7 @@ void AJB_LR_ShowFreedayReviewPanel(int prisoner)
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!g_bPickedFreeday[i] || !IsClientInGame(i))
+		if (!g_bPickedFreeday[i] || !AJB_IsPrisoner(i))
 		{
 			continue;
 		}
@@ -255,6 +272,7 @@ public int PanelHandler_FreedayReview(Menu menu, MenuAction action, int param1, 
 		return 0;
 	}
 
+	AJB_LR_RefreshFreedayPicks();
 	if (g_iFreedayPickCount < 1)
 	{
 		AJB_Chat(client, "LR Freeday Others Need One");
@@ -266,7 +284,7 @@ public int PanelHandler_FreedayReview(Menu menu, MenuAction action, int param1, 
 	int given = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (g_bPickedFreeday[i] && IsClientInGame(i))
+		if (g_bPickedFreeday[i] && AJB_IsPrisoner(i))
 		{
 			AJB_SetPlayerFreeday(i, true);
 			given++;
