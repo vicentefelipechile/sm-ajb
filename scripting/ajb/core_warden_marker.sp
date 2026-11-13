@@ -216,7 +216,7 @@ void AJB_Marker_ShowAnnotation(const float pos[3], float life)
 	ev.Fire();
 }
 
-void AJB_Marker_HideAnnotation(int id)
+void AJB_Marker_HideAnnotation(int id, int client = 0)
 {
 	Event ev = CreateEvent("hide_annotation", true);
 	if (ev == null)
@@ -225,5 +225,10 @@ void AJB_Marker_HideAnnotation(int id)
 	}
 
 	ev.SetInt("id", id);
-	ev.Fire();
+	if (client > 0)
+	{
+		ev.FireToClient(client);
+		ev.Cancel();
+	}
+	else ev.Fire();
 }

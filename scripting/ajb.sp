@@ -23,6 +23,7 @@
 #include <ajb/enums>
 #include <ajb/constants>
 #include <ajb/phrases>
+#include <ajb/config>
 
 // =========================================================================================================
 // Plugin info
@@ -161,6 +162,7 @@ void AJB_FlagSet(int client, int flag, bool on)
 #include "ajb/core_teams.sp"
 #include "ajb/core_balance.sp"
 #include "ajb/core_settings.sp"
+#include "ajb/core_config_menu.sp"
 #include "ajb/core_rounds.sp"
 #include "ajb/core_warden_marker.sp"
 #include "ajb/core_warden_votes.sp"
@@ -173,6 +175,7 @@ void AJB_FlagSet(int client, int flag, bool on)
 #include "ajb/core_rules.sp"
 #include "ajb/core_weapons.sp"
 #include "ajb/core_doors.sp"
+#include "ajb/core_doors_editor.sp"
 #include "ajb/core_timer.sp"
 #include "ajb/core_prep.sp"
 #include "ajb/core_movement.sp"
@@ -246,6 +249,8 @@ public void OnPluginStart()
 	// Ammo-pack arming for stripped prisoners.
 	AJB_Weapons_OnPluginStart();
 	AJB_Settings_OnPluginStart();
+	AJB_ConfigMenu_OnPluginStart();
+	AJB_DoorEditor_OnPluginStart();
 	AJB_Balance_OnPluginStart();
 	AJB_Freekill_OnPluginStart();
 	AJB_Collisions_OnPluginStart();
@@ -369,6 +374,7 @@ Action Timer_LateStartRoundClock(Handle timer)
 
 public void OnPluginEnd()
 {
+	AJB_DoorEditor_StopAllPreviews();
 	AJB_Weapons_SetNormalChargeRegen(false);
 	AJB_Prep_Stop();
 	AJB_PlayerFx_StopTimer();
@@ -389,12 +395,14 @@ public void OnPluginEnd()
 	AJB_FF_ApplyPolicy();
 	AJB_ApplyEngineMovementPolicy();
 	AJB_ApplyEngineCameraPolicy();
+	delete g_hDoorOverrides;
 	// Forwards last — nothing may fire after the plugin starts unloading.
 	AJB_DeleteForwards();
 }
 
 public void OnMapStart()
 {
+	g_iConfigMapSerial++;
 	g_fFireWardenLastSuccess = -1.0;
 	AJB_Settings_OnMapStart();
 	AJB_WardenMenu_OnMapStart();
@@ -444,6 +452,7 @@ public void OnConfigsExecuted()
 
 public void OnMapEnd()
 {
+	AJB_DoorEditor_StopAllPreviews();
 	AJB_Weapons_SetNormalChargeRegen(false);
 	AJB_Prep_Stop();
 	AJB_PlayerFx_StopTimer();
@@ -476,6 +485,7 @@ public void OnClientPutInServer(int client)
 
 public void OnClientDisconnect(int client)
 {
+	AJB_DoorEditor_StopPreview(client, true);
 	if (g_iWarden == client)
 	{
 		AJB_ClearWarden(true);
@@ -579,6 +589,21 @@ Action Command_DoorsList(int client, int args)
 	for (int i = 0; i < g_iDoorNameCount; i++)
 	{
 		ReplyToCommand(client, "  [%d] %s", i + 1, g_sDoorNames[i]);
+	}
+	for (int i = 0; i < g_iDoorHammerCount; i++)
+		ReplyToCommand(client, "  Hammer ID: %d", g_iDoorHammerIds[i]);
+	if (g_hDoorOverrides != null)
+	{
+		StringMapSnapshot overrides = g_hDoorOverrides.Snapshot();
+		for (int i = 0; i < overrides.Length; i++)
+		{
+			char key[AJB_MAX_DOOR_NAME_LEN + 16];
+			int value;
+			overrides.GetKey(i, key, sizeof(key));
+			g_hDoorOverrides.GetValue(key, value);
+			ReplyToCommand(client, "  Override: %s = %d", key, value);
+		}
+		delete overrides;
 	}
 	return Plugin_Handled;
 }

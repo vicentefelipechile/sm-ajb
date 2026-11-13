@@ -36,6 +36,17 @@ normal submenus. Preferences use SourceMod's Client Preferences cookies (`client
 **Dodgeball:** `!ajb` → **Dodgeball**. Set team spawns, rocket position and arena range with a
 private preview. Changes save automatically. Requires admin + config access; live rounds are read-only.
 
+**Teleports:** `!ajb` → **Teleports**. Save or remove the current map's Freeday and combat
+RED/BLU destinations. Saving uses your position and facing direction; you must be alive.
+
+**Settings:** `!ajb` → **Configuration**. Adjust rounds, teams, warden, Freeday, wishes and
+boosts. Both editors require admin + config access and save changes automatically.
+
+**Doors:** `!ajb` → **Doors**. Select a door by aiming or from the entity list, then include,
+exclude or restore automatic detection. **Show markers** uses private TF2 tutorial callouts
+for detected doors, or the selected entity in its submenu. Changes save per map; named
+selections cover all entities sharing that name, with Hammer ID used for unnamed entities.
+
 ## Configuration
 
 Paths relative to `addons/sourcemod`:

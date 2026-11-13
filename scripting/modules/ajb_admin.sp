@@ -386,12 +386,16 @@ void AJB_Admin_ShowMain(int client, bool fromAdminTopMenu)
 	Format(line, sizeof(line), "%T", "Admin Cat Players", client);
 	menu.AddItem("cat:players", line);
 	Format(line, sizeof(line), "%T", "Admin Cat Doors", client);
-	menu.AddItem("cat:doors", line);
+	menu.AddItem("cat:doors", line, CheckCommandAccess(client, "sm_ajb_doors_menu", ADMFLAG_CONFIG) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 	Format(line, sizeof(line), "%T", "DB Editor", client);
 	bool canEditDB = LibraryExists(AJB_LASTREQUEST_LIBRARY)
 		&& CheckCommandAccess(client, "sm_ajb_db_menu", ADMFLAG_CONFIG)
 		&& CheckCommandAccess(client, "sm_ajb_db_setspawn", ADMFLAG_CONFIG);
 	menu.AddItem("cat:dodgeball", line, canEditDB ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	Format(line, sizeof(line), "%T", "Teleport Title", client);
+	menu.AddItem("teleports", line, CheckCommandAccess(client, "sm_ajb_teleports", ADMFLAG_CONFIG) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	Format(line, sizeof(line), "%T", "Config Title", client);
+	menu.AddItem("config", line, CheckCommandAccess(client, "sm_ajb_config_menu", ADMFLAG_CONFIG) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 	menu.ExitBackButton = fromAdminTopMenu && g_hAdminMenu != null;
 	menu.Display(client, MENU_TIME_FOREVER);
@@ -444,12 +448,14 @@ public int MenuHandler_AdminMain(Menu menu, MenuAction action, int param1, int p
 	}
 	else if (StrEqual(info, "cat:doors"))
 	{
-		AJB_Admin_ShowCategory(client, "doors", fromTop);
+		FakeClientCommand(client, "sm_ajb_doors_menu");
 	}
 	else if (StrEqual(info, "cat:dodgeball") && LibraryExists(AJB_LASTREQUEST_LIBRARY))
 	{
 		FakeClientCommand(client, "sm_ajb_db_menu");
 	}
+	else if (StrEqual(info, "teleports")) FakeClientCommand(client, "sm_ajb_teleports");
+	else if (StrEqual(info, "config")) FakeClientCommand(client, "sm_ajb_config_menu");
 
 	return 0;
 }
@@ -516,14 +522,6 @@ void AJB_Admin_ShowCategory(int client, const char[] cat, bool fromAdminTopMenu)
 			Format(line, sizeof(line), "%T", "Admin Menu Take Boost", client);
 			menu.AddItem("takeboost", line);
 		}
-	}
-	else if (StrEqual(cat, "doors"))
-	{
-		menu.SetTitle("%T", "Admin Cat Doors", client);
-		Format(line, sizeof(line), "%T", "Admin Menu Reload Doors", client);
-		menu.AddItem("doorsr", line);
-		Format(line, sizeof(line), "%T", "Admin Menu List Doors", client);
-		menu.AddItem("doorsl", line);
 	}
 
 	menu.ExitBackButton = true;
@@ -635,16 +633,6 @@ public int MenuHandler_AdminCategory(Menu menu, MenuAction action, int param1, i
 			return 0;
 		}
 		AJB_Admin_ShowPlayerPick(client, "takeboost", fromTop, "Admin Menu Take Boost");
-	}
-	else if (StrEqual(info, "doorsr"))
-	{
-		FakeClientCommand(client, "sm_ajb_doors_reload");
-		AJB_Admin_ReturnToCat(client, fromTop);
-	}
-	else if (StrEqual(info, "doorsl"))
-	{
-		FakeClientCommand(client, "sm_ajb_doors_list");
-		AJB_Admin_ReturnToCat(client, fromTop);
 	}
 
 	return 0;

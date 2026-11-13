@@ -260,6 +260,7 @@ void AJB_RefreshModeActive()
 	// Modules must release their round effects before the core restores the server's cvars.
 	if (was && !now)
 	{
+		AJB_DoorEditor_StopAllPreviews();
 		AJB_FireModeChanged(false);
 	}
 	AJB_ApplyEngineCvarPolicy();

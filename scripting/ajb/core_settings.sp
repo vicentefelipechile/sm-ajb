@@ -7,6 +7,8 @@
 
 #define AJB_MAX_MAP_PREFIXES  16
 
+char g_sTeleportKeys[][] = {"freeday", "combat_red", "combat_blu"};
+
 bool g_bFreedayWardenOnlyDamage = true;
 bool g_bFreedayTrail = true;
 

@@ -1,5 +1,748 @@
 "Phrases"
 {
+	"Door Editor Aim"
+	{
+		"en" "Select aimed entity"
+		"es" "Seleccionar mirando"
+		"las" "Seleccionar mirando"
+	}
+	"Door Editor List"
+	{
+		"en" "Entity list"
+		"es" "Lista de entidades"
+		"las" "Lista de entidades"
+	}
+	"Door Editor Mark"
+	{
+		"en" "Show markers"
+		"es" "Mostrar marcas"
+		"las" "Mostrar marcas"
+	}
+	"Door Editor Hide"
+	{
+		"en" "Hide markers"
+		"es" "Ocultar marcas"
+		"las" "Ocultar marcas"
+	}
+	"Door Editor Include"
+	{
+		"en" "Include"
+		"es" "Incluir"
+		"las" "Incluir"
+	}
+	"Door Editor Exclude"
+	{
+		"en" "Exclude"
+		"es" "Excluir"
+		"las" "Excluir"
+	}
+	"Door Editor Automatic"
+	{
+		"en" "Use automatic detection"
+		"es" "Usar detección automática"
+		"las" "Usar detección automática"
+	}
+	"Door Editor Empty"
+	{
+		"en" "No door entities"
+		"es" "Sin entidades de puertas"
+		"las" "Sin entidades de puertas"
+	}
+	"Door Editor Missing"
+	{
+		"#format" "{1:s}"
+		"en" "{1} That entity is no longer available. Select it again."
+		"es" "{1} Esa entidad ya no está disponible. Selecciónala de nuevo."
+		"las" "{1} Esa entidad ya no está disponible. Selecciónala de nuevo."
+	}
+	"Door Editor No Aim"
+	{
+		"#format" "{1:s}"
+		"en" "{1} Aim at a door or select an entity from the list."
+		"es" "{1} Apunta a una puerta o selecciona una entidad de la lista."
+		"las" "{1} Apunta a una puerta o selecciona una entidad de la lista."
+	}
+	"Config Title"
+	{
+		"en" "Configuration"
+		"es" "Configuración"
+		"las" "Configuración"
+	}
+	"Config Round"
+	{
+		"en" "Rounds and teams"
+		"es" "Rondas y equipos"
+		"las" "Rondas y equipos"
+	}
+	"Config Warden"
+	{
+		"en" "Warden"
+		"es" "Warden"
+		"las" "Warden"
+	}
+	"Config Freeday"
+	{
+		"en" "Freeday"
+		"es" "Freeday"
+		"las" "Freeday"
+	}
+	"Config Wishes"
+	{
+		"en" "Wishes"
+		"es" "Deseos"
+		"las" "Deseos"
+	}
+	"Config Boosts"
+	{
+		"en" "Boosts"
+		"es" "Boosts"
+		"las" "Boosts"
+	}
+	"Config General"
+	{
+		"en" "General"
+		"es" "General"
+		"las" "General"
+	}
+	"Config HideSeek"
+	{
+		"en" "Hide and Seek"
+		"es" "Escondite"
+		"las" "Escondite"
+	}
+	"Config HungerGames"
+	{
+		"en" "Hunger Games"
+		"es" "Juegos del Hambre"
+		"las" "Juegos del Hambre"
+	}
+	"Config Zombies"
+	{
+		"en" "Zombie Mode"
+		"es" "Modo Zombi"
+		"las" "Modo Zombi"
+	}
+	"Config CellWars"
+	{
+		"en" "Cell Wars"
+		"es" "Guerra de Celdas"
+		"las" "Guerra de Celdas"
+	}
+	"Config Sniper"
+	{
+		"en" "Watch out! Sniper"
+		"es" "¡Cuidado! Sniper"
+		"las" "¡Cuidado! Sniper"
+	}
+	"Config Yeti"
+	{
+		"en" "Escape from the Yeti"
+		"es" "Escapa del Yeti"
+		"las" "Escapa del Yeti"
+	}
+	"Config On"
+	{
+		"en" "Enabled"
+		"es" "Activado"
+		"las" "Activado"
+	}
+	"Config Off"
+	{
+		"en" "Disabled"
+		"es" "Desactivado"
+		"las" "Desactivado"
+	}
+	"Config Random"
+	{
+		"en" "Random"
+		"es" "Aleatorio"
+		"las" "Aleatorio"
+	}
+	"Config Weighted"
+	{
+		"en" "Anti-repetition"
+		"es" "Antirrepetición"
+		"las" "Antirrepetición"
+	}
+	"Config Random Guard"
+	{
+		"en" "Random guard"
+		"es" "Guardia aleatorio"
+		"las" "Guardia aleatorio"
+	}
+	"Config LR Chooser"
+	{
+		"en" "LR chooser"
+		"es" "Quien eligió el deseo"
+		"las" "Quien eligió el deseo"
+	}
+	"Config Default"
+	{
+		"en" "Restore default"
+		"es" "Restaurar predeterminado"
+		"las" "Restaurar predeterminado"
+	}
+	"Config Increase"
+	{
+		"en" "Increase"
+		"es" "Aumentar"
+		"las" "Aumentar"
+	}
+	"Config Decrease"
+	{
+		"en" "Decrease"
+		"es" "Disminuir"
+		"las" "Disminuir"
+	}
+	"Config Saved"
+	{
+		"#format" "{1:s}"
+		"en" "{1} Configuration saved."
+		"es" "{1} Configuración guardada."
+		"las" "{1} Configuración guardada."
+	}
+	"Config Save Failed"
+	{
+		"#format" "{1:s}"
+		"en" "{1} Could not save this change. The previous configuration was kept; check the value and server error log."
+		"es" "{1} No se pudo guardar el cambio. Se conservó la configuración anterior; revisa el valor y el registro de errores."
+		"las" "{1} No se pudo guardar el cambio. Se conservó la configuración anterior; revisa el valor y el registro de errores."
+	}
+	"Teleport Title"
+	{
+		"en" "Teleports"
+		"es" "Teleports"
+		"las" "Teleports"
+	}
+	"Teleport Combat Red"
+	{
+		"en" "Combat RED"
+		"es" "Combate RED"
+		"las" "Combate RED"
+	}
+	"Teleport Combat Blu"
+	{
+		"en" "Combat BLU"
+		"es" "Combate BLU"
+		"las" "Combate BLU"
+	}
+	"Teleport Save Here"
+	{
+		"en" "Save position here"
+		"es" "Guardar posición aquí"
+		"las" "Guardar posición aquí"
+	}
+	"Teleport Remove"
+	{
+		"en" "Remove destination"
+		"es" "Eliminar destino"
+		"las" "Eliminar destino"
+	}
+	"Teleport Alive Required"
+	{
+		"#format" "{1:s}"
+		"en" "{1} You must be alive to save a teleport destination."
+		"es" "{1} Debes estar vivo para guardar un destino."
+		"las" "{1} Debes estar vivo para guardar un destino."
+	}
+	"freeday_trail"
+	{
+		"en" "Trail and glow"
+		"es" "Rastro y brillo"
+		"las" "Rastro y brillo"
+	}
+	"freeday_warden_only_damage"
+	{
+		"en" "Only warden can damage"
+		"es" "Solo el warden puede dañar"
+		"las" "Solo el warden puede dañar"
+	}
+	"sm_ajb_prep_time"
+	{
+		"en" "Preparation (s)"
+		"es" "Preparación (s)"
+		"las" "Preparación (s)"
+	}
+	"sm_ajb_round_time"
+	{
+		"en" "Round clock (s, 0 = off)"
+		"es" "Reloj de ronda (s, 0 = sin reloj)"
+		"las" "Reloj de ronda (s, 0 = sin reloj)"
+	}
+	"sm_ajb_cells_auto_open"
+	{
+		"en" "Auto-open cells (s, 0 = manual)"
+		"es" "Apertura de celdas (s, 0 = manual)"
+		"las" "Apertura de celdas (s, 0 = manual)"
+	}
+	"sm_ajb_guard_ratio"
+	{
+		"en" "Prisoners per guard (0 = no cap)"
+		"es" "Presos por guardia (0 = sin límite)"
+		"las" "Presos por guardia (0 = sin límite)"
+	}
+	"sm_ajb_balance_enforce"
+	{
+		"en" "Enforce team balance"
+		"es" "Aplicar equilibrio de equipos"
+		"las" "Aplicar equilibrio de equipos"
+	}
+	"sm_ajb_warden_auto"
+	{
+		"en" "Auto-assign warden"
+		"es" "Asignar warden automáticamente"
+		"las" "Asignar warden automáticamente"
+	}
+	"sm_ajb_warden_auto_delay"
+	{
+		"en" "Assignment delay (s)"
+		"es" "Espera para asignar (s)"
+		"las" "Espera para asignar (s)"
+	}
+	"sm_ajb_warden_auto_mode"
+	{
+		"en" "Selection method"
+		"es" "Método de selección"
+		"las" "Método de selección"
+	}
+	"sm_ajb_firewarden_ratio"
+	{
+		"en" "Dismissal vote fraction (1 = all)"
+		"es" "Fracción para destituir (1 = todos)"
+		"las" "Fracción para destituir (1 = todos)"
+	}
+	"sm_ajb_firewarden_cooldown"
+	{
+		"en" "Dismissal cooldown (s, 0 = none)"
+		"es" "Espera entre destituciones (s, 0 = sin espera)"
+		"las" "Espera entre destituciones (s, 0 = sin espera)"
+	}
+	"sm_ajb_lr_enabled"
+	{
+		"en" "Last Request"
+		"es" "Último deseo"
+		"las" "Último deseo"
+	}
+	"sm_ajb_lr_menu_time"
+	{
+		"en" "Choice time (s)"
+		"es" "Tiempo para elegir (s)"
+		"las" "Tiempo para elegir (s)"
+	}
+	"sm_ajb_lr_suicide_delay"
+	{
+		"en" "Suicide delay (s)"
+		"es" "Espera del suicidio (s)"
+		"las" "Espera del suicidio (s)"
+	}
+	"sm_ajb_lr_hot_damage"
+	{
+		"en" "Hot Reds damage"
+		"es" "Daño de Rojos Calientes"
+		"las" "Daño de Rojos Calientes"
+	}
+	"sm_ajb_lr_low_gravity"
+	{
+		"en" "Low gravity"
+		"es" "Gravedad baja"
+		"las" "Gravedad baja"
+	}
+	"sm_ajb_lr_hs_hide_time"
+	{
+		"en" "Hiding time (s)"
+		"es" "Tiempo para esconderse (s)"
+		"las" "Tiempo para esconderse (s)"
+	}
+	"sm_ajb_lr_hs_round_time"
+	{
+		"en" "Round duration (s)"
+		"es" "Duración de ronda (s)"
+		"las" "Duración de ronda (s)"
+	}
+	"sm_ajb_lr_hg_grace_time"
+	{
+		"en" "Grace period (s)"
+		"es" "Periodo de gracia (s)"
+		"las" "Periodo de gracia (s)"
+	}
+	"sm_ajb_lr_hg_round_time"
+	{
+		"en" "Round duration (s)"
+		"es" "Duración de ronda (s)"
+		"las" "Duración de ronda (s)"
+	}
+	"sm_ajb_lr_zm_infect_delay"
+	{
+		"en" "Initial infection delay (s)"
+		"es" "Espera de infección inicial (s)"
+		"las" "Espera de infección inicial (s)"
+	}
+	"sm_ajb_lr_zm_hits"
+	{
+		"en" "Hits to infect"
+		"es" "Golpes para infectar"
+		"las" "Golpes para infectar"
+	}
+	"sm_ajb_lr_zm_respawn"
+	{
+		"en" "Respawn delay (s)"
+		"es" "Espera para reaparecer (s)"
+		"las" "Espera para reaparecer (s)"
+	}
+	"sm_ajb_lr_zm_spawn_protect"
+	{
+		"en" "Spawn protection (s)"
+		"es" "Protección al reaparecer (s)"
+		"las" "Protección al reaparecer (s)"
+	}
+	"sm_ajb_lr_zm_round_time"
+	{
+		"en" "Round duration (s)"
+		"es" "Duración de ronda (s)"
+		"las" "Duración de ronda (s)"
+	}
+	"sm_ajb_lr_zm_fog_enabled"
+	{
+		"en" "Fog"
+		"es" "Niebla"
+		"las" "Niebla"
+	}
+	"sm_ajb_lr_zm_fog_start"
+	{
+		"en" "Fog start distance"
+		"es" "Distancia inicial de niebla"
+		"las" "Distancia inicial de niebla"
+	}
+	"sm_ajb_lr_zm_fog_end"
+	{
+		"en" "Fog end distance"
+		"es" "Distancia final de niebla"
+		"las" "Distancia final de niebla"
+	}
+	"sm_ajb_lr_zm_fog_density"
+	{
+		"en" "Fog density (0–1)"
+		"es" "Densidad de niebla (0–1)"
+		"las" "Densidad de niebla (0–1)"
+	}
+	"sm_ajb_lr_cw_round_time"
+	{
+		"en" "Round duration (s)"
+		"es" "Duración de ronda (s)"
+		"las" "Duración de ronda (s)"
+	}
+	"sm_ajb_lr_cw_teleport_delay"
+	{
+		"en" "Teleport cooldown (s, 0 = none)"
+		"es" "Espera entre saltos (s, 0 = sin espera)"
+		"las" "Espera entre saltos (s, 0 = sin espera)"
+	}
+	"sm_ajb_lr_cw_camp_time"
+	{
+		"en" "Camping limit (s, 0 = off)"
+		"es" "Límite de campeo (s, 0 = desactivado)"
+		"las" "Límite de campeo (s, 0 = desactivado)"
+	}
+	"sm_ajb_lr_cw_camp_damage"
+	{
+		"en" "Camping damage per second"
+		"es" "Daño de campeo por segundo"
+		"las" "Daño de campeo por segundo"
+	}
+	"sm_ajb_lr_cw_teleport_heal"
+	{
+		"en" "Healing per teleport (HP)"
+		"es" "Curación por salto (HP)"
+		"las" "Curación por salto (HP)"
+	}
+	"sm_ajb_lr_sniper_min"
+	{
+		"en" "Minimum shot interval (s)"
+		"es" "Intervalo mínimo de disparos (s)"
+		"las" "Intervalo mínimo de disparos (s)"
+	}
+	"sm_ajb_lr_sniper_max"
+	{
+		"en" "Maximum shot interval (s)"
+		"es" "Intervalo máximo de disparos (s)"
+		"las" "Intervalo máximo de disparos (s)"
+	}
+	"sm_ajb_lr_sniper_force"
+	{
+		"en" "Impact force"
+		"es" "Fuerza del impacto"
+		"las" "Fuerza del impacto"
+	}
+	"sm_ajb_lr_sniper_hit_chance"
+	{
+		"en" "Hit chance (%)"
+		"es" "Probabilidad de acierto (%)"
+		"las" "Probabilidad de acierto (%)"
+	}
+	"sm_ajb_lr_sniper_duck_time"
+	{
+		"en" "Crouch threshold (s)"
+		"es" "Umbral agachado (s)"
+		"las" "Umbral agachado (s)"
+	}
+	"sm_ajb_lr_sniper_body_damage"
+	{
+		"en" "Body shot damage"
+		"es" "Daño de disparo al cuerpo"
+		"las" "Daño de disparo al cuerpo"
+	}
+	"sm_ajb_lr_db_speed_base"
+	{
+		"en" "Initial rocket speed"
+		"es" "Velocidad inicial del cohete"
+		"las" "Velocidad inicial del cohete"
+	}
+	"sm_ajb_lr_db_speed_inc"
+	{
+		"en" "Speed gain per reflect"
+		"es" "Velocidad añadida por desvío"
+		"las" "Velocidad añadida por desvío"
+	}
+	"sm_ajb_lr_db_turn_rate"
+	{
+		"en" "Rocket turn rate (0–1)"
+		"es" "Giro del cohete (0–1)"
+		"las" "Giro del cohete (0–1)"
+	}
+	"sm_ajb_lr_db_barrier_dmg"
+	{
+		"en" "Barrier damage"
+		"es" "Daño de barrera"
+		"las" "Daño de barrera"
+	}
+	"sm_ajb_lr_yeti_round_time"
+	{
+		"en" "Round duration (s)"
+		"es" "Duración de ronda (s)"
+		"las" "Duración de ronda (s)"
+	}
+	"sm_ajb_lr_yeti_hide_time"
+	{
+		"en" "Hiding time (s)"
+		"es" "Tiempo para esconderse (s)"
+		"las" "Tiempo para esconderse (s)"
+	}
+	"sm_ajb_lr_yeti_pick"
+	{
+		"en" "Yeti selection"
+		"es" "Selección del Yeti"
+		"las" "Selección del Yeti"
+	}
+	"sm_ajb_lr_yeti_speed"
+	{
+		"en" "Movement speed"
+		"es" "Velocidad de movimiento"
+		"las" "Velocidad de movimiento"
+	}
+	"sm_ajb_lr_yeti_thaw_time"
+	{
+		"en" "Thaw time per helper (s)"
+		"es" "Descongelación por ayudante (s)"
+		"las" "Descongelación por ayudante (s)"
+	}
+	"sm_ajb_lr_yeti_thaw_radius"
+	{
+		"en" "Thaw radius"
+		"es" "Radio de descongelación"
+		"las" "Radio de descongelación"
+	}
+	"sm_ajb_lr_yeti_slow_time"
+	{
+		"en" "Slow duration (s)"
+		"es" "Duración de ralentización (s)"
+		"las" "Duración de ralentización (s)"
+	}
+	"sm_ajb_lr_yeti_slow_factor"
+	{
+		"en" "Slowed speed multiplier"
+		"es" "Multiplicador al ralentizar"
+		"las" "Multiplicador al ralentizar"
+	}
+	"sm_ajb_lr_yeti_slow_immune"
+	{
+		"en" "Slow immunity (s)"
+		"es" "Inmunidad a ralentización (s)"
+		"las" "Inmunidad a ralentización (s)"
+	}
+	"sm_ajb_lr_yeti_rage_per_sec"
+	{
+		"en" "Rage per second"
+		"es" "Furia por segundo"
+		"las" "Furia por segundo"
+	}
+	"sm_ajb_lr_yeti_rage_per_freeze"
+	{
+		"en" "Rage per freeze"
+		"es" "Furia por congelación"
+		"las" "Furia por congelación"
+	}
+	"sm_ajb_lr_yeti_roar_radius"
+	{
+		"en" "Roar radius"
+		"es" "Radio del rugido"
+		"las" "Radio del rugido"
+	}
+	"sm_ajb_lr_yeti_roar_reveal"
+	{
+		"en" "Roar reveal time (s)"
+		"es" "Revelación del rugido (s)"
+		"las" "Revelación del rugido (s)"
+	}
+	"sm_ajb_lr_yeti_charge_cooldown"
+	{
+		"en" "Charge cooldown (s)"
+		"es" "Espera entre cargas (s)"
+		"las" "Espera entre cargas (s)"
+	}
+	"sm_ajb_lr_yeti_charge_force"
+	{
+		"en" "Charge force"
+		"es" "Fuerza de carga"
+		"las" "Fuerza de carga"
+	}
+	"sm_ajb_lr_yeti_climb"
+	{
+		"en" "Wall climbing"
+		"es" "Escalar paredes"
+		"las" "Escalar paredes"
+	}
+	"sm_ajb_lr_yeti_climb_force"
+	{
+		"en" "Climbing force"
+		"es" "Fuerza de escalada"
+		"las" "Fuerza de escalada"
+	}
+	"sm_ajb_lr_yeti_growl_min"
+	{
+		"en" "Minimum growl interval (s)"
+		"es" "Intervalo mínimo de gruñidos (s)"
+		"las" "Intervalo mínimo de gruñidos (s)"
+	}
+	"sm_ajb_lr_yeti_growl_max"
+	{
+		"en" "Maximum growl interval (s)"
+		"es" "Intervalo máximo de gruñidos (s)"
+		"las" "Intervalo máximo de gruñidos (s)"
+	}
+	"sm_ajb_lr_yeti_heart_radius"
+	{
+		"en" "Heartbeat radius"
+		"es" "Radio de latidos"
+		"las" "Radio de latidos"
+	}
+	"sm_ajb_lr_yeti_wind_volume"
+	{
+		"en" "Wind volume (0–1)"
+		"es" "Volumen del viento (0–1)"
+		"las" "Volumen del viento (0–1)"
+	}
+	"sm_ajb_lr_yeti_wind_length"
+	{
+		"en" "Wind repeat interval (s)"
+		"es" "Intervalo del viento (s)"
+		"las" "Intervalo del viento (s)"
+	}
+	"sm_ajb_boosts_enabled"
+	{
+		"en" "Boosts"
+		"es" "Boosts"
+		"las" "Boosts"
+	}
+	"sm_ajb_boosts_max_points"
+	{
+		"en" "Available points cap (0 = unlimited)"
+		"es" "Límite disponible (0 = ilimitado)"
+		"las" "Límite disponible (0 = ilimitado)"
+	}
+	"sm_ajb_boosts_bank_max_points"
+	{
+		"en" "Bank deposit cap (0 = no deposits)"
+		"es" "Límite del banco (0 = sin depósitos)"
+		"las" "Límite del banco (0 = sin depósitos)"
+	}
+	"sm_ajb_boosts_blu_every"
+	{
+		"en" "Extra BLU point every N rounds"
+		"es" "Punto BLU extra cada N rondas"
+		"las" "Punto BLU extra cada N rondas"
+	}
+	"sm_ajb_boosts_cost_iron_neck"
+	{
+		"en" "Iron Neck price"
+		"es" "Precio de Cuello de Hierro"
+		"las" "Precio de Cuello de Hierro"
+	}
+	"sm_ajb_boosts_cost_revive"
+	{
+		"en" "Warden Revive price"
+		"es" "Precio de Revivir Warden"
+		"las" "Precio de Revivir Warden"
+	}
+	"sm_ajb_boosts_cost_visibility"
+	{
+		"en" "Visibility price"
+		"es" "Precio de Visibilidad"
+		"las" "Precio de Visibilidad"
+	}
+	"sm_ajb_boosts_cost_second_wind"
+	{
+		"en" "Second Wind price"
+		"es" "Precio de Segundo Aliento"
+		"las" "Precio de Segundo Aliento"
+	}
+	"sm_ajb_boosts_cost_mad_milk"
+	{
+		"en" "Mad Milk price"
+		"es" "Precio de Leche Loca"
+		"las" "Precio de Leche Loca"
+	}
+	"sm_ajb_boosts_cost_melee_crit"
+	{
+		"en" "Melee Crit price"
+		"es" "Precio de Crítico Melee"
+		"las" "Precio de Crítico Melee"
+	}
+	"sm_ajb_boosts_cost_jarate"
+	{
+		"en" "Jarate price"
+		"es" "Precio de Fraskungfú"
+		"las" "Precio de Fraskungfú"
+	}
+	"sm_ajb_boosts_cost_regen"
+	{
+		"en" "Health Regen price"
+		"es" "Precio de Regeneración"
+		"las" "Precio de Regeneración"
+	}
+	"sm_ajb_boosts_second_wind_hp"
+	{
+		"en" "Second Wind healing (HP)"
+		"es" "Curación de Segundo Aliento (HP)"
+		"las" "Curación de Segundo Aliento (HP)"
+	}
+	"sm_ajb_boosts_regen_instant_hp"
+	{
+		"en" "Regen initial healing (HP)"
+		"es" "Curación inicial de Regeneración (HP)"
+		"las" "Curación inicial de Regeneración (HP)"
+	}
+	"sm_ajb_boosts_regen_duration"
+	{
+		"en" "Regen duration (s)"
+		"es" "Duración de Regeneración (s)"
+		"las" "Duración de Regeneración (s)"
+	}
+	"sm_ajb_boosts_regen_per_tick"
+	{
+		"en" "Regen healing per second (HP)"
+		"es" "Regeneración por segundo (HP)"
+		"las" "Regeneración por segundo (HP)"
+	}
 	"DB Editor"
 	{
 		"en" "Dodgeball"

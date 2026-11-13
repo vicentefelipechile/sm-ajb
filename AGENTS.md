@@ -235,6 +235,57 @@ Explicit close requests (including Cell Wars) opt out. Verification supports `fu
 `func_door_rotating`, `prop_door_rotating` and `func_movelinear`; custom brush/relay-only
 setups need identifiable physical door targets for verification.
 
+## Admin configuration editors
+
+`!ajb` exposes **Teleports** and **Configuration**, implemented in the core fragment
+`ajb/core_config_menu.sp`. `sm_ajb_teleports` and `sm_ajb_config_menu` require config access
+plus access to `sm_ajb`; permissions are rechecked on every menu action.
+
+Teleports save the living admin's feet position and eye angles for `freeday`, `combat_red`
+or `combat_blu` in the current short map's config. Removing a destination disables that
+teleport. Other keys, including legacy door configuration, are preserved. Saves reload only
+teleports and do not move players or fire doors. Menu map serials reject stale map selections.
+
+Configuration uses an explicit numeric ConVar list, grouped into rounds/teams, warden,
+wish modes and boosts, plus the two Freeday policy settings. Missing modules disable their
+groups. ConVar changes persist to their existing `cfg/sourcemod/ajb*.cfg` before applying
+the live value; native bounds are retained, with nonnegative fallbacks and fog ordering checks.
+Captured timers and round-start parameters take effect when their normal lifecycle next reads them.
+
+`include/ajb/config.inc` writes temporary files before replacement. ConVar edits preserve
+other lines and comments, updating duplicate standalone assignments consistently. Compound
+assignments, block comments and oversized lines are refused rather than rewritten unsafely.
+KeyValues exports preserve other keys but normalize formatting and remove comments.
+
+### In-game door editor
+
+`!ajb` → **Doors** opens `sm_ajb_doors_menu`, implemented in `ajb/core_doors_editor.sp`.
+It requires config access plus access to `sm_ajb`, rechecked on every action. Administrators
+can aim at a supported entity or select it from the full door-like entity list, then include,
+exclude or restore automatic detection. Saves use the existing safe KeyValues writer and
+preserve teleports, selectors and legacy flat layouts. Saving reloads selectors without firing doors.
+
+`doors.overrides` (or root `overrides` in legacy files) stores `name:<targetname>` or
+`hammer:<id>` keys with `1` to include and `0` to exclude. The editor prefers a targetname,
+which applies to its entire named group; unnamed entities use a positive Hammer ID. Restoring
+automatic detection removes the selected override. All input, output-hook and special-day
+verification paths use `AJB_IsCellDoorEntity`; a name/ID overlap sends only one input per pass.
+Round-start resets use this same selection instead of a second heuristic pass that could
+close excluded entities. `nofallback 1` restricts selection to configured targets and overrides.
+Proximity fallback checks matching entities, not just the presence of candidate names, and
+existing automatic Hammer caches load alongside named selectors.
+
+Map config stubs are built with native `KeyValues` and exported through the safe writer.
+`doors.targets` contains active cell-like names; `doors.candidates` retains other detected
+names as inactive references, replacing the former commented-out candidates.
+
+**Show markers** uses native `show_annotation` events sent only to the editing client,
+without changing entity glow or render state. Main/list menus mark included entities; a
+detail menu marks its selected entity even when excluded. Annotations show the current `[X]`
+state, name/class and Hammer ID. Per-client timers and annotation IDs are released on Back,
+Exit, interruption by another menu, disconnect, map end, mode disable and core unload.
+Map serials and entity references reject stale selections after resets or slot reuse.
+
 ## Database
 
 `ajb_admin` (guard bans) uses SQL via `configs/databases.cfg`. The entry name comes from
@@ -661,7 +712,8 @@ Exhaustive list generated from the source. `*_version` ConVars (one per plugin/m
 | `sm_ajb_setwarden <#userid\|name>` | GENERIC | Set warden |
 | `sm_ajb_rebel <#userid\|name> [0\|1]` | GENERIC | Mark/pardon rebel |
 | `sm_ajb_doors_reload` | CONFIG | Reload per-map doors + teleports (`configs/ajb/maps/<map>.cfg`) |
-| `sm_ajb_doors_list` | CONFIG | List configured door targetnames |
+| `sm_ajb_doors_list` | CONFIG | List door targetnames, automatic Hammer IDs and saved overrides |
+| `sm_ajb_doors_menu` | CONFIG | Open in-game door selection and private tutorial markers (also requires `sm_ajb` access) |
 | `sm_ajb_gen_config` | CONFIG | (Re)generate the per-map config stub from live entities (overwrites) |
 
 **Core — `ajb/core_warden_menu.sp`** (configurable warden menu)
@@ -708,6 +760,8 @@ may only run `sm_ajb_uw`/`sm_ajb_collisions`/`sm_ajb_friendlyfire`/page nav.
 | --- | --- | --- |
 | `sm_ajb_settings_reload` | CONFIG | Reload `configs/ajb/ajb_setting.cfg` |
 | `sm_ajb_prisoner_loadout_reload` | CONFIG | Reload `configs/ajb/prisoner_loadout.cfg` |
+| `sm_ajb_teleports` | CONFIG | Open the persistent per-map Freeday/combat teleport editor (also requires `sm_ajb` access) |
+| `sm_ajb_config_menu` | CONFIG | Open persistent round, warden, Freeday, wish and boost settings (also requires `sm_ajb` access) |
 
 **Module — `ajb_admin.sp`**
 

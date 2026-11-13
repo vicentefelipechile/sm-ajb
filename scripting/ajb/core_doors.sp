@@ -4,10 +4,8 @@
 
 // Per-map cfg: configs/ajb/maps/<map>.cfg
 // Doors + teleports (freeday / combat_red / combat_blu). Never invents coordinates.
-// Door entity cache: one edict walk per map stores every door-like ref; the fire/hook
-// paths re-evaluate their own name/hammer criteria over this cache instead of walking
-// all edicts per input (open/close fire up to 4 inputs per action).
-#define AJB_MAX_DOOR_CACHE  256
+// Cache entity references so door inputs do not rescan every entity in the map.
+#define AJB_MAX_DOOR_CACHE  2048
 #define AJB_CELLS_VERIFY_DELAY 10.0
 #define AJB_DOOR_TOGGLE_OPEN 0
 #define AJB_PROP_DOOR_OPEN 2
@@ -16,6 +14,7 @@
 int g_iDoorCache[AJB_MAX_DOOR_CACHE];
 int g_iDoorCacheCount;
 bool g_bCellsShouldBeOpen;
+StringMap g_hDoorOverrides;
 
 void AJB_BuildDoorCache()
 {
@@ -42,11 +41,13 @@ void AJB_BuildDoorCache()
 
 void AJB_LoadMapDoors()
 {
+	AJB_HookCellEntities(false);
+	if (g_hDoorOverrides == null) g_hDoorOverrides = new StringMap();
+	else g_hDoorOverrides.Clear();
 	g_iDoorNameCount = 0;
 	g_iDoorHammerCount = 0;
 	AJB_Settings_ClearTeleports();
-	// The door-like entity set only depends on the map — build it once up front so the
-	// nofallback early-return below cannot skip it (fire paths rely on it).
+	// Round resets can recreate doors with different entity references.
 	AJB_BuildDoorCache();
 
 	char fileMap[PLATFORM_MAX_PATH];
@@ -71,6 +72,7 @@ void AJB_LoadMapDoors()
 			{
 				nofallback = kv.GetNum("nofallback", 0) != 0;
 				AJB_LoadDoorTargetsFromKv(kv);
+				AJB_LoadDoorOverrides(kv);
 				kv.GoBack();
 			}
 			else
@@ -78,14 +80,7 @@ void AJB_LoadMapDoors()
 				// Legacy: root "AJBDoors" with top-level "targets" / flat names.
 				nofallback = kv.GetNum("nofallback", 0) != 0;
 				AJB_LoadDoorTargetsFromKv(kv);
-			}
-
-			if (nofallback && g_iDoorNameCount > 0)
-			{
-				LogMessage("[AJB] Loaded %d door target(s) from %s (nofallback).", g_iDoorNameCount, path);
-				delete kv;
-				AJB_HookCellEntities();
-				return;
+				AJB_LoadDoorOverrides(kv);
 			}
 		}
 		delete kv;
@@ -99,7 +94,7 @@ void AJB_LoadMapDoors()
 		}
 	}
 
-	if (g_iDoorNameCount == 0)
+	if (!nofallback && g_iDoorNameCount == 0)
 	{
 		AJB_AddDoorName("cells");
 		AJB_AddDoorName("cell_doors");
@@ -113,17 +108,21 @@ void AJB_LoadMapDoors()
 		AJB_AddDoorName("jail_door");
 	}
 
-	AJB_ScanDoorTargetnames();
-
-	// Last resort: nothing matched by config or name — detect by proximity to RED spawn.
-	if (g_iDoorNameCount == 0)
+	if (!nofallback)
 	{
-		AJB_AutoDetectCellDoors(fileMap);
+		AJB_ScanDoorTargetnames();
+		if (g_cvDoorAuto.BoolValue)
+		{
+			AJB_LoadDoorHammerCache(fileMap);
+			// Candidate names are not proof that a matching entity exists.
+			if (!AJB_HasDetectedCellDoorEntities()) AJB_AutoDetectCellDoors(fileMap);
+		}
 	}
 
 	AJB_HookCellEntities();
 
-	LogMessage("[AJB] Found %d doors (+%d auto by map id).", g_iDoorNameCount, g_iDoorHammerCount);
+	LogMessage("[AJB] Door selectors: %d names, %d automatic Hammer IDs, %d overrides.",
+		g_iDoorNameCount, g_iDoorHammerCount, g_hDoorOverrides.Size);
 }
 
 // From current KV node: "targets" { "1" "name" } and/or flat string children (legacy).
@@ -156,7 +155,8 @@ void AJB_LoadDoorTargetsFromKv(KeyValues kv)
 			char name[AJB_MAX_DOOR_NAME_LEN];
 			kv.GetSectionName(name, sizeof(name));
 			if (StrEqual(name, "targets", false) || StrEqual(name, "teleports", false)
-				|| StrEqual(name, "nofallback", false) || StrEqual(name, "doors", false))
+				|| StrEqual(name, "nofallback", false) || StrEqual(name, "doors", false)
+				|| StrEqual(name, "overrides", false) || StrEqual(name, "candidates", false))
 			{
 				continue;
 			}
@@ -301,12 +301,6 @@ void AJB_ResetCellsForRound()
 	AJB_FireDoorInput("Close");
 	AJB_FireDoorInput("Lock");
 
-	// Also every door-like entity whose targetname looks like a cell (covers soft resets
-	// where the config list is incomplete after entity index reshuffle).
-	AJB_FireAllCellLikeDoors("Unlock");
-	AJB_FireAllCellLikeDoors("Close");
-	AJB_FireAllCellLikeDoors("Lock");
-
 	g_hCellsResetRetry[0] = CreateTimer(0.15, Timer_CellsResetRetry, 0, TIMER_FLAG_NO_MAPCHANGE);
 	g_hCellsResetRetry[1] = CreateTimer(0.50, Timer_CellsResetRetry, 1, TIMER_FLAG_NO_MAPCHANGE);
 }
@@ -326,56 +320,7 @@ Action Timer_CellsResetRetry(Handle timer, int idx)
 
 	AJB_FireDoorInput("Close");
 	AJB_FireDoorInput("Lock");
-	AJB_FireAllCellLikeDoors("Close");
-	AJB_FireAllCellLikeDoors("Lock");
 	return Plugin_Stop;
-}
-
-void AJB_FireAllCellLikeDoors(const char[] input)
-{
-	char classname[64];
-	char name[128];
-
-	for (int c = 0; c < g_iDoorCacheCount; c++)
-	{
-		int ent = EntRefToEntIndex(g_iDoorCache[c]);
-		if (ent == INVALID_ENT_REFERENCE || !IsValidEntity(ent))
-		{
-			continue;
-		}
-
-		GetEntityClassname(ent, classname, sizeof(classname));
-		if (!AJB_IsDoorLikeClass(classname))
-		{
-			continue;
-		}
-
-		if (StrEqual(classname, "logic_relay", false) || StrContains(classname, "button", false) != -1)
-		{
-			continue; // Never fire map logic blindly by heuristic name match
-		}
-
-		if (!HasEntProp(ent, Prop_Data, "m_iName"))
-		{
-			continue;
-		}
-
-		GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
-		if (name[0] == '\0')
-		{
-			continue;
-		}
-
-		if (StrContains(name, "cell", false) == -1
-			&& StrContains(name, "jail", false) == -1
-			&& StrContains(name, "prison", false) == -1
-			&& StrContains(name, "cage", false) == -1)
-		{
-			continue;
-		}
-
-		AcceptEntityInput(ent, input);
-	}
 }
 
 bool AJB_OpenCellsInternal(bool announce)
@@ -533,7 +478,7 @@ void AJB_SendEntityDoorInput(int ent, const char[] input)
 
 public void EntityOutput_OnCellDoorOpened(const char[] output, int caller, int activator, float delay)
 {
-	if (!g_bModeActive)
+	if (!g_bModeActive || !AJB_IsCellDoorEntity(caller))
 	{
 		return;
 	}
@@ -555,7 +500,7 @@ public void EntityOutput_OnCellDoorOpened(const char[] output, int caller, int a
 
 public void EntityOutput_OnCellDoorClosed(const char[] output, int caller, int activator, float delay)
 {
-	if (!g_bModeActive)
+	if (!g_bModeActive || !AJB_IsCellDoorEntity(caller))
 	{
 		return;
 	}
@@ -572,8 +517,19 @@ public void EntityOutput_OnCellDoorClosed(const char[] output, int caller, int a
 	Call_Finish();
 }
 
-bool AJB_IsCellDoorEntity(int ent)
+bool AJB_IsCellDoorEntity(int ent, bool useOverrides = true)
 {
+	if (ent <= MaxClients || !IsValidEntity(ent)) return false;
+	int hammerOverride = -1, nameOverride = -1;
+	if (useOverrides && g_hDoorOverrides != null)
+	{
+		char nameKey[AJB_MAX_DOOR_NAME_LEN + 16], hammerKey[32];
+		AJB_DoorOverrideKeys(ent, nameKey, sizeof(nameKey), hammerKey, sizeof(hammerKey));
+		g_hDoorOverrides.GetValue(hammerKey, hammerOverride);
+		g_hDoorOverrides.GetValue(nameKey, nameOverride);
+	}
+	if (hammerOverride == 0 || (nameOverride == 0 && hammerOverride != 1)) return false;
+	if (nameOverride == 1) return true;
 	char name[128];
 	if (HasEntProp(ent, Prop_Data, "m_iName"))
 	{
@@ -587,8 +543,62 @@ bool AJB_IsCellDoorEntity(int ent)
 		}
 	}
 
-	return HasEntProp(ent, Prop_Data, "m_iHammerID")
-		&& AJB_DoorHammerKnown(GetEntProp(ent, Prop_Data, "m_iHammerID"));
+	return hammerOverride == 1 || (HasEntProp(ent, Prop_Data, "m_iHammerID")
+		&& AJB_DoorHammerKnown(GetEntProp(ent, Prop_Data, "m_iHammerID")));
+}
+
+bool AJB_HasDetectedCellDoorEntities()
+{
+	for (int c = 0; c < g_iDoorCacheCount; c++)
+		if (AJB_IsCellDoorEntity(EntRefToEntIndex(g_iDoorCache[c]), false)) return true;
+	return false;
+}
+
+void AJB_DoorOverrideKeys(int ent, char[] nameKey, int nameLen, char[] hammerKey, int hammerLen)
+{
+	nameKey[0] = '\0';
+	hammerKey[0] = '\0';
+	char name[128];
+	if (HasEntProp(ent, Prop_Data, "m_iName")) GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
+	if (name[0] != '\0' && strlen(name) < AJB_MAX_DOOR_NAME_LEN)
+	{
+		Format(nameKey, nameLen, "name:%s", name);
+		for (int i = 0; nameKey[i] != '\0'; i++) nameKey[i] = CharToLower(nameKey[i]);
+	}
+	if (HasEntProp(ent, Prop_Data, "m_iHammerID"))
+	{
+		int hammerId = GetEntProp(ent, Prop_Data, "m_iHammerID");
+		if (hammerId > 0) Format(hammerKey, hammerLen, "hammer:%d", hammerId);
+	}
+}
+
+void AJB_LoadDoorOverrides(KeyValues kv)
+{
+	if (!kv.JumpToKey("overrides")) return;
+	if (kv.GotoFirstSubKey(false))
+	{
+		do
+		{
+			char key[AJB_MAX_DOOR_NAME_LEN + 16];
+			kv.GetSectionName(key, sizeof(key));
+			int value = kv.GetNum(NULL_STRING, -1);
+			int hammerId;
+			bool hammerKey = StrContains(key, "hammer:") == 0
+				&& StringToIntEx(key[7], hammerId) == strlen(key[7]) && hammerId > 0;
+			if ((value == 0 || value == 1)
+				&& ((StrContains(key, "name:") == 0 && key[5] != '\0' && strlen(key[5]) < AJB_MAX_DOOR_NAME_LEN)
+				|| hammerKey))
+			{
+				if (hammerKey) Format(key, sizeof(key), "hammer:%d", hammerId);
+				else for (int i = 0; key[i] != '\0'; i++) key[i] = CharToLower(key[i]);
+				g_hDoorOverrides.SetValue(key, value);
+			}
+			else LogError("[AJB] Invalid door override: %s", key);
+		}
+		while (kv.GotoNextKey(false));
+		kv.GoBack();
+	}
+	kv.GoBack();
 }
 
 bool AJB_CellDoorNeedsOpen(int ent)
@@ -659,7 +669,7 @@ Action Timer_VerifySpecialDayCells(Handle timer, int roundSerial)
 	return Plugin_Stop;
 }
 
-void AJB_HookCellEntities()
+void AJB_HookCellEntities(bool enabled = true)
 {
 	char classname[64];
 
@@ -673,26 +683,30 @@ void AJB_HookCellEntities()
 
 		GetEntityClassname(ent, classname, sizeof(classname));
 
-		if (AJB_IsCellDoorEntity(ent))
+		bool selected = enabled && AJB_IsCellDoorEntity(ent);
+		if (StrContains(classname, "button", false) != -1)
 		{
-			if (StrContains(classname, "button", false) != -1)
+			UnhookSingleEntityOutput(ent, "OnPressed", EntityOutput_OnCellDoorOpened);
+			UnhookSingleEntityOutput(ent, "OnUse", EntityOutput_OnCellDoorOpened);
+			if (selected)
 			{
-				UnhookSingleEntityOutput(ent, "OnPressed", EntityOutput_OnCellDoorOpened);
-				UnhookSingleEntityOutput(ent, "OnUse", EntityOutput_OnCellDoorOpened);
 				HookSingleEntityOutput(ent, "OnPressed", EntityOutput_OnCellDoorOpened);
 				HookSingleEntityOutput(ent, "OnUse", EntityOutput_OnCellDoorOpened);
 			}
-			else if (StrEqual(classname, "logic_relay", false))
+		}
+		else if (StrEqual(classname, "logic_relay", false))
+		{
+			UnhookSingleEntityOutput(ent, "OnTrigger", EntityOutput_OnCellDoorOpened);
+			if (selected) HookSingleEntityOutput(ent, "OnTrigger", EntityOutput_OnCellDoorOpened);
+		}
+		else
+		{
+			UnhookSingleEntityOutput(ent, "OnOpen", EntityOutput_OnCellDoorOpened);
+			UnhookSingleEntityOutput(ent, "OnFullyOpen", EntityOutput_OnCellDoorOpened);
+			UnhookSingleEntityOutput(ent, "OnClose", EntityOutput_OnCellDoorClosed);
+			UnhookSingleEntityOutput(ent, "OnFullyClosed", EntityOutput_OnCellDoorClosed);
+			if (selected)
 			{
-				UnhookSingleEntityOutput(ent, "OnTrigger", EntityOutput_OnCellDoorOpened);
-				HookSingleEntityOutput(ent, "OnTrigger", EntityOutput_OnCellDoorOpened);
-			}
-			else
-			{
-				UnhookSingleEntityOutput(ent, "OnOpen", EntityOutput_OnCellDoorOpened);
-				UnhookSingleEntityOutput(ent, "OnFullyOpen", EntityOutput_OnCellDoorOpened);
-				UnhookSingleEntityOutput(ent, "OnClose", EntityOutput_OnCellDoorClosed);
-				UnhookSingleEntityOutput(ent, "OnFullyClosed", EntityOutput_OnCellDoorClosed);
 				HookSingleEntityOutput(ent, "OnOpen", EntityOutput_OnCellDoorOpened);
 				HookSingleEntityOutput(ent, "OnFullyOpen", EntityOutput_OnCellDoorOpened);
 				HookSingleEntityOutput(ent, "OnClose", EntityOutput_OnCellDoorClosed);
@@ -705,35 +719,16 @@ void AJB_HookCellEntities()
 int AJB_FireDoorInput(const char[] input)
 {
 	int touched = 0;
-
-	for (int i = 0; i < g_iDoorNameCount; i++)
+	for (int c = 0; c < g_iDoorCacheCount; c++)
 	{
-		// Walk the per-map door cache (refs) instead of re-scanning all edicts per name.
-		for (int c = 0; c < g_iDoorCacheCount; c++)
+		int ent = EntRefToEntIndex(g_iDoorCache[c]);
+		// Name matching and Hammer fallback share one decision, so each entity fires once.
+		if (AJB_IsCellDoorEntity(ent))
 		{
-			int ent = EntRefToEntIndex(g_iDoorCache[c]);
-			if (ent == INVALID_ENT_REFERENCE || !IsValidEntity(ent))
-			{
-				continue;
-			}
-
-			if (!HasEntProp(ent, Prop_Data, "m_iName"))
-			{
-				continue;
-			}
-
-			char name[128];
-			GetEntPropString(ent, Prop_Data, "m_iName", name, sizeof(name));
-			if (StrEqual(name, g_sDoorNames[i], false))
-			{
-				AJB_SendEntityDoorInput(ent, input);
-				touched++;
-			}
+			AJB_SendEntityDoorInput(ent, input);
+			touched++;
 		}
 	}
-
-	// Auto-detected doors are addressed by stable map id (covers unnamed cell doors).
-	touched += AJB_FireDoorHammerInput(input);
 	return touched;
 }
 
@@ -748,12 +743,7 @@ void AJB_AutoDetectCellDoors(const char[] fileMap)
 		return;
 	}
 
-	// Cached hammerids are stable per map; reuse them and skip the scan.
-	if (AJB_LoadDoorHammerCache(fileMap))
-	{
-		LogMessage("[AJB] Auto-doors: loaded %d cached map id(s) for %s.", g_iDoorHammerCount, fileMap);
-		return;
-	}
+	g_iDoorHammerCount = 0;
 
 	float spawns[MAXPLAYERS][3];
 	int spawnCount = AJB_CollectRedSpawns(spawns, MAXPLAYERS);
@@ -873,7 +863,7 @@ float AJB_MinDistToSpawns(const float pos[3], const float spawns[][3], int count
 
 void AJB_AddDoorHammerId(int hid)
 {
-	if (hid == 0 || g_iDoorHammerCount >= AJB_MAX_DOOR_NAMES)
+	if (hid <= 0 || g_iDoorHammerCount >= AJB_MAX_DOOR_NAMES)
 	{
 		return;
 	}
@@ -899,45 +889,6 @@ bool AJB_DoorHammerKnown(int hid)
 		}
 	}
 	return false;
-}
-
-int AJB_FireDoorHammerInput(const char[] input)
-{
-	if (g_iDoorHammerCount == 0)
-	{
-		return 0;
-	}
-
-	int touched = 0;
-	char classname[64];
-
-	for (int c = 0; c < g_iDoorCacheCount; c++)
-	{
-		int ent = EntRefToEntIndex(g_iDoorCache[c]);
-		if (ent == INVALID_ENT_REFERENCE || !IsValidEntity(ent))
-		{
-			continue;
-		}
-
-		GetEntityClassname(ent, classname, sizeof(classname));
-		if (!AJB_IsDoorLikeClass(classname))
-		{
-			continue;
-		}
-
-		if (!HasEntProp(ent, Prop_Data, "m_iHammerID"))
-		{
-			continue;
-		}
-
-		if (AJB_DoorHammerKnown(GetEntProp(ent, Prop_Data, "m_iHammerID")))
-		{
-			AJB_SendEntityDoorInput(ent, input);
-			touched++;
-		}
-	}
-
-	return touched;
 }
 
 bool AJB_LoadDoorHammerCache(const char[] fileMap)
@@ -1077,64 +1028,36 @@ bool AJB_GenerateMapConfigStub(const char[] fileMap, bool overwrite)
 	char names[AJB_MAX_DOOR_NAMES][AJB_MAX_DOOR_NAME_LEN];
 	int count = AJB_CollectDoorLikeNames(names, AJB_MAX_DOOR_NAMES, true);
 
-	File f = OpenFile(path, "w");
-	if (f == null)
+	KeyValues kv = new KeyValues("AJB");
+	kv.JumpToKey("teleports", true);
+	for (int i = 0; i < sizeof(g_sTeleportKeys); i++)
 	{
-		LogError("[AJB] Config stub: cannot write %s.", path);
-		return false;
+		kv.JumpToKey(g_sTeleportKeys[i], true);
+		kv.SetString("origin", "");
+		kv.SetString("angles", "");
+		kv.GoBack();
 	}
-
-	f.WriteLine("\"AJB\"");
-	f.WriteLine("{");
-	f.WriteLine("\t// Auto-generated stub for %s. Edit, then: sm_ajb_settings_reload + sm_ajb_doors_reload.", fileMap);
-	f.WriteLine("\t// Teleports need REAL coords. Empty origin = disabled (AJB never invents coordinates).");
-	f.WriteLine("");
-	f.WriteLine("\t\"teleports\"");
-	f.WriteLine("\t{");
-	f.WriteLine("\t\t\"freeday\"    { \"origin\" \"\"  \"angles\" \"\" }");
-	f.WriteLine("\t\t\"combat_red\" { \"origin\" \"\"  \"angles\" \"\" }");
-	f.WriteLine("\t\t\"combat_blu\" { \"origin\" \"\"  \"angles\" \"\" }");
-	f.WriteLine("\t}");
-	f.WriteLine("");
-	f.WriteLine("\t\"doors\"");
-	f.WriteLine("\t{");
-	f.WriteLine("\t\t// nofallback 1 = use ONLY the targets below (ignore name guessing + auto-detect).");
-	f.WriteLine("\t\t\"nofallback\"  \"0\"");
-	f.WriteLine("\t\t\"targets\"");
-	f.WriteLine("\t\t{");
-
-	int idx = 0;
-
-	// Active: only names that look like cells (safe to fire Open/Close/Lock on).
-	f.WriteLine("\t\t\t// Detected cell-like doors (active):");
-	for (int i = 0; i < count; i++)
+	kv.GoBack();
+	kv.JumpToKey("doors", true);
+	kv.SetNum("nofallback", 0);
+	kv.JumpToKey("overrides", true);
+	kv.GoBack();
+	// Keep non-cell candidates available for manual configuration without activating them.
+	for (int group = 0; group < 2; group++)
 	{
-		if (AJB_NameLooksCellish(names[i]))
+		kv.JumpToKey(group == 0 ? "targets" : "candidates", true);
+		int index;
+		for (int i = 0; i < count; i++)
 		{
-			f.WriteLine("\t\t\t\"%d\"  \"%s\"", ++idx, names[i]);
+			if (AJB_NameLooksCellish(names[i]) != (group == 0)) continue;
+			char key[12];
+			IntToString(++index, key, sizeof(key));
+			kv.SetString(key, names[i]);
 		}
+		kv.GoBack();
 	}
-	if (idx == 0)
-	{
-		f.WriteLine("\t\t\t// (none matched cell/jail/prison/cage — unnamed cells rely on sm_ajb_door_auto).");
-	}
-
-	// Commented: every other door-like entity — admin uncomments any that are also cells.
-	f.WriteLine("");
-	f.WriteLine("\t\t\t// Other door-like entities — uncomment any that are also cells:");
-	for (int i = 0; i < count; i++)
-	{
-		if (!AJB_NameLooksCellish(names[i]))
-		{
-			f.WriteLine("\t\t\t// \"%d\"  \"%s\"", ++idx, names[i]);
-		}
-	}
-
-	f.WriteLine("\t\t}");
-	f.WriteLine("\t}");
-	f.WriteLine("}");
-
-	delete f;
-	LogMessage("[AJB] Config stub written: %s (%d door target(s)).", path, count);
-	return true;
+	bool saved = AJB_Config_Write(kv, path);
+	delete kv;
+	if (saved) LogMessage("[AJB] Config stub written: %s (%d door target(s)).", path, count);
+	return saved;
 }
